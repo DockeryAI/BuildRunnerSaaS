@@ -11,7 +11,12 @@
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "verify:env": "ts-node buildrunner/scripts/verify-env.ts",
-    "lint:spec": "node dist/index.js lint"
+    "lint:spec": "node dist/index.js lint",
+    "sb:link": "supabase link --project-ref $SUPABASE_PROJECT_REF",
+    "sb:migrate": "supabase migration up",
+    "sb:serve:functions": "supabase functions serve",
+    "sb:deploy:sync": "supabase functions deploy spec-sync",
+    "sb:deploy:diff": "supabase functions deploy spec-diff"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.78.0",
