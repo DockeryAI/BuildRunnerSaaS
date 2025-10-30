@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.4.0",
-  "updatedAt": "2025-10-30T22:30:00.000Z",
+  "version": "0.5.0",
+  "updatedAt": "2025-10-30T23:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -279,6 +279,72 @@
           ]
         }
       ]
+    },
+    {
+      "id": "p5",
+      "title": "Flow Inspector + Timeline",
+      "steps": [
+        {
+          "id": "p5.s1",
+          "title": "Graph View (Flow Inspector)",
+          "microsteps": [
+            {
+              "id": "p5.s1.ms1",
+              "title": "Data API",
+              "status": "done",
+              "criteria": ["API returns structured JSON with UUIDs and status fields; validated by Zod"]
+            },
+            {
+              "id": "p5.s1.ms2",
+              "title": "Graph renderer",
+              "status": "done",
+              "criteria": ["Graph renders without errors; zoom/pan works"]
+            },
+            {
+              "id": "p5.s1.ms3",
+              "title": "Node interactions",
+              "status": "done",
+              "criteria": ["Drawer opens; links open PR/test URLs"]
+            },
+            {
+              "id": "p5.s1.ms4",
+              "title": "Drift indicators",
+              "status": "done",
+              "criteria": ["Visual flag appears when spec-diff reports mismatch"]
+            }
+          ]
+        },
+        {
+          "id": "p5.s2",
+          "title": "Timeline View & Progress Analytics",
+          "microsteps": [
+            {
+              "id": "p5.s2.ms1",
+              "title": "Timeline API",
+              "status": "done",
+              "criteria": ["JSON includes phase, step, microstep, actor, action, created_at"]
+            },
+            {
+              "id": "p5.s2.ms2",
+              "title": "Timeline UI",
+              "status": "done",
+              "criteria": ["Chart renders with legend and tooltip; data syncs to events table"]
+            },
+            {
+              "id": "p5.s2.ms3",
+              "title": "Progress badges",
+              "status": "done",
+              "criteria": ["% matches calculated from Supabase rows (status = done)"]
+            },
+            {
+              "id": "p5.s2.ms4",
+              "title": "Auto-refresh",
+              "status": "done",
+              "criteria": ["Graph & timeline update in place without reload"]
+            }
+          ]
+        }
+      ]
     }
   ],
   "changeHistory": [
@@ -336,6 +402,29 @@
         "apps/web/lib/types.ts",
         "apps/web/lib/utils.ts",
         ".github/pull_request_template.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-30T23:00:00.000Z",
+      "version": "0.5.0",
+      "phase": 5,
+      "description": "Completed Phase 5 - Flow Inspector + Timeline. Implemented visual flow graph with ReactFlow showing hierarchical milestone→step→microstep relationships, drift indicators from spec-diff API, comprehensive timeline analytics with Recharts, progress cards with velocity tracking, and auto-refresh functionality. Added Flow and Timeline pages with interactive node details, progress summaries, and real-time data updates.",
+      "author": "Auggie",
+      "microsteps_completed": 8,
+      "files_added": [
+        "apps/web/lib/flow.ts",
+        "apps/web/lib/timeline.ts",
+        "apps/web/components/flow/FlowGraph.tsx",
+        "apps/web/components/flow/NodeDrawer.tsx",
+        "apps/web/components/flow/nodes/MilestoneNode.tsx",
+        "apps/web/components/flow/nodes/StepNode.tsx",
+        "apps/web/components/flow/nodes/MicrostepNode.tsx",
+        "apps/web/components/timeline/TimelineChart.tsx",
+        "apps/web/components/timeline/ProgressCards.tsx",
+        "apps/web/components/ui/badge.tsx",
+        "apps/web/app/(app)/flow/page.tsx",
+        "apps/web/app/(app)/timeline/page.tsx",
+        "apps/web/app/api/spec-diff/route.ts"
       ]
     }
   ]

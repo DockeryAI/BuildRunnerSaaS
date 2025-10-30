@@ -1,15 +1,16 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.4.0",
-  "updatedAt": "2025-10-30T22:30:00.000Z",
-  "phase": 4,
+  "version": "0.5.0",
+  "updatedAt": "2025-10-30T23:00:00.000Z",
+  "phase": 5,
   "step": "final",
   "sync": {
-    "lastLocalUpdate": "2025-10-30T22:30:00.000Z",
+    "lastLocalUpdate": "2025-10-30T23:00:00.000Z",
     "lastRemoteUpdate": null,
     "phase3_completed": true,
-    "phase4_completed": true
+    "phase4_completed": true,
+    "phase5_completed": true
   },
   "milestones": [
     {
@@ -283,6 +284,72 @@
               "title": "Version bump + history",
               "status": "done",
               "criteria": ["br lint passes; state timestamps updated"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p5",
+      "title": "Flow Inspector + Timeline",
+      "steps": [
+        {
+          "id": "p5.s1",
+          "title": "Graph View (Flow Inspector)",
+          "microsteps": [
+            {
+              "id": "p5.s1.ms1",
+              "title": "Data API",
+              "status": "done",
+              "criteria": ["API returns structured JSON with UUIDs and status fields; validated by Zod"]
+            },
+            {
+              "id": "p5.s1.ms2",
+              "title": "Graph renderer",
+              "status": "done",
+              "criteria": ["Graph renders without errors; zoom/pan works"]
+            },
+            {
+              "id": "p5.s1.ms3",
+              "title": "Node interactions",
+              "status": "done",
+              "criteria": ["Drawer opens; links open PR/test URLs"]
+            },
+            {
+              "id": "p5.s1.ms4",
+              "title": "Drift indicators",
+              "status": "done",
+              "criteria": ["Visual flag appears when spec-diff reports mismatch"]
+            }
+          ]
+        },
+        {
+          "id": "p5.s2",
+          "title": "Timeline View & Progress Analytics",
+          "microsteps": [
+            {
+              "id": "p5.s2.ms1",
+              "title": "Timeline API",
+              "status": "done",
+              "criteria": ["JSON includes phase, step, microstep, actor, action, created_at"]
+            },
+            {
+              "id": "p5.s2.ms2",
+              "title": "Timeline UI",
+              "status": "done",
+              "criteria": ["Chart renders with legend and tooltip; data syncs to events table"]
+            },
+            {
+              "id": "p5.s2.ms3",
+              "title": "Progress badges",
+              "status": "done",
+              "criteria": ["% matches calculated from Supabase rows (status = done)"]
+            },
+            {
+              "id": "p5.s2.ms4",
+              "title": "Auto-refresh",
+              "status": "done",
+              "criteria": ["Graph & timeline update in place without reload"]
             }
           ]
         }
