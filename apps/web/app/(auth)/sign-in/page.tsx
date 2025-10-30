@@ -16,18 +16,35 @@ export default function SignInPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with:', { email, password });
     setIsLoading(true);
     setError('');
 
     try {
+      console.log('Calling signIn...');
       await signIn(email, password);
-      router.push('/create');
+      console.log('SignIn successful, redirecting to /create');
+
+      // Try both router.push and window.location
+      setTimeout(() => {
+        console.log('Attempting redirect...');
+        router.push('/create');
+        // Fallback
+        setTimeout(() => {
+          window.location.href = '/create';
+        }, 1000);
+      }, 100);
     } catch (error) {
       console.error('Sign in error:', error);
       setError(error instanceof Error ? error.message : 'Sign in failed');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAdminLogin = () => {
+    setEmail('admin@dockeryai.com');
+    setPassword('admin123');
   };
 
   return (
@@ -93,9 +110,22 @@ export default function SignInPage() {
             </Button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-3">
+            <div className="border-t border-gray-200 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleAdminLogin}
+              >
+                Fill Admin Credentials
+              </Button>
+            </div>
             <p className="text-sm text-gray-600">
-              Demo Mode: Use any email/password to continue
+              Admin: admin@dockeryai.com / admin123
+            </p>
+            <p className="text-xs text-gray-500">
+              Or use any other email/password for demo mode
             </p>
           </div>
         </form>

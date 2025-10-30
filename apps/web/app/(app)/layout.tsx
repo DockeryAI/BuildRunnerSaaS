@@ -24,6 +24,7 @@ import { cn } from '../../lib/utils';
 const navigation = [
   { name: 'Create', href: '/create', icon: FileText },
   { name: 'Plan', href: '/plan', icon: Edit3 },
+  { name: 'Flow', href: '/flow', icon: GitMerge },
   { name: 'Workbench', href: '/workbench', icon: Wrench },
   { name: 'Reconcile', href: '/reconcile', icon: GitMerge },
   { name: 'Tests', href: '/tests', icon: CheckSquare },
