@@ -2,6 +2,7 @@
 import 'dotenv/config';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import { lintCommand } from './commands/lint.js';
 
 yargs(hideBin(process.argv))
   .scriptName('buildrunner')
@@ -13,6 +14,14 @@ yargs(hideBin(process.argv))
   })
   .command('status', 'Show milestone/step/microstep status', () => {}, async () => {
     console.log('[stub] status: print summary table');
+  })
+  .command('lint [spec]', 'Validate build spec against schema', (yargs) => {
+    yargs.positional('spec', {
+      describe: 'Path to build spec file',
+      type: 'string'
+    });
+  }, async (argv) => {
+    await lintCommand(argv.spec as string);
   })
   .demandCommand()
   .help()
