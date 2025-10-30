@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.2.0",
-  "updatedAt": "2025-10-30T21:30:00.000Z",
+  "version": "0.3.0",
+  "updatedAt": "2025-10-30T22:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -140,6 +140,115 @@
             }
           ]
         }
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Supabase Provisioner & One-Click Backend",
+      "steps": [
+        {
+          "id": "p3.s1",
+          "title": "Provisioner service (server-side)",
+          "microsteps": [
+            {
+              "id": "p3.s1.ms1",
+              "title": "OAuth/PAT intake routes + encrypted vault",
+              "status": "done",
+              "criteria": ["OAuth flow completes; token encrypted server-side; no secrets in client"]
+            },
+            {
+              "id": "p3.s1.ms2",
+              "title": "Create project via Management API",
+              "status": "done",
+              "criteria": ["Management API creates project; project_ref recorded"]
+            },
+            {
+              "id": "p3.s1.ms3",
+              "title": "Fetch API keys to vault",
+              "status": "done",
+              "criteria": ["Keys fetched & stored in vault; client sees only masked publishable info"]
+            },
+            {
+              "id": "p3.s1.ms4",
+              "title": "Local developer convenience",
+              "status": "done",
+              "criteria": ["Local .env updated with URL+ANON; runner_state.json timestamps updated"]
+            }
+          ]
+        },
+        {
+          "id": "p3.s2",
+          "title": "Automated DB & Edge Functions",
+          "microsteps": [
+            {
+              "id": "p3.s2.ms1",
+              "title": "Baseline idempotent schema",
+              "status": "done",
+              "criteria": ["SQL lint OK; re-running is safe (idempotent)"]
+            },
+            {
+              "id": "p3.s2.ms2",
+              "title": "Programmatic migration apply",
+              "status": "done",
+              "criteria": ["Tables exist; runner_events action=migration_applied"]
+            },
+            {
+              "id": "p3.s2.ms3",
+              "title": "Deploy/verify Edge Functions",
+              "status": "done",
+              "criteria": ["Deploy returns success; health check 200; log runner_events action=functions_deployed"]
+            }
+          ]
+        },
+        {
+          "id": "p3.s3",
+          "title": "UI: One-Click Create Backend",
+          "microsteps": [
+            {
+              "id": "p3.s3.ms1",
+              "title": "Settings→Backend page",
+              "status": "done",
+              "criteria": ["UX shows deterministic step progression; errors are actionable"]
+            },
+            {
+              "id": "p3.s3.ms2",
+              "title": "Success + diagnostics",
+              "status": "done",
+              "criteria": ["All checks green, or clear error message with retry"]
+            },
+            {
+              "id": "p3.s3.ms3",
+              "title": "Plan/state completion & change history",
+              "status": "done",
+              "criteria": ["Lint passes; version bumped (0.3.0), updatedAt set; files committed"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "changeHistory": [
+    {
+      "timestamp": "2025-10-30T22:00:00.000Z",
+      "version": "0.3.0",
+      "phase": 3,
+      "description": "Completed Phase 3 - Supabase Provisioner & One-Click Backend. Added fully automated backend provisioning with OAuth integration, encrypted vault storage, programmatic project creation, database migration, edge function deployment, and comprehensive UI workflow.",
+      "author": "Auggie",
+      "microsteps_completed": 10,
+      "files_added": [
+        "apps/server/lib/vault.ts",
+        "apps/server/lib/supabaseMgmt.ts",
+        "apps/web/app/api/provision/auth/start/route.ts",
+        "apps/web/app/api/provision/auth/callback/route.ts",
+        "apps/web/app/api/provision/projects/route.ts",
+        "apps/web/app/api/provision/keys/route.ts",
+        "apps/web/app/api/provision/setup-local/route.ts",
+        "apps/web/app/api/provision/migrate/route.ts",
+        "apps/web/app/api/provision/functions/route.ts",
+        "apps/web/app/api/provision/health/route.ts",
+        "apps/web/app/settings/backend/page.tsx",
+        "apps/web/components/provision/StatusCard.tsx",
+        "supabase/migrations/20251030000001_Phase3-baseline.sql"
       ]
     }
   ]

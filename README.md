@@ -124,11 +124,33 @@ Required environment variables:
 3. **Test**: Run `npm run test` to execute test suite
 4. **Verify**: Run `npm run verify:env` to check environment setup
 
-## Next Steps
+## One-Click Backend Setup
 
-This is Phase 1 - Step 1 of the BuildRunner SaaS project. Future phases will add:
+Phase 3 introduces fully automated Supabase backend provisioning:
 
-- Remote state synchronization with Supabase
-- Advanced CLI commands and reporting
-- Web dashboard for project visualization
-- Multi-project support and team collaboration
+1. **Navigate to Settings**: Go to `/settings/backend` in the web app
+2. **Connect Supabase**: Provide your Personal Access Token and Organization ID
+3. **Automated Setup**: The system will:
+   - Create a new Supabase project
+   - Apply database schema migrations
+   - Deploy edge functions
+   - Configure your local environment
+   - Run health checks
+
+### Environment Variables (Phase 3)
+
+For the provisioning service, add these server-side variables:
+
+```bash
+# Server-side only (never expose to client)
+SUPABASE_MGMT_BASE=https://api.supabase.com
+VAULT_ENCRYPTION_KEY=your-32-character-encryption-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Architecture
+
+- **Phase 1**: Repository scaffolding and CLI foundation
+- **Phase 2**: Schema expansion and Supabase integration
+- **Phase 3**: Automated backend provisioning with UI
+- **Phase 4**: UI MVP and team collaboration (coming next)
