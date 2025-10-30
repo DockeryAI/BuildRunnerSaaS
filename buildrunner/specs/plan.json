@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.3.0",
-  "updatedAt": "2025-10-30T22:00:00.000Z",
+  "version": "0.4.0",
+  "updatedAt": "2025-10-30T22:30:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -225,6 +225,60 @@
           ]
         }
       ]
+    },
+    {
+      "id": "p4",
+      "title": "UI MVP (Create/Plan/Workbench/Reconcile/Tests/Settings)",
+      "steps": [
+        {
+          "id": "p4.s1",
+          "title": "App Shell, Auth, Navigation",
+          "microsteps": [
+            {
+              "id": "p4.s1.ms1",
+              "title": "Scaffold app shell",
+              "status": "done",
+              "criteria": ["Layout renders; routes load; Tailwind works"]
+            },
+            {
+              "id": "p4.s1.ms2",
+              "title": "Supabase Auth integration",
+              "status": "done",
+              "criteria": ["Unauthed users redirected to sign-in"]
+            },
+            {
+              "id": "p4.s1.ms3",
+              "title": "Project selector",
+              "status": "done",
+              "criteria": ["Current project reflected across pages"]
+            }
+          ]
+        },
+        {
+          "id": "p4.s2",
+          "title": "Create (Prompt → Plan)",
+          "microsteps": [
+            {
+              "id": "p4.s2.ms1",
+              "title": "Create page UI",
+              "status": "done",
+              "criteria": ["Validates non-empty prompt"]
+            },
+            {
+              "id": "p4.s2.ms2",
+              "title": "Prompt → Build Spec",
+              "status": "done",
+              "criteria": ["Plan appears in Plan Editor after save; diff view shows new Phase/Steps"]
+            },
+            {
+              "id": "p4.s2.ms3",
+              "title": "Version bump + history",
+              "status": "done",
+              "criteria": ["br lint passes; state timestamps updated"]
+            }
+          ]
+        }
+      ]
     }
   ],
   "changeHistory": [
@@ -249,6 +303,39 @@
         "apps/web/app/settings/backend/page.tsx",
         "apps/web/components/provision/StatusCard.tsx",
         "supabase/migrations/20251030000001_Phase3-baseline.sql"
+      ]
+    },
+    {
+      "timestamp": "2025-10-30T22:30:00.000Z",
+      "version": "0.4.0",
+      "phase": 4,
+      "description": "Completed Phase 4 - UI MVP. Implemented app shell with sidebar navigation, Supabase Auth integration, project selector, and Create page with prompt-to-plan generation. Established foundation for Plan Editor, Workbench, Reconcile, Tests, and Settings pages with proper routing and state management.",
+      "author": "Auggie",
+      "microsteps_completed": 6,
+      "files_added": [
+        "apps/web/app/layout.tsx",
+        "apps/web/app/globals.css",
+        "apps/web/app/(app)/layout.tsx",
+        "apps/web/app/(auth)/sign-in/page.tsx",
+        "apps/web/app/(app)/create/page.tsx",
+        "apps/web/app/(app)/plan/page.tsx",
+        "apps/web/app/(app)/workbench/page.tsx",
+        "apps/web/app/(app)/reconcile/page.tsx",
+        "apps/web/app/(app)/tests/page.tsx",
+        "apps/web/app/(app)/settings/page.tsx",
+        "apps/web/app/api/plans/generate/route.ts",
+        "apps/web/app/api/plans/local/route.ts",
+        "apps/web/components/ui/button.tsx",
+        "apps/web/components/ui/input.tsx",
+        "apps/web/components/ui/textarea.tsx",
+        "apps/web/components/auth/ProtectedRoute.tsx",
+        "apps/web/components/project/ProjectSelector.tsx",
+        "apps/web/lib/auth.tsx",
+        "apps/web/lib/project.tsx",
+        "apps/web/lib/api.ts",
+        "apps/web/lib/types.ts",
+        "apps/web/lib/utils.ts",
+        ".github/pull_request_template.md"
       ]
     }
   ]

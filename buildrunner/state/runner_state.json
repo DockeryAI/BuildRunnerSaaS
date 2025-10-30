@@ -1,14 +1,15 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.3.0",
-  "updatedAt": "2025-10-30T22:00:00.000Z",
-  "phase": 3,
+  "version": "0.4.0",
+  "updatedAt": "2025-10-30T22:30:00.000Z",
+  "phase": 4,
   "step": "final",
   "sync": {
-    "lastLocalUpdate": "2025-10-30T22:00:00.000Z",
+    "lastLocalUpdate": "2025-10-30T22:30:00.000Z",
     "lastRemoteUpdate": null,
-    "phase3_completed": true
+    "phase3_completed": true,
+    "phase4_completed": true
   },
   "milestones": [
     {
@@ -228,6 +229,60 @@
               "title": "Plan/state completion & change history",
               "status": "done",
               "criteria": ["Lint passes; version bumped (0.3.0), updatedAt set; files committed"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "UI MVP (Create/Plan/Workbench/Reconcile/Tests/Settings)",
+      "steps": [
+        {
+          "id": "p4.s1",
+          "title": "App Shell, Auth, Navigation",
+          "microsteps": [
+            {
+              "id": "p4.s1.ms1",
+              "title": "Scaffold app shell",
+              "status": "done",
+              "criteria": ["Layout renders; routes load; Tailwind works"]
+            },
+            {
+              "id": "p4.s1.ms2",
+              "title": "Supabase Auth integration",
+              "status": "done",
+              "criteria": ["Unauthed users redirected to sign-in"]
+            },
+            {
+              "id": "p4.s1.ms3",
+              "title": "Project selector",
+              "status": "done",
+              "criteria": ["Current project reflected across pages"]
+            }
+          ]
+        },
+        {
+          "id": "p4.s2",
+          "title": "Create (Prompt → Plan)",
+          "microsteps": [
+            {
+              "id": "p4.s2.ms1",
+              "title": "Create page UI",
+              "status": "done",
+              "criteria": ["Validates non-empty prompt"]
+            },
+            {
+              "id": "p4.s2.ms2",
+              "title": "Prompt → Build Spec",
+              "status": "done",
+              "criteria": ["Plan appears in Plan Editor after save; diff view shows new Phase/Steps"]
+            },
+            {
+              "id": "p4.s2.ms3",
+              "title": "Version bump + history",
+              "status": "done",
+              "criteria": ["br lint passes; state timestamps updated"]
             }
           ]
         }
