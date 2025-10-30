@@ -3,17 +3,29 @@ import 'dotenv/config';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { lintCommand } from './commands/lint.js';
+import { syncCommand } from './commands/sync.js';
+import { statusCommand } from './commands/status.js';
 
 yargs(hideBin(process.argv))
   .scriptName('buildrunner')
   .command('init', 'Initialize local runner state', () => {}, async () => {
     console.log('[stub] init: create runner_state.json from template');
   })
-  .command('sync', 'Sync local state with remote', () => {}, async () => {
-    console.log('[stub] sync: compare and push changes (coming in Phase 1 Step 3+)');
+  .command('sync', 'Sync local state with remote', (yargs) => {
+    yargs
+      .option('push', {
+        describe: 'Push local spec to remote',
+        type: 'boolean'
+      })
+      .option('pull', {
+        describe: 'Pull remote spec to local',
+        type: 'boolean'
+      });
+  }, async (argv) => {
+    await syncCommand({ push: argv.push as boolean, pull: argv.pull as boolean });
   })
   .command('status', 'Show milestone/step/microstep status', () => {}, async () => {
-    console.log('[stub] status: print summary table');
+    await statusCommand();
   })
   .command('lint [spec]', 'Validate build spec against schema', (yargs) => {
     yargs.positional('spec', {
