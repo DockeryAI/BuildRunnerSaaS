@@ -7,16 +7,17 @@ import { useAuth } from '../../lib/auth';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 import { ProjectProvider } from '../../lib/project';
 import { ProjectSelector } from '../../components/project/ProjectSelector';
-import { 
-  FileText, 
-  Edit3, 
-  Wrench, 
-  GitMerge, 
-  CheckSquare, 
+import {
+  FileText,
+  Edit3,
+  Wrench,
+  GitMerge,
+  CheckSquare,
   Settings,
   Menu,
   User,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'Create', href: '/create', icon: FileText },
   { name: 'Plan', href: '/plan', icon: Edit3 },
   { name: 'Flow', href: '/flow', icon: GitMerge },
+  { name: 'Timeline', href: '/timeline', icon: BarChart3 },
   { name: 'Workbench', href: '/workbench', icon: Wrench },
   { name: 'Reconcile', href: '/reconcile', icon: GitMerge },
   { name: 'Tests', href: '/tests', icon: CheckSquare },

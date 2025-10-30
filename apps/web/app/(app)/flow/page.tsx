@@ -31,6 +31,13 @@ export default function FlowPage() {
 
   useEffect(() => {
     loadFlowData();
+
+    // Set up auto-refresh every 60 seconds
+    const interval = setInterval(() => {
+      loadFlowData();
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleNodeClick = (node: FlowNode) => {
