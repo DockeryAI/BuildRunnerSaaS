@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
+import { ProjectProvider } from '../../lib/project';
+import { ProjectSelector } from '../../components/project/ProjectSelector';
 import { 
   FileText, 
   Edit3, 
@@ -35,12 +37,13 @@ export default function AppLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentProject] = useState('BuildRunner Project'); // TODO: Connect to project selector
+
   const { user, signOut } = useAuth();
 
   return (
     <ProtectedRoute>
-      <div className="h-screen flex overflow-hidden bg-gray-100">
+      <ProjectProvider>
+        <div className="h-screen flex overflow-hidden bg-gray-100">
       {/* Sidebar */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
@@ -53,10 +56,7 @@ export default function AppLayout({
           </div>
 
           {/* Project Selector */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="text-sm text-gray-500">Current Project</div>
-            <div className="font-medium text-gray-900 truncate">{currentProject}</div>
-          </div>
+          <ProjectSelector />
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-1">
@@ -147,7 +147,8 @@ export default function AppLayout({
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      </div>
+        </div>
+      </ProjectProvider>
     </ProtectedRoute>
   );
 }
