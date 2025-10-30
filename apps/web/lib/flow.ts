@@ -61,6 +61,45 @@ export const ProgressSummarySchema = z.object({
 export type ProgressSummary = z.infer<typeof ProgressSummarySchema>;
 
 /**
+ * Fetch drift status from spec-diff API
+ */
+async function fetchDriftStatus(): Promise<Map<string, 'none' | 'suspected' | 'confirmed'>> {
+  try {
+    // Call spec-diff API to get drift information
+    const response = await fetch('/api/spec-diff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: 'current-project',
+        check_drift: true
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to fetch drift status');
+      return new Map();
+    }
+
+    const driftData = await response.json();
+    const driftMap = new Map<string, 'none' | 'suspected' | 'confirmed'>();
+
+    // Parse drift data and map to node IDs
+    if (driftData.drift_items) {
+      driftData.drift_items.forEach((item: any) => {
+        if (item.microstep_id) {
+          driftMap.set(item.microstep_id, item.confidence > 0.8 ? 'confirmed' : 'suspected');
+        }
+      });
+    }
+
+    return driftMap;
+  } catch (error) {
+    console.warn('Error fetching drift status:', error);
+    return new Map();
+  }
+}
+
+/**
  * Fetch hierarchical plan data and convert to flow graph format
  */
 export async function fetchFlowData(): Promise<FlowData> {
@@ -76,11 +115,15 @@ export async function fetchFlowData(): Promise<FlowData> {
       throw new Error('No plan data available');
     }
 
+    // Fetch drift status for all nodes
+    const driftMap = await fetchDriftStatus();
+
     // Convert plan to flow nodes and edges
     const nodes: FlowNode[] = [];
     const edges: FlowEdge[] = [];
     let nodeCount = 0;
     let completedCount = 0;
+    let driftCount = 0;
 
     // Process each milestone
     plan.milestones.forEach((milestone, mIndex) => {
@@ -91,7 +134,7 @@ export async function fetchFlowData(): Promise<FlowData> {
         status: calculateMilestoneStatus(milestone),
         position: { x: mIndex * 400, y: 0 },
         children: milestone.steps.map(s => s.id),
-        drift_status: 'none', // TODO: Get from spec-diff
+        drift_status: driftMap.get(milestone.id) || 'none',
       };
       
       nodes.push(milestoneNode);
@@ -108,7 +151,7 @@ export async function fetchFlowData(): Promise<FlowData> {
           position: { x: mIndex * 400, y: (sIndex + 1) * 120 },
           parent_id: milestone.id,
           children: step.microsteps.map(ms => ms.id),
-          drift_status: 'none',
+          drift_status: driftMap.get(step.id) || 'none',
         };
         
         nodes.push(stepNode);
@@ -138,17 +181,18 @@ export async function fetchFlowData(): Promise<FlowData> {
             criteria: microstep.criteria,
             depends_on: microstep.depends_on,
             links: microstep.links,
-            position: { 
-              x: mIndex * 400 + (msIndex % 2) * 200, 
-              y: (sIndex + 1) * 120 + Math.floor(msIndex / 2 + 1) * 80 
+            position: {
+              x: mIndex * 400 + (msIndex % 2) * 200,
+              y: (sIndex + 1) * 120 + Math.floor(msIndex / 2 + 1) * 80
             },
             parent_id: step.id,
-            drift_status: 'none',
+            drift_status: driftMap.get(microstep.id) || 'none',
           };
           
           nodes.push(microstepNode);
           nodeCount++;
           if (microstepNode.status === 'done') completedCount++;
+          if (microstepNode.drift_status !== 'none') driftCount++;
 
           // Add hierarchy edge from step to microstep
           edges.push({
@@ -180,7 +224,7 @@ export async function fetchFlowData(): Promise<FlowData> {
         total_nodes: nodeCount,
         completion_percentage: nodeCount > 0 ? Math.round((completedCount / nodeCount) * 100) : 0,
         last_updated: plan.updatedAt,
-        drift_count: 0, // TODO: Get from spec-diff
+        drift_count: driftCount,
       },
     };
 
