@@ -1,0 +1,68 @@
+{
+  "projectId": "placeholder:will-be-uuid",
+  "title": "BuildRunner Core Runner & Spec Foundation",
+  "version": "0.1.0",
+  "updatedAt": "2025-10-30T20:35:00.000Z",
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Setup Environment & Repo",
+      "steps": [
+        {
+          "id": "m1.s1",
+          "title": "Scaffold repository and CLI skeleton",
+          "microsteps": [
+            {
+              "id": "m1.s1.ms1",
+              "title": "Create base folder structure (/buildrunner/*, /src/*)",
+              "status": "todo",
+              "criteria": ["Folders exist with correct paths and tracked by git"]
+            },
+            {
+              "id": "m1.s1.ms2",
+              "title": "Initialize Node+TypeScript project",
+              "status": "todo",
+              "criteria": ["package.json and tsconfig.json exist; tsc compiles without errors"]
+            },
+            {
+              "id": "m1.s1.ms3",
+              "title": "Install runtime and dev dependencies",
+              "status": "todo",
+              "criteria": ["lockfile present; scripts run successfully"]
+            },
+            {
+              "id": "m1.s1.ms4",
+              "title": "Create Build Spec TS interfaces",
+              "status": "todo",
+              "criteria": ["src/schema/buildSpec.ts exports BuildSpec, Milestone, Step, Microstep types; builds cleanly"]
+            },
+            {
+              "id": "m1.s1.ms5",
+              "title": "Stub CLI command router",
+              "status": "todo",
+              "criteria": ["src/index.ts compiles; 'node dist/index.js --help' shows commands: init, sync, status (stub handlers)"]
+            },
+            {
+              "id": "m1.s1.ms6",
+              "title": "Add runner_state.json seed and plan.json seed",
+              "status": "todo",
+              "criteria": ["runner_state.json mirrors plan skeleton with same milestone/step structure"]
+            },
+            {
+              "id": "m1.s1.ms7",
+              "title": "Create .env.example and verify-env script",
+              "status": "todo",
+              "criteria": [".env.example lists SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY; scripts: dev, build, test work"]
+            },
+            {
+              "id": "m1.s1.ms8",
+              "title": "Initial README with getting started",
+              "status": "todo",
+              "criteria": ["README shows install, dev, build commands and folder overview"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
