@@ -58,8 +58,15 @@ node dist/index.js init
 # Sync with remote state
 node dist/index.js sync
 
-# Show current status
+# Show current status (includes Supabase health check)
 node dist/index.js status
+
+# Validate build spec against schema
+node dist/index.js lint
+
+# Sync with remote Supabase
+node dist/index.js sync --push  # Push local to remote
+node dist/index.js sync --pull  # Pull remote to local
 ```
 
 ## Project Structure
@@ -106,7 +113,9 @@ cp .env.example .env
 
 Required environment variables:
 - `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Anonymous key for read operations
 - `SUPABASE_SERVICE_ROLE_KEY`: Service role key for backend access
+- `SUPABASE_PROJECT_REF`: Project reference ID for CLI linking
 
 ## Development Workflow
 

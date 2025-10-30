@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.1.0",
-  "updatedAt": "2025-10-30T20:35:00.000Z",
+  "version": "0.2.0",
+  "updatedAt": "2025-10-30T21:30:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -59,6 +59,84 @@
               "title": "Initial README with getting started",
               "status": "todo",
               "criteria": ["README shows install, dev, build commands and folder overview"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Spec Schema Expansion + Supabase Sync",
+      "steps": [
+        {
+          "id": "m2.s1",
+          "title": "Expand Schema",
+          "microsteps": [
+            {
+              "id": "m2.s1.ms1",
+              "title": "Update TypeScript interfaces with new fields",
+              "status": "done",
+              "criteria": ["TypeScript compiles without errors"]
+            },
+            {
+              "id": "m2.s1.ms2",
+              "title": "Add Ajv JSON Schema with validators",
+              "status": "done",
+              "criteria": ["Schema validates valid sample and rejects invalid sample"]
+            },
+            {
+              "id": "m2.s1.ms3",
+              "title": "CLI lint command",
+              "status": "done",
+              "criteria": ["0 validation errors on existing plan; fails on bad sample"]
+            }
+          ]
+        },
+        {
+          "id": "m2.s2",
+          "title": "Supabase Schema + Migrations",
+          "microsteps": [
+            {
+              "id": "m2.s2.ms1",
+              "title": "Create SQL migration",
+              "status": "done",
+              "criteria": ["Migration file present and formatted"]
+            },
+            {
+              "id": "m2.s2.ms2",
+              "title": "Add spec-sync Edge Function",
+              "status": "done",
+              "criteria": ["Function compiles locally"]
+            },
+            {
+              "id": "m2.s2.ms3",
+              "title": "Add spec-diff Edge Function",
+              "status": "done",
+              "criteria": ["Function compiles locally"]
+            },
+            {
+              "id": "m2.s2.ms4",
+              "title": "Add npm scripts",
+              "status": "done",
+              "criteria": ["package.json updated with Supabase scripts"]
+            }
+          ]
+        },
+        {
+          "id": "m2.s3",
+          "title": "CLI + API Integration",
+          "microsteps": [
+            {
+              "id": "m2.s3.ms1",
+              "title": "Implement buildrunner sync",
+              "status": "done",
+              "criteria": ["Console prints sync results"]
+            },
+            {
+              "id": "m2.s3.ms2",
+              "title": "Implement buildrunner status",
+              "status": "done",
+              "criteria": ["Shows Supabase health status"]
             }
           ]
         }
