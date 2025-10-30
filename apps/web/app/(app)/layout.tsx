@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '../../lib/auth';
+import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 import { 
   FileText, 
   Edit3, 
@@ -34,9 +36,11 @@ export default function AppLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentProject] = useState('BuildRunner Project'); // TODO: Connect to project selector
+  const { user, signOut } = useAuth();
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
+    <ProtectedRoute>
+      <div className="h-screen flex overflow-hidden bg-gray-100">
       {/* Sidebar */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
@@ -90,10 +94,10 @@ export default function AppLayout({
                 </div>
               </div>
               <div className="ml-3 flex-1">
-                <div className="text-sm font-medium text-gray-900">Demo User</div>
-                <div className="text-xs text-gray-500">demo@buildrunner.dev</div>
+                <div className="text-sm font-medium text-gray-900">{user?.name || 'User'}</div>
+                <div className="text-xs text-gray-500">{user?.email}</div>
               </div>
-              <Button variant="ghost" size="icon" className="ml-2">
+              <Button variant="ghost" size="icon" className="ml-2" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -143,6 +147,7 @@ export default function AppLayout({
           onClick={() => setSidebarOpen(false)}
         />
       )}
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

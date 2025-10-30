@@ -1,27 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { useAuth } from '../../../lib/auth';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { signIn } = useAuth();
+  const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // TODO: Implement Supabase Auth
-    console.log('Sign in with:', { email, password });
-    
-    // Simulate auth
-    setTimeout(() => {
+    setError('');
+
+    try {
+      await signIn(email, password);
+      router.push('/create');
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setError(error instanceof Error ? error.message : 'Sign in failed');
+    } finally {
       setIsLoading(false);
-      // Redirect to app
-      window.location.href = '/create';
-    }, 1000);
+    }
   };
 
   return (
@@ -70,6 +76,12 @@ export default function SignInPage() {
               />
             </div>
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
 
           <div>
             <Button
