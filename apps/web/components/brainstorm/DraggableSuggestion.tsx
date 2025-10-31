@@ -16,6 +16,10 @@ interface Suggestion {
   id: string;
   title: string;
   summary: string;
+  detailed_description?: string;
+  user_interaction?: string;
+  technical_implementation?: string;
+  business_value?: string;
   category: string;
   impact_score: number;
   confidence: number;
@@ -109,21 +113,64 @@ export const DraggableSuggestion: React.FC<DraggableSuggestionProps> = ({
       {isExpanded && (
         <div className="px-3 pb-3 border-t border-gray-100">
           <div className="pt-3 space-y-3">
-            {/* Summary */}
-            <div>
-              <h5 className="text-xs font-medium text-gray-700 mb-1">Description</h5>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {suggestion.summary}
-              </p>
-            </div>
+            {/* Detailed Description */}
+            {suggestion.detailed_description && (
+              <div>
+                <h5 className="text-xs font-medium text-gray-700 mb-1">How It Works</h5>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {suggestion.detailed_description}
+                </p>
+              </div>
+            )}
 
-            {/* Reasoning */}
-            <div>
-              <h5 className="text-xs font-medium text-gray-700 mb-1">Value & Usage</h5>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                {suggestion.reasoning}
-              </p>
-            </div>
+            {/* User Interaction */}
+            {suggestion.user_interaction && (
+              <div>
+                <h5 className="text-xs font-medium text-gray-700 mb-1">How Users Will Use It</h5>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {suggestion.user_interaction}
+                </p>
+              </div>
+            )}
+
+            {/* Technical Implementation */}
+            {suggestion.technical_implementation && (
+              <div>
+                <h5 className="text-xs font-medium text-gray-700 mb-1">Technical Approach</h5>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {suggestion.technical_implementation}
+                </p>
+              </div>
+            )}
+
+            {/* Business Value */}
+            {suggestion.business_value && (
+              <div>
+                <h5 className="text-xs font-medium text-gray-700 mb-1">Business Value</h5>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {suggestion.business_value}
+                </p>
+              </div>
+            )}
+
+            {/* Fallback to summary and reasoning if detailed fields not available */}
+            {!suggestion.detailed_description && (
+              <div>
+                <h5 className="text-xs font-medium text-gray-700 mb-1">Description</h5>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {suggestion.summary}
+                </p>
+              </div>
+            )}
+
+            {!suggestion.business_value && suggestion.reasoning && (
+              <div>
+                <h5 className="text-xs font-medium text-gray-700 mb-1">Why This Matters</h5>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {suggestion.reasoning}
+                </p>
+              </div>
+            )}
 
             {/* Implementation Details */}
             <div className="flex items-center justify-between pt-2">

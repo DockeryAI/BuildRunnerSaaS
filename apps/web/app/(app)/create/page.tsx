@@ -235,6 +235,7 @@ export default function CreatePage() {
   });
   const [draggedSuggestion, setDraggedSuggestion] = useState<any>(null);
   const [productDescription, setProductDescription] = useState<string>('');
+  const [usedSuggestions, setUsedSuggestions] = useState<string[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { state, addSuggestion, updateDecision, exportHistory } = useBrainstormState();
@@ -361,7 +362,13 @@ export default function CreatePage() {
         [section]: [...prev[section as keyof typeof prev], suggestion]
       }));
 
-      // Remove from suggestions (we'll implement this)
+      // Track used suggestion to prevent re-suggesting
+      setUsedSuggestions(prev => [...prev, suggestion.title]);
+
+      // Remove from suggestions state
+      const updatedSuggestions = state.suggestions.filter(s => s.id !== suggestion.id);
+      // Update the brainstorm state (we'll need to add a removeSuggestion method)
+
       console.log(`Added suggestion "${suggestion.title}" to ${section} section`);
 
       setDraggedSuggestion(null);
@@ -414,6 +421,7 @@ export default function CreatePage() {
           message: content,
           conversation_history: messages.slice(-5), // Last 5 messages for context
           product_idea: initialIdea, // Include the product idea for context
+          used_suggestions: usedSuggestions, // Prevent re-suggesting used features
         }),
       });
 
@@ -431,6 +439,25 @@ export default function CreatePage() {
         setProductDescription(data.productDescription);
       }
 
+      // Handle initial features extraction (first message)
+      if (data.initialFeatures && data.initialFeatures.length > 0) {
+        console.log('Processing initial features:', data.initialFeatures);
+        // Add initial features directly to PRD features section
+        setPrdSections(prev => ({
+          ...prev,
+          features: data.initialFeatures.map((feature: any) => ({
+            ...feature,
+            id: `initial_feature_${Date.now()}_${Math.random()}`,
+            created_at: new Date(),
+            timestamp: new Date(),
+          }))
+        }));
+
+        // Track these as used suggestions
+        const featureTitles = data.initialFeatures.map((f: any) => f.title);
+        setUsedSuggestions(prev => [...prev, ...featureTitles]);
+      }
+
       // Add AI response to messages
       const aiMessage: Message = {
         id: `ai_${Date.now()}`,
@@ -444,7 +471,7 @@ export default function CreatePage() {
       setMessages(updatedMessages);
       saveConversationHistory(updatedMessages);
 
-      // Add suggestions to state
+      // Add suggestions to state (these will be filtered to exclude used ones)
       if (data.suggestions && data.suggestions.length > 0) {
         data.suggestions.forEach((suggestion: any) => {
           addSuggestion({

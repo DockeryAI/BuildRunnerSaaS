@@ -8,18 +8,23 @@ class OpenRouterService {
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
-  async generateSuggestions(category: string, prompt: string, productIdea?: string) {
+  async generateSuggestions(category: string, prompt: string, productIdea?: string, usedSuggestions: string[] = []) {
     const modelConfig = this.getModelConfig(category);
     const systemPrompt = this.getSystemPrompt(category, productIdea);
 
     const productContext = productIdea ? `\n\nPRODUCT CONTEXT: The user is developing "${productIdea}". All suggestions must be specifically tailored to this product.` : '';
+    const usedContext = usedSuggestions.length > 0 ? `\n\nIMPORTANT: Do NOT suggest these features that have already been added to the PRD: ${usedSuggestions.join(', ')}. Provide NEW, different suggestions.` : '';
 
-    const enhancedPrompt = `${prompt}${productContext}
+    const enhancedPrompt = `${prompt}${productContext}${usedContext}
 
-Please provide 3-5 actionable suggestions in JSON format specifically for this product. Each suggestion should follow this exact schema:
+Please provide 3-5 NEW actionable suggestions in JSON format specifically for this product. Each suggestion should follow this exact schema:
 {
   "title": "Brief descriptive title (max 100 chars)",
   "summary": "Concise explanation (max 300 chars)",
+  "detailed_description": "Comprehensive explanation of how this feature works technically and functionally",
+  "user_interaction": "Step-by-step description of how users will interact with and use this feature",
+  "technical_implementation": "High-level technical approach and architecture considerations",
+  "business_value": "Clear explanation of the business value and why this feature matters",
   "category": "${category}",
   "impact_score": 1-10,
   "confidence": 0.0-1.0,
@@ -171,32 +176,111 @@ Return only a JSON array of suggestions, no additional text.`;
     }
   }
 
+  async extractInitialFeatures(productIdea: string) {
+    try {
+      const modelConfig = this.getModelConfig('extraction');
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://buildrunner.cloud',
+          'X-Title': 'BuildRunner SaaS',
+        },
+        body: JSON.stringify({
+          model: modelConfig.primary,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a feature extraction expert. Analyze product ideas and extract specific features mentioned or implied. Return a JSON array of features with detailed descriptions.
+
+Each feature should include:
+- title: Clear, specific feature name
+- summary: One-line description
+- detailed_description: Comprehensive explanation of how it works
+- user_interaction: Step-by-step how users will use this feature
+- technical_implementation: High-level technical approach
+- business_value: Why this feature matters
+- impact_score: 1-10 rating
+- implementation_effort: low/medium/high
+- category: product
+
+Focus on extracting SPECIFIC features mentioned in the user's description, not generic suggestions.`
+            },
+            {
+              role: 'user',
+              content: `Extract the specific features mentioned in this product idea: "${productIdea}"
+
+Return only the JSON array, no other text.`
+            }
+          ],
+          temperature: modelConfig.temperature,
+          max_tokens: modelConfig.max_tokens,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content || '[]';
+
+      try {
+        // Clean the content by removing markdown code blocks
+        let cleanContent = content.trim();
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        const features = JSON.parse(cleanContent);
+        console.log('Extracted initial features:', features);
+        return Array.isArray(features) ? features : [];
+      } catch (parseError) {
+        console.error('Failed to parse extracted features:', parseError);
+        return [];
+      }
+
+    } catch (error) {
+      console.error('OpenRouter feature extraction error:', error);
+      return [];
+    }
+  }
+
   getModelConfig(category: string) {
     const configs = {
       strategy: {
-        primary: 'anthropic/claude-3.5-sonnet',
+        primary: 'openai/gpt-4o',
         temperature: 0.7,
         max_tokens: 2000,
       },
       product: {
-        primary: 'openai/gpt-4-turbo-preview',
+        primary: 'openai/gpt-4o',
         temperature: 0.6,
         max_tokens: 1500,
       },
       monetization: {
-        primary: 'anthropic/claude-3.5-sonnet',
+        primary: 'openai/gpt-4o',
         temperature: 0.5,
         max_tokens: 1500,
       },
       gtm: {
-        primary: 'openai/gpt-4-turbo-preview',
+        primary: 'openai/gpt-4o',
         temperature: 0.6,
         max_tokens: 1500,
       },
       competitor: {
-        primary: 'anthropic/claude-3.5-sonnet',
+        primary: 'openai/gpt-4o',
         temperature: 0.4,
         max_tokens: 2000,
+      },
+      extraction: {
+        primary: 'openai/gpt-4o',
+        temperature: 0.3,
+        max_tokens: 2500,
       },
     };
 
@@ -257,9 +341,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { category, message, conversation_history, product_idea } = body;
+    const { category, message, conversation_history, product_idea, used_suggestions = [] } = body;
 
-    console.log('Request data:', { category, message: message.substring(0, 100) + '...', historyLength: conversation_history?.length || 0, productIdea: product_idea?.substring(0, 50) + '...' || 'none' });
+    console.log('Request data:', {
+      category,
+      message: message.substring(0, 100) + '...',
+      historyLength: conversation_history?.length || 0,
+      productIdea: product_idea?.substring(0, 50) + '...' || 'none',
+      usedSuggestionsCount: used_suggestions.length
+    });
 
     if (!category || !message) {
       console.error('Missing required fields:', { category: !!category, message: !!message });
@@ -301,24 +391,27 @@ export async function POST(request: NextRequest) {
 
     console.log('Generating AI response and suggestions...');
 
-    // Generate response, suggestions, and product description (if first message)
+    // Generate response, suggestions, product description, and extract initial features (if first message)
     const isFirstMessage = !conversation_history || conversation_history.length === 0;
-    const [response, suggestions, productDescription] = await Promise.all([
+    const [response, suggestions, productDescription, initialFeatures] = await Promise.all([
       service.generateResponse(category, conversation_history || [], product_idea),
-      service.generateSuggestions(category, message, product_idea),
-      isFirstMessage && product_idea ? service.generateProductDescription(product_idea) : Promise.resolve(null)
+      service.generateSuggestions(category, message, product_idea, used_suggestions),
+      isFirstMessage && product_idea ? service.generateProductDescription(product_idea) : Promise.resolve(null),
+      isFirstMessage && product_idea ? service.extractInitialFeatures(product_idea) : Promise.resolve([])
     ]);
 
     console.log('AI response generated successfully:', {
       responseLength: response?.length || 0,
       suggestionsCount: suggestions?.length || 0,
-      hasProductDescription: !!productDescription
+      hasProductDescription: !!productDescription,
+      initialFeaturesCount: initialFeatures?.length || 0
     });
 
     return NextResponse.json({
       response,
       suggestions,
       productDescription,
+      initialFeatures,
       category,
       timestamp: new Date().toISOString(),
     });
