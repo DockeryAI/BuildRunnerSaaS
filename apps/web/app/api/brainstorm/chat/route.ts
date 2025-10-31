@@ -8,8 +8,75 @@ class OpenRouterService {
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
-  async generateSuggestions(category: string, prompt: string, productIdea?: string, usedSuggestions: string[] = []) {
-    const modelConfig = this.getModelConfig(category);
+
+  // Model configuration based on use case - following BuildRunner LLM strategy
+  private getModelForUseCase(useCase: 'brainstorm' | 'scoring' | 'prd_draft' | 'reasoning' | 'budget'): string {
+    const models = {
+      // Core creative + planning - balanced creativity, long context, strong guardrails
+      brainstorm: 'anthropic/claude-4-sonnet-20250522',
+
+      // Idea scoring / tradeoff analysis - better structured reasoning
+      scoring: 'anthropic/claude-4-sonnet-20250522',
+
+      // Concept → PRD drafting - excels at long, structured outputs
+      prd_draft: 'anthropic/claude-4-sonnet-20250522',
+
+      // Heavy reasoning - strong deliberate reasoning with "think" traces
+      reasoning: 'deepseek/deepseek-r1',
+
+      // Budget option - very capable general chat at low cost
+      budget: 'deepseek/deepseek-chat'
+    };
+
+    return models[useCase];
+  }
+
+  // Auto-fallback strategy for cost/timeouts
+  private async callWithFallback(useCase: 'brainstorm' | 'scoring' | 'prd_draft' | 'reasoning' | 'budget', messages: any[], options: any = {}) {
+    const primaryModel = this.getModelForUseCase(useCase);
+    const fallbackModel = this.getModelForUseCase('budget'); // DeepSeek V3 as fallback
+
+    try {
+      // Try primary model first
+      return await this.makeAPICall(primaryModel, messages, options);
+    } catch (error) {
+      console.warn(`Primary model ${primaryModel} failed, falling back to ${fallbackModel}:`, error);
+
+      try {
+        // Fallback to budget model
+        return await this.makeAPICall(fallbackModel, messages, options);
+      } catch (fallbackError) {
+        console.error(`Both primary and fallback models failed:`, fallbackError);
+        throw fallbackError;
+      }
+    }
+  }
+
+  private async makeAPICall(model: string, messages: any[], options: any = {}) {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://buildrunner.cloud',
+        'X-Title': 'BuildRunner SaaS',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens || 2000,
+        ...options
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status} - ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+  async generateSuggestions(category: string, prompt: string, productIdea?: string, usedSuggestions: string[] = [], useReasoning: boolean = false) {
     const systemPrompt = this.getSystemPrompt(category, productIdea);
 
     const productContext = productIdea ? `\n\nPRODUCT CONTEXT: The user is developing "${productIdea}". All suggestions must be specifically tailored to this product.` : '';
@@ -38,30 +105,16 @@ Please provide 3-5 NEW actionable suggestions in JSON format specifically for th
 Return only a JSON array of suggestions, no additional text.`;
 
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://buildrunner.cloud',
-          'X-Title': 'BuildRunner SaaS',
-        },
-        body: JSON.stringify({
-          model: modelConfig.primary,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: enhancedPrompt }
-          ],
-          temperature: modelConfig.temperature,
-          max_tokens: modelConfig.max_tokens,
-        }),
+      // Use reasoning model for scoring/analysis, brainstorm model for creative tasks
+      const useCase = useReasoning ? 'reasoning' : 'brainstorm';
+
+      const data = await this.callWithFallback(useCase, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: enhancedPrompt }
+      ], {
+        temperature: useReasoning ? 0.3 : 0.7, // Lower temperature for reasoning
+        max_tokens: 2000
       });
-
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-      }
-
-      const data = await response.json();
       const content = data.choices[0]?.message?.content;
 
       if (!content) {
@@ -97,34 +150,17 @@ Return only a JSON array of suggestions, no additional text.`;
   }
 
   async generateResponse(category: string, messages: any[], productIdea?: string) {
-    const modelConfig = this.getModelConfig(category);
     const systemPrompt = this.getSystemPrompt(category, productIdea);
 
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://buildrunner.cloud',
-          'X-Title': 'BuildRunner SaaS',
-        },
-        body: JSON.stringify({
-          model: modelConfig.primary,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...messages.slice(-5) // Last 5 messages for context
-          ],
-          temperature: modelConfig.temperature,
-          max_tokens: modelConfig.max_tokens,
-        }),
+      // Use brainstorm model for conversational responses
+      const data = await this.callWithFallback('brainstorm', [
+        { role: 'system', content: systemPrompt },
+        ...messages.slice(-5) // Last 5 messages for context
+      ], {
+        temperature: 0.7,
+        max_tokens: 1000 // Shorter responses for chat
       });
-
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-      }
-
-      const data = await response.json();
       const responseContent = data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response.';
       console.log('OpenRouter response content:', responseContent.substring(0, 200) + '...');
       return responseContent;
@@ -138,36 +174,20 @@ Return only a JSON array of suggestions, no additional text.`;
 
   async generateProductDescription(productIdea: string) {
     try {
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://buildrunner.cloud',
-          'X-Title': 'BuildRunner SaaS',
+      // Use PRD drafting model for structured product descriptions
+      const data = await this.callWithFallback('prd_draft', [
+        {
+          role: 'system',
+          content: 'You are a product description expert. Create concise, professional product descriptions for PRD documents. Focus on the core value proposition and target users. Keep it under 100 words.'
         },
-        body: JSON.stringify({
-          model: 'openai/gpt-4-turbo-preview',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a product description expert. Create concise, professional product descriptions for PRD documents. Focus on the core value proposition and target users. Keep it under 100 words.'
-            },
-            {
-              role: 'user',
-              content: `Create a professional product description for this idea: "${productIdea}". Make it suitable for a Product Requirements Document. Focus on what the product does, who it's for, and the key value it provides.`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 200,
-        }),
+        {
+          role: 'user',
+          content: `Create a professional product description for this idea: "${productIdea}". Make it suitable for a Product Requirements Document. Focus on what the product does, who it's for, and the key value it provides.`
+        }
+      ], {
+        temperature: 0.3,
+        max_tokens: 300
       });
-
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-      }
-
-      const data = await response.json();
       return data.choices[0]?.message?.content || productIdea;
 
     } catch (error) {
@@ -178,22 +198,11 @@ Return only a JSON array of suggestions, no additional text.`;
 
   async extractInitialFeatures(productIdea: string) {
     try {
-      const modelConfig = this.getModelConfig('extraction');
-
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://buildrunner.cloud',
-          'X-Title': 'BuildRunner SaaS',
-        },
-        body: JSON.stringify({
-          model: modelConfig.primary,
-          messages: [
-            {
-              role: 'system',
-              content: `You are a feature extraction expert. Analyze product ideas and extract specific features mentioned or implied. Return a JSON array of features with detailed descriptions.
+      // Use reasoning model for feature extraction analysis
+      const data = await this.callWithFallback('reasoning', [
+        {
+          role: 'system',
+          content: `You are a feature extraction expert. Analyze product ideas and extract specific features mentioned or implied. Return a JSON array of features with detailed descriptions.
 
 Each feature should include:
 - title: Clear, specific feature name
@@ -207,24 +216,17 @@ Each feature should include:
 - category: product
 
 Focus on extracting SPECIFIC features mentioned in the user's description, not generic suggestions.`
-            },
-            {
-              role: 'user',
-              content: `Extract the specific features mentioned in this product idea: "${productIdea}"
+        },
+        {
+          role: 'user',
+          content: `Extract the specific features mentioned in this product idea: "${productIdea}"
 
 Return only the JSON array, no other text.`
-            }
-          ],
-          temperature: modelConfig.temperature,
-          max_tokens: modelConfig.max_tokens,
-        }),
+        }
+      ], {
+        temperature: 0.3, // Lower temperature for analytical tasks
+        max_tokens: 2500
       });
-
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status}`);
-      }
-
-      const data = await response.json();
       const content = data.choices[0]?.message?.content || '[]';
 
       try {
@@ -250,42 +252,7 @@ Return only the JSON array, no other text.`
     }
   }
 
-  getModelConfig(category: string) {
-    const configs = {
-      strategy: {
-        primary: 'openai/gpt-4o',
-        temperature: 0.7,
-        max_tokens: 2000,
-      },
-      product: {
-        primary: 'openai/gpt-4o',
-        temperature: 0.6,
-        max_tokens: 1500,
-      },
-      monetization: {
-        primary: 'openai/gpt-4o',
-        temperature: 0.5,
-        max_tokens: 1500,
-      },
-      gtm: {
-        primary: 'openai/gpt-4o',
-        temperature: 0.6,
-        max_tokens: 1500,
-      },
-      competitor: {
-        primary: 'openai/gpt-4o',
-        temperature: 0.4,
-        max_tokens: 2000,
-      },
-      extraction: {
-        primary: 'openai/gpt-4o',
-        temperature: 0.3,
-        max_tokens: 2500,
-      },
-    };
 
-    return configs[category as keyof typeof configs] || configs.strategy;
-  }
 
   getSystemPrompt(category: string, productIdea?: string) {
     const productContext = productIdea ? `\n\nIMPORTANT: The user is developing "${productIdea}". You must:
@@ -341,7 +308,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { category, message, conversation_history, product_idea, used_suggestions = [] } = body;
+    const { category, message, conversation_history, product_idea, used_suggestions = [], use_reasoning = false } = body;
 
     console.log('Request data:', {
       category,
@@ -395,7 +362,7 @@ export async function POST(request: NextRequest) {
     const isFirstMessage = !conversation_history || conversation_history.length === 0;
     const [response, suggestions, productDescription, initialFeatures] = await Promise.all([
       service.generateResponse(category, conversation_history || [], product_idea),
-      service.generateSuggestions(category, message, product_idea, used_suggestions),
+      service.generateSuggestions(category, message, product_idea, used_suggestions, use_reasoning),
       isFirstMessage && product_idea ? service.generateProductDescription(product_idea) : Promise.resolve(null),
       isFirstMessage && product_idea ? service.extractInitialFeatures(product_idea) : Promise.resolve([])
     ]);

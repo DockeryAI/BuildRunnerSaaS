@@ -222,6 +222,7 @@ export default function CreatePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('product');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useDeepThink, setUseDeepThink] = useState(false);
   const [modelCategories, setModelCategories] = useState<Record<string, ModelCategory>>({});
   const [predefinedPrompts, setPredefinedPrompts] = useState<Record<string, string>>({});
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -422,6 +423,7 @@ export default function CreatePage() {
           conversation_history: messages.slice(-5), // Last 5 messages for context
           product_idea: initialIdea, // Include the product idea for context
           used_suggestions: usedSuggestions, // Prevent re-suggesting used features
+          use_reasoning: useDeepThink, // Use DeepSeek R1 for deliberate reasoning
         }),
       });
 
@@ -750,23 +752,58 @@ Let's start with product development. What are the core features and user experi
             {/* Right Column - AI Chat Interface with Draggable Suggestions */}
             <div className="col-span-1">
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col overflow-hidden">
-                {/* Category Tabs */}
+                {/* Category Tabs and Deep Think Toggle */}
                 <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
-                  <div className="flex space-x-1">
-                    {Object.entries(categoryIcons).map(([category, IconComponent]) => (
-                      <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          selectedCategory === category
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-600 hover:text-gray-900 hover:bg-white'
-                        }`}
-                      >
-                        <IconComponent className="h-4 w-4" />
-                        <span className="capitalize">{category}</span>
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-between">
+                    <div className="flex space-x-1">
+                      {Object.entries(categoryIcons).map(([category, IconComponent]) => (
+                        <button
+                          key={category}
+                          onClick={() => setSelectedCategory(category)}
+                          className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            selectedCategory === category
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-white'
+                          }`}
+                        >
+                          <IconComponent className="h-4 w-4" />
+                          <span className="capitalize">{category}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Deep Think Toggle and Score Button */}
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <BeakerIcon className="h-4 w-4 text-gray-500" />
+                        <label className="flex items-center space-x-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={useDeepThink}
+                            onChange={(e) => setUseDeepThink(e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700 font-medium">Deep Think</span>
+                        </label>
+                        <div className="group relative">
+                          <ExclamationTriangleIcon className="h-4 w-4 text-gray-400 cursor-help" />
+                          <div className="absolute right-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            Uses DeepSeek R1 for deliberate reasoning. Slower but provides detailed analysis and scoring.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Score Ideas Button */}
+                      {prdSections.features && prdSections.features.length > 0 && (
+                        <button
+                          onClick={() => {/* TODO: Implement scoring */}}
+                          className="flex items-center space-x-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
+                        >
+                          <ChartBarIcon className="h-4 w-4" />
+                          <span>Score Ideas</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
