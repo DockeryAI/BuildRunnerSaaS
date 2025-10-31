@@ -759,11 +759,21 @@ function CreatePage() {
 
       if (data.result && Array.isArray(data.result)) {
         setSuggestions(data.result);
+
+        // Show if using mock data
+        if (data.source === 'mock_data') {
+          console.log('Using mock AI suggestions (API key not configured)');
+          setError('Using demo suggestions - configure OPENROUTER_API_KEY for real AI');
+        } else {
+          console.log('Using real AI suggestions');
+          setError(null);
+        }
       } else {
         // Fallback to smart suggestions if API fails
         console.warn('API returned unexpected format, using fallback');
         const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
         setSuggestions(phaseSuggestions);
+        setError('Using fallback suggestions');
       }
 
     } catch (error) {
