@@ -815,11 +815,27 @@ export default function CreatePage() {
 
             {/* Left Column - Product Requirements Document */}
             <div className="col-span-1">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
-                  <h2 className="text-lg font-bold text-white">Product Requirements Document</h2>
-                  <p className="text-blue-100 text-sm">Live document • Updates as you brainstorm</p>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden flex flex-col">
+                {/* PRD Flow Tabs */}
+                <PRDFlowTabs
+                  selectedSection={selectedSection}
+                  onSectionChange={setSelectedSection}
+                  completedSections={completedSections}
+                  currentPhase={currentPhase}
+                  onPhaseChange={handlePhaseChange}
+                />
+
+                {/* PRD Section Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <PRDSectionDisplay
+                    sectionId={selectedSection}
+                    prd={prdDocument}
+                    onUpdate={updatePRDSection}
+                    isLoading={isLoading}
+                  />
                 </div>
+              </div>
+            </div>
 
                 <div className="p-6 overflow-y-auto h-[calc(100%-5rem)]">
                   <div className="space-y-6">
@@ -1006,56 +1022,95 @@ export default function CreatePage() {
               </div>
             </div>
 
-            {/* Right Column - AI Chat Interface with Draggable Suggestions */}
+            {/* Right Column - AI Suggestions */}
             <div className="col-span-1">
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col overflow-hidden">
-                {/* PRD Flow Tabs */}
-                <PRDFlowTabs
-                  selectedSection={selectedSection}
-                  onSectionChange={setSelectedSection}
-                  completedSections={completedSections}
-                  currentPhase={currentPhase}
-                />
-
-                {/* PRD Section Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  <PRDSectionDisplay
-                    sectionId={selectedSection}
-                    prd={prdDocument}
-                    onUpdate={updatePRDSection}
-                    isLoading={isLoading}
-                  />
-
+                {/* Header */}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200 px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <SparklesIcon className="h-5 w-5 text-purple-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">AI Suggestions</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Phase {currentPhase} recommendations - drag to PRD sections
+                  </p>
                 </div>
 
-                {/* Status Bar */}
-                <div className="border-t border-gray-200 bg-gray-50 p-4">
-                  {error && (
-                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <ExclamationTriangleIcon className="h-4 w-4 text-red-600" />
-                        <p className="text-red-800 text-sm">{error}</p>
+                {/* Message Input */}
+                <div className="border-b border-gray-200 p-4">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && processUserMessage(inputValue)}
+                      placeholder={`Describe your product for Phase ${currentPhase} suggestions...`}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      disabled={isLoading}
+                    />
+                    <button
+                      onClick={() => {
+                        processUserMessage(inputValue);
+                        setInputValue('');
+                      }}
+                      disabled={!inputValue.trim() || isLoading}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+                    >
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Suggestions Content */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {isGeneratingSuggestions ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-3"></div>
+                        <p className="text-gray-600 text-sm">Generating suggestions...</p>
                       </div>
                     </div>
+                  ) : aiSuggestions.length > 0 ? (
+                    aiSuggestions.map((suggestion) => (
+                      <DraggableSuggestion
+                        key={suggestion.id}
+                        suggestion={suggestion}
+                        onDragStart={handleDragStart}
+                      />
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">No suggestions yet</h4>
+                      <p className="text-gray-500 text-sm">
+                        Send a message about your product to get AI-powered suggestions for Phase {currentPhase}
+                      </p>
+                    </div>
                   )}
+                </div>
 
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <div className="flex items-center space-x-4">
-                      {isLoading ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                          <span>Building PRD content...</span>
-                        </div>
-                      ) : (
-                        <span>PRD sections are auto-populated. Click any section to edit.</span>
-                      )}
-                    </div>
+                {/* Phase Navigation */}
+                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => handlePhaseChange(Math.max(1, currentPhase - 1))}
+                      disabled={currentPhase === 1}
+                      className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ← Previous
+                    </button>
 
-                    <div className="flex items-center space-x-2">
-                      <span>{completedSections.length} sections completed</span>
-                      <span>•</span>
-                      <span>Phase {currentPhase} of 4</span>
-                    </div>
+                    <span className="text-sm text-gray-600">
+                      Phase {currentPhase} of 4
+                    </span>
+
+                    <button
+                      onClick={() => handlePhaseChange(Math.min(4, currentPhase + 1))}
+                      disabled={currentPhase === 4}
+                      className="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
                   </div>
                 </div>
               </div>

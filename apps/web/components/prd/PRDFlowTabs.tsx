@@ -156,6 +156,7 @@ interface PRDFlowTabsProps {
   onSectionChange: (sectionId: string) => void;
   completedSections: string[];
   currentPhase: number;
+  onPhaseChange?: (phase: number) => void;
 }
 
 const phaseColors = {
@@ -176,7 +177,8 @@ export const PRDFlowTabs: React.FC<PRDFlowTabsProps> = ({
   selectedSection,
   onSectionChange,
   completedSections,
-  currentPhase
+  currentPhase,
+  onPhaseChange
 }) => {
   const groupedSections = PRD_SECTIONS.reduce((acc, section) => {
     if (!acc[section.phase]) {
@@ -195,20 +197,22 @@ export const PRDFlowTabs: React.FC<PRDFlowTabsProps> = ({
             const phase = parseInt(phaseNum);
             const isCurrentPhase = phase === currentPhase;
             const isCompletedPhase = phase < currentPhase;
-            
+
             return (
-              <div
+              <button
                 key={phase}
-                className={`px-3 py-1 rounded-lg text-sm font-medium border ${
+                onClick={() => onPhaseChange && onPhaseChange(phase)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium border transition-all hover:shadow-sm ${
                   isCurrentPhase
                     ? phaseColors[phase as keyof typeof phaseColors]
                     : isCompletedPhase
-                    ? 'bg-gray-100 text-gray-600 border-gray-300'
-                    : 'bg-white text-gray-400 border-gray-200'
+                    ? 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
+                    : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'
                 }`}
+                disabled={!onPhaseChange}
               >
                 Phase {phase}: {phaseName}
-              </div>
+              </button>
             );
           })}
         </div>
