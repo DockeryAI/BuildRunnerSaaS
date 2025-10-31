@@ -41,10 +41,11 @@ This document outlines the complete user journey through the BuildRunner SaaS pl
 
 ### Step 4: Session Initialization
 - **Automatic Actions**:
-  - AI generates professional product description
-  - Creates welcome message with 3-step process
-  - Initializes PRD document with product overview
+  - AI generates professional product description (not copy-paste of user input)
+  - Creates contextual welcome message acknowledging specific product
+  - Initializes PRD document with auto-generated product overview
   - Sets category to "Product" for first discussion
+  - Clears all previous session data for fresh start
 
 ### Step 5: Interactive Chat Interface
 - **Layout**: 2-column design
@@ -57,14 +58,16 @@ This document outlines the complete user journey through the BuildRunner SaaS pl
   - **Monetization**: Revenue models, pricing strategies
 
 ### Step 6: AI Response Pattern
-- **User Input**: Ask questions about current category
-- **AI Response**: Brief introduction ("Here are some ideas for your [product]...")
-- **Suggestions**: 3-5 draggable cards appear below AI message
+- **User Input**: Ask questions about current category focus area
+- **AI Response**: Brief, contextual introduction ("Here are some ideas for your [specific product]...")
+- **No Long Explanations**: AI keeps responses concise, details provided in suggestion cards
+- **Suggestions**: 3-5 compact, expandable cards appear below AI message
 - **Card Format**:
-  - Compact one-line title with impact score
-  - Expandable details with full description
-  - Category icon and implementation effort indicator
-  - Drag handle for moving to PRD
+  - **Compact Display**: One-line title with impact score (X/10) for vertical space efficiency
+  - **Expandable Details**: Click down arrow to reveal full description, value proposition, usage scenarios
+  - **Visual Elements**: Category icon, implementation effort indicator (low/medium/high), drag handle
+  - **Comprehensive Info**: Dependencies, success metrics, risk assessments when expanded
+  - **Drag Functionality**: Visual grab handle for moving to appropriate PRD sections
 
 ## Phase 3: PRD Document Building
 
@@ -105,24 +108,35 @@ This document outlines the complete user journey through the BuildRunner SaaS pl
 
 ### Step 10: Suggestion Card Details
 - **Compact View**:
-  - One-line title for space efficiency
-  - Impact score (1-10) display
-  - Category icon and effort indicator
+  - One-line title for maximum vertical space efficiency
+  - Impact score (1-10) display with confidence rating
+  - Category icon with color coding (Blue/Green/Purple/Yellow)
+  - Implementation effort indicator (low/medium/high) with color coding
+  - Visual drag handle (bars icon) for grab-and-drop functionality
 - **Expanded View** (Click down arrow):
-  - Full feature description
-  - Value proposition and usage scenarios
-  - Implementation dependencies
-  - Success metrics and risk assessment
+  - **Description**: Full feature description and technical details
+  - **Value & Usage**: Value proposition, usage scenarios, and business benefits
+  - **Dependencies**: Required resources, integrations, and technical requirements
+  - **Success Metrics**: Measurable outcomes, KPIs, and performance indicators
+  - **Risk Assessment**: Implementation challenges, potential issues, and mitigation strategies
+  - **Effort Details**: Detailed breakdown of implementation complexity and timeline
 
 ### Step 11: PRD Document Features
 - **Auto-Generated Elements**:
-  - Product name (extracted from idea)
-  - Professional description (AI-generated)
-  - Target users (populated during discussion)
+  - Product name (intelligently extracted from user idea)
+  - Professional description (AI-generated, not copy-paste of user input)
+  - Target users (populated during AI discussions)
+  - Document structure with proper PRD formatting
+- **Interactive Drop Zones**:
+  - **Key Features** (Green): Drag product category suggestions here
+  - **Success Metrics** (Purple): Drag strategy category suggestions here
+  - **Monetization** (Yellow): Drag monetization category suggestions here
+  - **Visual Feedback**: Dashed borders that highlight on hover during drag operations
 - **User-Populated Sections**:
-  - Key features (from dragged suggestions)
-  - Success metrics (from strategy discussions)
-  - Monetization strategy (from revenue talks)
+  - Key features (from dragged product suggestions with impact scores)
+  - Success metrics (from dragged strategy suggestions with KPIs)
+  - Monetization strategy (from dragged revenue model suggestions)
+  - Organized presentation with suggestion details and implementation effort
 
 ### Step 12: Session Management
 - **Persistence**: All data saved to localStorage

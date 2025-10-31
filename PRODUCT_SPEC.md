@@ -25,10 +25,12 @@ BuildRunner SaaS is an innovative AI-powered platform that transforms product de
   - Monetization Strategy (draggable revenue suggestions)
 
 ### 3. Smart Suggestion System
-- **Expandable Cards**: Compact one-line suggestions with detailed expansion
-- **Impact Scoring**: AI-generated impact scores (1-10) and effort estimates
-- **Category-Specific**: Suggestions tailored to current focus area
-- **Detailed Information**: Full feature descriptions, usage scenarios, and value propositions
+- **Compact Expandable Cards**: One-line titles for efficient vertical space usage
+- **Click-to-Expand**: Down arrow reveals full feature descriptions, value propositions, and implementation details
+- **Impact Scoring**: AI-generated impact scores (1-10) and effort estimates (low/medium/high)
+- **Category-Specific**: Suggestions tailored to current focus area with color-coded icons
+- **Comprehensive Details**: Full descriptions, usage scenarios, dependencies, metrics, and risk assessments
+- **Drag Handles**: Visual grab indicators for moving suggestions to PRD sections
 
 ### 4. Beautiful User Experience
 - **Clean 2-Column Layout**: PRD document + AI chat interface
@@ -59,43 +61,62 @@ BuildRunner SaaS is an innovative AI-powered platform that transforms product de
 ## User Workflow
 
 ### 1. Product Idea Input
-- Beautiful lightbulb-themed onboarding page
-- Large textarea for detailed product descriptions
-- Product examples for inspiration
-- API key validation and setup guidance
+- Beautiful lightbulb-themed onboarding page with gradient background
+- Large textarea for detailed product descriptions (no focus interruptions)
+- 6 product examples for inspiration and conversation starters
+- API key validation and setup guidance with clear status indicators
+- "Force Fresh Start" option for clearing all session data
 
 ### 2. AI Brainstorming Session
-- Contextual welcome message with 3-step process
-- Category-based conversation (Product → Strategy → Monetization)
-- Real-time AI responses with specific product references
-- Automatic suggestion generation after each AI response
+- AI generates professional product description (not copy-paste of user input)
+- Contextual welcome message with structured 3-step process
+- Category-based conversation (Product → Strategy → Competition → Monetization)
+- Real-time AI responses with specific product references and brief introductions
+- Automatic suggestion generation as compact, expandable cards
 
-### 3. PRD Building Process
-- AI generates professional product description
-- Drag suggestions from chat to appropriate PRD sections
-- Visual drop zones with color-coded feedback
-- Live document updates as suggestions are added
+### 3. Interactive Suggestion Cards
+- **Compact Display**: One-line titles with impact scores for efficient vertical space
+- **Expandable Details**: Click down arrow to reveal full descriptions, value propositions, and implementation details
+- **Drag Functionality**: Visual grab handles for moving suggestions to PRD sections
+- **Color-Coded Categories**: Blue (Product), Green (Strategy), Purple (Competition), Yellow (Monetization)
+- **Comprehensive Information**: Dependencies, metrics, risks, and usage scenarios
 
-### 4. Export and Iteration
-- Export completed PRD as markdown
-- Continue brainstorming for additional ideas
-- Switch between categories for comprehensive coverage
-- Session persistence across browser refreshes
+### 4. PRD Building Process
+- **2-Column Layout**: PRD document (left) + AI chat interface (right)
+- **Drop Zones**: Color-coded dashed borders that highlight on hover
+- **Auto-Population**: Suggestions populate appropriate PRD sections when dropped
+- **Live Updates**: Document grows and organizes content as suggestions are added
+- **Professional Formatting**: Clean, structured presentation suitable for stakeholders
+
+### 5. Export and Iteration
+- Export completed PRD as markdown with all dragged suggestions
+- Continue brainstorming for additional ideas across all categories
+- Switch between category tabs for comprehensive product coverage
+- Session persistence with localStorage for browser refresh continuity
+- "New Product" option for starting fresh brainstorming sessions
 
 ## AI Integration Details
 
 ### System Prompts
-- **Product Context**: All prompts include specific product information
-- **Concise Responses**: AI provides brief introductions ("Here are some ideas...")
-- **Detailed Suggestions**: Comprehensive feature details in structured JSON format
-- **Mandatory Specificity**: AI must reference the user's specific product
+- **Product Context**: All prompts include specific product information and mandatory product references
+- **Concise Responses**: AI provides brief introductions ("Here are some ideas for your [product]...")
+- **Detailed Suggestions**: Comprehensive feature details in structured JSON format with expandable cards
+- **Mandatory Specificity**: AI must acknowledge and reference the user's specific product directly
+- **Context-Aware**: AI generates professional product descriptions separate from user input
 
 ### Suggestion Generation
-- **Impact Scoring**: Business impact assessment (1-10 scale)
-- **Effort Estimation**: Implementation complexity (low/medium/high)
-- **Dependencies**: Required resources and integrations
-- **Success Metrics**: Measurable outcomes and KPIs
-- **Risk Assessment**: Potential challenges and mitigation strategies
+- **Impact Scoring**: Business impact assessment (1-10 scale) with confidence ratings
+- **Effort Estimation**: Implementation complexity (low/medium/high) with color coding
+- **Dependencies**: Required resources, integrations, and technical requirements
+- **Success Metrics**: Measurable outcomes, KPIs, and performance indicators
+- **Risk Assessment**: Potential challenges, mitigation strategies, and implementation risks
+- **Expandable Format**: Compact one-line display with full details on expansion
+
+### Product Description Generation
+- **AI-Generated Summaries**: Professional descriptions created from user ideas
+- **PRD-Quality Content**: Suitable for stakeholder presentation and documentation
+- **Context-Aware**: Tailored to product type, target users, and value proposition
+- **Auto-Population**: Automatically fills PRD overview section on first interaction
 
 ## Design System
 

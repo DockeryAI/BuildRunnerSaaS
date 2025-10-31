@@ -1,4 +1,6 @@
 {
+  "/api/brainstorm/chat/route": "app/api/brainstorm/chat/route.js",
+  "/api/brainstorm/sync/route": "app/api/brainstorm/sync/route.js",
   "/api/brainstorm/config/route": "app/api/brainstorm/config/route.js",
   "/(app)/create/page": "app/(app)/create/page.js"
 }
