@@ -1,4 +1,5 @@
 {
-  "/(app)/settings/api-keys/page": "app/(app)/settings/api-keys/page.js",
-  "/(app)/create/page": "app/(app)/create/page.js"
+  "/not-found": "app/not-found.js",
+  "/(app)/create/page": "app/(app)/create/page.js",
+  "/(app)/settings/api-keys/page": "app/(app)/settings/api-keys/page.js"
 }
