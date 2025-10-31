@@ -75,23 +75,27 @@ mkdir -p "$DOCS_DIR"
 # Sync root documentation files to docs directory
 echo "[br-auggie] 📋 Synchronizing documentation files..."
 
-# Sync spec files
-for spec_file in "PRODUCT_SPEC.md" "README.md" "spec.md"; do
-    if [[ -f "$PROJECT_DIR/$spec_file" ]]; then
-        echo "[br-auggie] 📄 Syncing $spec_file to docs/${PROJECT_NAME}-spec.md"
-        cp "$PROJECT_DIR/$spec_file" "$DOCS_DIR/${PROJECT_NAME}-spec.md"
-        break
-    fi
-done
+# Always sync the main documentation files
+if [[ -f "$PROJECT_DIR/PRODUCT_SPEC.md" ]]; then
+    echo "[br-auggie] 📄 Syncing PRODUCT_SPEC.md to docs/${PROJECT_NAME}-spec.md"
+    cp "$PROJECT_DIR/PRODUCT_SPEC.md" "$DOCS_DIR/${PROJECT_NAME}-spec.md"
+fi
 
-# Sync workflow/overview files
-for workflow_file in "USER_WORKFLOW.md" "WORKFLOW.md" "OVERVIEW.md"; do
-    if [[ -f "$PROJECT_DIR/$workflow_file" ]]; then
-        echo "[br-auggie] 📄 Syncing $workflow_file to docs/${PROJECT_NAME}-overview.md"
-        cp "$PROJECT_DIR/$workflow_file" "$DOCS_DIR/${PROJECT_NAME}-overview.md"
-        break
-    fi
-done
+if [[ -f "$PROJECT_DIR/USER_WORKFLOW.md" ]]; then
+    echo "[br-auggie] 📄 Syncing USER_WORKFLOW.md to docs/${PROJECT_NAME}-overview.md"
+    cp "$PROJECT_DIR/USER_WORKFLOW.md" "$DOCS_DIR/${PROJECT_NAME}-overview.md"
+fi
+
+# Also sync back from docs to root if docs are newer
+if [[ -f "$DOCS_DIR/${PROJECT_NAME}-spec.md" && ! -f "$PROJECT_DIR/PRODUCT_SPEC.md" ]]; then
+    echo "[br-auggie] 📄 Syncing docs/${PROJECT_NAME}-spec.md to PRODUCT_SPEC.md"
+    cp "$DOCS_DIR/${PROJECT_NAME}-spec.md" "$PROJECT_DIR/PRODUCT_SPEC.md"
+fi
+
+if [[ -f "$DOCS_DIR/${PROJECT_NAME}-overview.md" && ! -f "$PROJECT_DIR/USER_WORKFLOW.md" ]]; then
+    echo "[br-auggie] 📄 Syncing docs/${PROJECT_NAME}-overview.md to USER_WORKFLOW.md"
+    cp "$DOCS_DIR/${PROJECT_NAME}-overview.md" "$PROJECT_DIR/USER_WORKFLOW.md"
+fi
 
 # Run autophases to update totals
 echo "[br-auggie] 🔢 Updating phase calculations..."
