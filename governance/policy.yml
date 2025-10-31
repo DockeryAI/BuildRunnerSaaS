@@ -962,3 +962,316 @@ learning_personalization:
       search_latency_max_ms: 1000
       user_satisfaction_min: 3.5
       engagement_rate_min: 0.2
+
+# Enterprise AI Automation & Cross-Agent Orchestration Governance
+enterprise_automation:
+  # Agent management
+  agents:
+    enabled: true
+    auto_registration: false
+
+    # Allowed agent types
+    allowed_types:
+      - "planner"
+      - "builder"
+      - "qa"
+      - "docs"
+      - "governance"
+      - "cost"
+      - "integration"
+      - "custom"
+
+    # Agent policies
+    policies:
+      require_approval_for_custom: true
+      max_agents_per_tenant: 50
+      default_timeout_ms: 300000
+      max_timeout_ms: 1800000
+
+    # Agent capabilities
+    capabilities:
+      max_tools_per_agent: 20
+      require_scoped_access: true
+      audit_tool_usage: true
+
+  # Tool management
+  tools:
+    enabled: true
+    auto_discovery: false
+
+    # Tool categories
+    allowed_categories:
+      - "git"
+      - "deployment"
+      - "communication"
+      - "analysis"
+      - "testing"
+      - "documentation"
+      - "monitoring"
+      - "custom"
+
+    # Tool policies
+    policies:
+      require_auth_for_external: true
+      rate_limit_enforcement: true
+      cost_tracking: true
+      audit_all_usage: true
+
+    # Security controls
+    security:
+      secretless_execution: true
+      scope_enforcement: true
+      pii_protection: true
+      data_domain_isolation: true
+
+  # Workflow orchestration
+  workflows:
+    enabled: true
+    max_concurrent_runs: 100
+
+    # Workflow policies
+    policies:
+      require_approval_for_prod: true
+      require_human_gates: ["prod_deploy", "db_migration", "security_change"]
+      max_workflow_duration_hours: 24
+      auto_cleanup_after_days: 30
+
+    # Execution controls
+    execution:
+      default_sla_ms: 900000  # 15 minutes
+      max_sla_ms: 3600000     # 1 hour
+      max_retries: 3
+      backoff_multiplier: 2
+
+    # Resource limits
+    resources:
+      max_tasks_per_workflow: 100
+      max_parallel_tasks: 10
+      memory_limit_mb: 2048
+      cpu_limit_cores: 2
+
+  # Budget and cost controls
+  budgets:
+    enabled: true
+    enforcement: "hard_cap"  # soft_limit, hard_cap, alert_only
+
+    # Default limits
+    defaults:
+      per_run_usd: 2.00
+      daily_usd: 50.00
+      monthly_usd: 1000.00
+
+    # Budget policies
+    policies:
+      require_budget_for_workflows: true
+      alert_at_percent: 80
+      auto_pause_at_percent: 95
+      require_approval_for_overrides: true
+
+    # Cost tracking
+    tracking:
+      granular_cost_attribution: true
+      real_time_monitoring: true
+      cost_optimization_suggestions: true
+
+  # Human-in-the-loop controls
+  human_gates:
+    enabled: true
+    required_for_critical: true
+
+    # Gate types
+    gate_types:
+      approval: true
+      review: true
+      confirmation: true
+      escalation: true
+
+    # Gate policies
+    policies:
+      timeout_hours: 24
+      auto_escalate_after_hours: 4
+      require_justification: true
+      audit_all_decisions: true
+
+    # Approval workflows
+    approvals:
+      require_role_based: true
+      allowed_roles: ["TenantAdmin", "GlobalAdmin", "Developer"]
+      require_two_person_rule: false
+
+  # Observability and monitoring
+  observability:
+    enabled: true
+    detailed_tracing: true
+
+    # Logging
+    logging:
+      level: "info"
+      structured_logs: true
+      pii_redaction: true
+      retention_days: 90
+
+    # Metrics
+    metrics:
+      collect_performance: true
+      collect_costs: true
+      collect_errors: true
+      collect_user_satisfaction: true
+
+    # Tracing
+    tracing:
+      opentelemetry_compatible: true
+      sample_rate: 0.1
+      trace_sensitive_operations: true
+
+  # SLA and escalation management
+  sla_management:
+    enabled: true
+    auto_escalation: true
+
+    # SLA definitions
+    slas:
+      critical_workflows_minutes: 15
+      standard_workflows_minutes: 60
+      batch_workflows_hours: 4
+
+    # Escalation policies
+    escalation:
+      auto_escalate_on_timeout: true
+      escalate_to_roles: ["TenantAdmin", "GlobalAdmin"]
+      escalation_channels: ["email", "slack"]
+      max_escalation_levels: 3
+
+    # Breach handling
+    breach_handling:
+      auto_retry_on_timeout: true
+      max_auto_retries: 2
+      require_manual_intervention: true
+
+  # Security and compliance
+  security:
+    enabled: true
+    strict_mode: true
+
+    # Access controls
+    access_control:
+      role_based_execution: true
+      tenant_isolation: true
+      data_domain_separation: true
+      audit_all_access: true
+
+    # Data protection
+    data_protection:
+      encrypt_at_rest: true
+      encrypt_in_transit: true
+      pii_domains: ["customer_data", "secrets", "financial_data"]
+      auto_redact_logs: true
+
+    # Compliance
+    compliance:
+      audit_trail_required: true
+      immutable_logs: true
+      data_retention_compliance: true
+      gdpr_compliant: true
+
+  # Agent marketplace
+  marketplace:
+    enabled: true
+    curation_required: true
+
+    # Publishing policies
+    publishing:
+      require_review: true
+      security_scan_required: true
+      policy_compliance_check: true
+      test_coverage_minimum: 80
+
+    # Installation policies
+    installation:
+      require_admin_approval: true
+      security_scan_on_install: true
+      sandbox_testing_required: true
+      rollback_capability_required: true
+
+    # Quality standards
+    quality:
+      min_rating: 3.0
+      min_downloads: 10
+      require_documentation: true
+      require_examples: true
+
+  # Disaster recovery and rollback
+  disaster_recovery:
+    enabled: true
+    auto_rollback: true
+
+    # Rollback policies
+    rollback:
+      auto_rollback_on_failure: true
+      rollback_timeout_minutes: 5
+      require_approval_for_manual: true
+      preserve_audit_trail: true
+
+    # Backup and recovery
+    backup:
+      backup_workflow_state: true
+      backup_frequency_hours: 1
+      retention_days: 30
+      cross_region_replication: true
+
+  # Performance and scaling
+  performance:
+    enabled: true
+    auto_scaling: true
+
+    # Scaling policies
+    scaling:
+      scale_based_on_queue_depth: true
+      max_concurrent_workflows: 1000
+      scale_up_threshold: 80
+      scale_down_threshold: 20
+
+    # Performance monitoring
+    monitoring:
+      track_execution_time: true
+      track_resource_usage: true
+      track_queue_depth: true
+      alert_on_performance_degradation: true
+
+  # Integration and extensibility
+  integration:
+    enabled: true
+    webhook_support: true
+
+    # External integrations
+    external:
+      allow_third_party_tools: true
+      require_security_review: true
+      rate_limit_external_calls: true
+      timeout_external_calls_seconds: 30
+
+    # API access
+    api:
+      rest_api_enabled: true
+      graphql_api_enabled: true
+      webhook_api_enabled: true
+      rate_limit_per_hour: 10000
+
+  # Development and testing
+  development:
+    enabled: true
+    sandbox_mode: true
+
+    # Testing
+    testing:
+      require_unit_tests: true
+      require_integration_tests: true
+      test_coverage_minimum: 80
+      automated_testing: true
+
+    # Development workflow
+    workflow:
+      require_code_review: true
+      require_approval_for_prod: true
+      staging_environment_required: true
+      canary_deployment_support: true

@@ -1,7 +1,7 @@
 {
+  "/(app)/create/page": "app/(app)/create/page.js",
+  "/(app)/analytics/page": "app/(app)/analytics/page.js",
   "/(app)/flow/page": "app/(app)/flow/page.js",
   "/(app)/plan/page": "app/(app)/plan/page.js",
-  "/(app)/analytics/page": "app/(app)/analytics/page.js",
-  "/(app)/settings/governance/page": "app/(app)/settings/governance/page.js",
-  "/(app)/create/page": "app/(app)/create/page.js"
+  "/(app)/settings/governance/page": "app/(app)/settings/governance/page.js"
 }

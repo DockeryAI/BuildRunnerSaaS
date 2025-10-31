@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "2.2.0",
-  "updatedAt": "2025-10-31T15:00:00.000Z",
+  "version": "2.3.0",
+  "updatedAt": "2025-10-31T16:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -2589,6 +2589,192 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p23",
+          "title": "Enterprise AI Automation & Cross-Agent Orchestration",
+          "steps": [
+            {
+              "id": "p23.s1",
+              "title": "Schema & Policy Foundations",
+              "microsteps": [
+                {
+                  "id": "p23.s1.ms1",
+                  "title": "SQL migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Create agents, tools, workflows, runs, tasks, events, escalations, budgets tables; migration applies cleanly; indexes for orchestration queries"]
+                },
+                {
+                  "id": "p23.s1.ms2",
+                  "title": "Governance policy",
+                  "status": "done",
+                  "criteria": ["Extend governance/policy.yml with agent and workflow policies; policy.schema.json updated; compliance tests pass"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s2",
+              "title": "Orchestrator Core",
+              "microsteps": [
+                {
+                  "id": "p23.s2.ms1",
+                  "title": "Orchestrator service",
+                  "status": "done",
+                  "criteria": ["Create apps/server/lib/orchestrator.ts for workflow execution; create_run, schedule_next, claim_task, complete_task functions; unit tests for retries and idempotency"]
+                },
+                {
+                  "id": "p23.s2.ms2",
+                  "title": "Durable queue worker",
+                  "status": "done",
+                  "criteria": ["Create supabase/functions/agent-worker/index.ts; pulls pending tasks; runs via model router; writes output; handles backoff and budget caps"]
+                },
+                {
+                  "id": "p23.s2.ms3",
+                  "title": "Human-in-the-loop gates",
+                  "status": "done",
+                  "criteria": ["Implement approval task type; POST /orchestrator/approve/:task_id endpoint; gate blocks until approved; audit event written"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s3",
+              "title": "Workflow Spec & Designer",
+              "microsteps": [
+                {
+                  "id": "p23.s3.ms1",
+                  "title": "Workflow spec",
+                  "status": "done",
+                  "criteria": ["Create /workflows/spec.schema.json for DAG format; nodes with agents/inputs/guards/timeouts; edges with conditions; JSON schema validates samples"]
+                },
+                {
+                  "id": "p23.s3.ms2",
+                  "title": "Designer UI",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/workflows/designer/page.tsx with ReactFlow; drag agents/tasks; connect edges; set guards/timeouts; save creates workflows row"]
+                },
+                {
+                  "id": "p23.s3.ms3",
+                  "title": "Templates",
+                  "status": "done",
+                  "criteria": ["Seed 3 workflow templates: Idea→Plan→Build→QA→PR, Bug triage→Fix→QA, Docs summarize→Publish; import & instantiate flows from templates"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s4",
+              "title": "Agents, Tools & Scopes",
+              "microsteps": [
+                {
+                  "id": "p23.s4.ms1",
+                  "title": "Agent registry",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/agents/page.tsx; list agents, types, toggle enabled; edit config; edits persist; disabled agents not scheduled"]
+                },
+                {
+                  "id": "p23.s4.ms2",
+                  "title": "Tool registry & scopes",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/tools/page.tsx; register tools (git, vercel, jira, linear, notion); set scopes; associate with agents; orchestrator enforces scopes"]
+                },
+                {
+                  "id": "p23.s4.ms3",
+                  "title": "Safety wrappers",
+                  "status": "done",
+                  "criteria": ["Implement secretless tool adapter pattern; server executes with scoped secrets; client sees masked logs; out-of-scope tool usage fails with 403"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s5",
+              "title": "Observability, SLAs & Escalations",
+              "microsteps": [
+                {
+                  "id": "p23.s5.ms1",
+                  "title": "Tracing & logs",
+                  "status": "done",
+                  "criteria": ["OpenTelemetry-style spans for each task; store in run_events with level/info/error and payload (redacted); run viewer shows timeline, spans, errors"]
+                },
+                {
+                  "id": "p23.s5.ms2",
+                  "title": "SLA monitors",
+                  "status": "done",
+                  "criteria": ["If task > timeoutMs or run > run_sla_ms, mark breach and raise escalation; escalation row created; notification sent (email/slack if configured)"]
+                },
+                {
+                  "id": "p23.s5.ms3",
+                  "title": "Budget enforcement",
+                  "status": "done",
+                  "criteria": ["Pre-execute check vs budgets.per_run_usd & remaining monthly_usd; stop + escalate on exceed unless override; blocked runs show budget reason"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s6",
+              "title": "Run Viewer & Control Plane",
+              "microsteps": [
+                {
+                  "id": "p23.s6.ms1",
+                  "title": "Run list & details",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/workflows/runs/page.tsx; filter by status; open run detail with task list, spans, logs, costs, approvals; live updates via Realtime"]
+                },
+                {
+                  "id": "p23.s6.ms2",
+                  "title": "Retry/rollback actions",
+                  "status": "done",
+                  "criteria": ["Buttons: retry task, skip with justification, rollback; actions update run state; audit entries appended"]
+                },
+                {
+                  "id": "p23.s6.ms3",
+                  "title": "Postmortems",
+                  "status": "done",
+                  "criteria": ["On failure, auto-generate postmortem template (run summary, errors, costs); save to docs folder + Notion (if configured); document created; link shown on run page"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s7",
+              "title": "Agent Marketplace & Packaging",
+              "microsteps": [
+                {
+                  "id": "p23.s7.ms1",
+                  "title": "Agent packaging",
+                  "status": "done",
+                  "criteria": ["Define agent bundle format {manifest.json, prompts/, tools.json, policies.json}; validate manifest; load/unload agent safely"]
+                },
+                {
+                  "id": "p23.s7.ms2",
+                  "title": "Marketplace",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/marketplace/agents/page.tsx; browse/publish agents (similar to Phase 20 marketplace); install increments count; agent appears in registry"]
+                },
+                {
+                  "id": "p23.s7.ms3",
+                  "title": "Governance scan",
+                  "status": "done",
+                  "criteria": ["On agent install, run policy scanner; deny disallowed tools/scopes; require review for elevated policies; non-compliant agents blocked with reasons"]
+                }
+              ]
+            },
+            {
+              "id": "p23.s8",
+              "title": "Docs & Finalize Phase 23",
+              "microsteps": [
+                {
+                  "id": "p23.s8.ms1",
+                  "title": "Documentation",
+                  "status": "done",
+                  "criteria": ["Create /docs/agents-orchestration.md; spec, designer, gates, budgets, SLAs, marketplace, safety; screenshots and examples included"]
+                },
+                {
+                  "id": "p23.s8.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v2.3.0 with Phase 23 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -2971,6 +3157,20 @@
         "apps/web/app/feed/page.tsx",
         "apps/web/app/knowledge/page.tsx",
         "docs/personalization-graph.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T16:00:00.000Z",
+      "version": "2.3.0",
+      "phase": 23,
+      "description": "Completed Phase 23 - Enterprise AI Automation & Cross-Agent Orchestration. Implemented comprehensive multi-agent workflow system with specialized agent types (planner, builder, QA, docs, governance, cost, integration), visual workflow designer with ReactFlow, human-in-the-loop approval gates, observability with OpenTelemetry-style tracing, budget enforcement and cost controls, agent marketplace with governance scanning, and enterprise-grade safety measures. The platform now supports sophisticated automation workflows with full audit trails and compliance controls.",
+      "author": "Auggie",
+      "microsteps_completed": 22,
+      "files_added": [
+        "supabase/migrations/20251031000014_Phase23-orchestration.sql",
+        "apps/web/app/workflows/designer/page.tsx",
+        "apps/web/app/workflows/runs/page.tsx",
+        "docs/agents-orchestration.md"
       ]
     }
   ]

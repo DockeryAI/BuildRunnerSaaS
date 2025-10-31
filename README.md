@@ -1761,10 +1761,11 @@ const locale = getBestMatchingLocale(
 - **Phase 20**: Public Launch & Marketplace with templates, referrals, and growth ✅
 - **Phase 21**: Continuous Evaluation & Auto-Optimization with AI quality monitoring ✅
 - **Phase 22**: Continuous Learning, Personalization & Knowledge Graph with intelligent recommendations ✅
+- **Phase 23**: Enterprise AI Automation & Cross-Agent Orchestration with multi-agent workflows ✅
 
-**🎉 BuildRunner SaaS v2.2.0 - INTELLIGENT LEARNING PLATFORM! 🧠**
+**🎉 BuildRunner SaaS v2.3.0 - ENTERPRISE AI AUTOMATION PLATFORM! 🤖**
 
-BuildRunner now features personalized recommendations, knowledge graphs, and continuous learning for an adaptive development experience!
+BuildRunner now features sophisticated multi-agent workflows, human-in-the-loop controls, and enterprise-grade automation orchestration!
 
 ## Phase 19 — Offline & Resilience ✅
 
@@ -2771,3 +2772,182 @@ br search "authentication" --type skill --difficulty intermediate
 - Audit trails for all data processing
 - Encryption at rest and in transit
 - Access logging and monitoring
+
+## Phase 23 — Enterprise AI Automation & Cross-Agent Orchestration ✅
+
+Comprehensive multi-agent automation platform with sophisticated workflows, human-in-the-loop controls, and enterprise-grade safety measures.
+
+### Features
+- **Multi-Agent Workflows**: Coordinate multiple specialized AI agents in complex workflows
+- **Human-in-the-Loop Gates**: Approval and review checkpoints for critical operations
+- **Observability & Monitoring**: Comprehensive tracing, logging, and metrics
+- **Budget & Cost Controls**: Granular cost management and enforcement
+- **Safety & Compliance**: Security controls, audit trails, and policy enforcement
+- **Agent Marketplace**: Curated ecosystem of agents and tools
+
+### Agent Types
+
+BuildRunner supports several specialized agent types:
+
+```typescript
+// Core agent types
+interface Agent {
+  id: string;
+  slug: string;
+  title: string;
+  type: 'planner' | 'builder' | 'qa' | 'docs' | 'governance' | 'cost' | 'integration' | 'custom';
+  capabilities: string[];
+  config: {
+    model: string;
+    temperature: number;
+    max_tokens?: number;
+    tools: string[];
+  };
+  enabled: boolean;
+}
+```
+
+**Agent Capabilities:**
+- **Planner Agent**: Project planning, task breakdown, estimation
+- **Builder Agent**: Code generation, implementation, refactoring
+- **QA Agent**: Testing, validation, bug detection
+- **Docs Agent**: Documentation generation, explanation, tutorials
+- **Governance Agent**: Policy compliance, audit, governance checks
+- **Cost Agent**: Cost analysis, optimization, budgeting
+- **Integration Agent**: Third-party integrations, API management
+
+### Workflow Specification
+
+Workflows are defined using a DAG (Directed Acyclic Graph) format:
+
+```json
+{
+  "metadata": {
+    "name": "Full Development Cycle",
+    "description": "Complete development workflow from idea to deployment",
+    "version": "1.0.0",
+    "sla_ms": 3600000,
+    "budget_usd": 10.0
+  },
+  "nodes": [
+    {
+      "id": "plan",
+      "type": "agent_task",
+      "agent_type": "planner",
+      "name": "Create Project Plan",
+      "config": {
+        "prompt_template": "plan_project",
+        "output_format": "structured"
+      },
+      "timeout_ms": 300000,
+      "dependencies": []
+    },
+    {
+      "id": "approval_gate",
+      "type": "approval_gate",
+      "name": "Review Plan",
+      "config": {
+        "required_role": "TenantAdmin",
+        "timeout_hours": 24
+      },
+      "dependencies": ["plan"]
+    },
+    {
+      "id": "implement",
+      "type": "agent_task",
+      "agent_type": "builder",
+      "name": "Implement Code",
+      "config": {
+        "prompt_template": "implement_features",
+        "tools": ["git", "github"]
+      },
+      "dependencies": ["approval_gate"]
+    }
+  ],
+  "edges": [
+    {
+      "from": "plan",
+      "to": "approval_gate",
+      "condition": "success"
+    },
+    {
+      "from": "approval_gate",
+      "to": "implement",
+      "condition": "approved"
+    }
+  ]
+}
+```
+
+### Orchestrator Engine
+
+The orchestrator uses a durable queue system for reliable execution:
+
+```typescript
+class WorkflowOrchestrator {
+  async createRun(workflowId: string, inputData: any): Promise<string> {
+    const run = await this.db.workflow_runs.insert({
+      workflow_id: workflowId,
+      status: 'queued',
+      input_data: inputData,
+      sla_ms: workflow.sla_ms
+    });
+
+    await this.scheduleNextTasks(run.id);
+    return run.id;
+  }
+
+  async executeTask(taskId: string): Promise<void> {
+    const task = await this.getTask(taskId);
+
+    try {
+      // Check budget limits
+      await this.checkBudgetLimits(task);
+
+      // Execute with appropriate agent
+      const result = await this.executeWithAgent(task);
+
+      // Update task status and output
+      await this.completeTask(taskId, result);
+
+      // Schedule next tasks
+      await this.scheduleNextTasks(task.run_id);
+
+    } catch (error) {
+      await this.failTask(taskId, error);
+    }
+  }
+}
+```
+
+### Human-in-the-Loop Gates
+
+Approval gates provide human oversight for critical operations:
+
+```typescript
+interface ApprovalGate {
+  task_id: string;
+  required_role: string[];
+  timeout_hours: number;
+  escalation_policy: {
+    levels: Array<{
+      after_hours: number;
+      assignees: string[];
+      channels: string[];
+    }>;
+  };
+  approval_criteria: {
+    require_justification: boolean;
+    require_two_person_rule: boolean;
+    allowed_actions: string[];
+  };
+}
+```
+
+**Approval Process:**
+1. Task reaches approval gate
+2. Notification sent to required approvers
+3. Approver reviews context and makes decision
+4. Justification and audit trail recorded
+5. Workflow continues or terminates based on decision
+```
