@@ -6,7 +6,7 @@ import {
   ExclamationTriangleIcon,
   UserGroupIcon,
   SparklesIcon,
-  TargetIcon,
+  StarIcon,
   ListBulletIcon,
   CogIcon,
   CurrencyDollarIcon,
@@ -65,7 +65,7 @@ export const PRD_SECTIONS: PRDSection[] = [
     id: 'value_proposition',
     name: 'Value Proposition',
     description: 'Benefits, differentiators, strategy',
-    icon: TargetIcon,
+    icon: StarIcon,
     required: true,
     phase: 1
   },
