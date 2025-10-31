@@ -1763,10 +1763,11 @@ const locale = getBestMatchingLocale(
 - **Phase 22**: Continuous Learning, Personalization & Knowledge Graph with intelligent recommendations ✅
 - **Phase 23**: Enterprise AI Automation & Cross-Agent Orchestration with multi-agent workflows ✅
 - **Phase 24**: White-Label/OEM, Custom Domains, and Partner API with full branding capabilities ✅
+- **Phase 25**: Multi-Region, Performance & Disaster Recovery (DR) with enterprise-grade reliability ✅
 
-**🎉 BuildRunner SaaS v2.4.0 - WHITE-LABEL OEM PLATFORM! 🏷️**
+**🎉 BuildRunner SaaS v2.5.0 - ENTERPRISE MULTI-REGION PLATFORM! 🌍**
 
-BuildRunner now features comprehensive white-label capabilities, custom domains, partner API, and full OEM distribution support!
+BuildRunner now features multi-region deployment, performance monitoring, disaster recovery, and enterprise-grade reliability!
 
 ## Phase 19 — Offline & Resilience ✅
 
@@ -3146,3 +3147,358 @@ interface PartnerWebhook {
 - Exponential backoff retry logic
 - 30-second timeout per attempt
 - Up to 6 retry attempts
+
+## Phase 25 — Multi-Region, Performance & Disaster Recovery (DR) ✅
+
+Enterprise-grade multi-region deployment, performance monitoring, and disaster recovery capabilities ensuring high availability, low latency, and business continuity.
+
+### Features
+- **Multi-Region Routing**: Intelligent traffic routing based on geography and health
+- **Performance Monitoring**: Real-time metrics, budgets, and SLO tracking
+- **Disaster Recovery**: Automated backups, failover, and recovery procedures
+- **Auto-Scaling**: Dynamic resource allocation based on demand
+- **Edge Caching**: Stale-while-revalidate caching for optimal performance
+- **Observability**: Comprehensive dashboards and alerting
+
+### Multi-Region Architecture
+
+**Region Configuration:**
+```typescript
+interface Region {
+  code: string;           // e.g., 'us-east-1'
+  name: string;          // e.g., 'US East (Virginia)'
+  role: 'primary' | 'replica' | 'standby' | 'edge';
+  endpoint: string;      // Regional API endpoint
+  active: boolean;       // Health status
+  latency_ms: number;    // Average latency
+}
+```
+
+**Region Roles:**
+- **Primary**: Main production region handling writes
+- **Replica**: Read-only replica for load distribution
+- **Standby**: Backup region for disaster recovery
+- **Edge**: CDN/cache layer for static content
+
+**Traffic Routing:**
+- Geographic routing based on user location
+- Sticky session affinity (30 minutes configurable)
+- Automatic failover to healthy regions
+- Read replica routing for analytics queries
+
+### Performance Monitoring
+
+**Performance Budgets:**
+```typescript
+interface PerformanceBudget {
+  service: 'api' | 'web' | 'edge' | 'db' | 'worker' | 'auth';
+  metric_type: 'latency' | 'error_rate' | 'throughput' | 'availability';
+  p50_ms?: number;
+  p95_ms?: number;
+  p99_ms?: number;
+  error_budget_pct?: number;
+  availability_pct?: number;
+  alert_threshold_pct: number;
+}
+```
+
+**Default Performance Budgets:**
+- **API**: P95 < 400ms, P99 < 900ms, Error Rate < 1%
+- **Web**: LCP < 2500ms, FID < 100ms, CLS < 0.1
+- **Database**: P95 < 50ms, P99 < 200ms, Availability > 99.99%
+- **Edge**: P95 < 200ms, Cache Hit Ratio > 90%
+
+**Real-Time Monitoring:**
+- Continuous metrics collection (30-second intervals)
+- Performance budget validation
+- Automatic alerting on threshold breaches
+- Historical trend analysis
+
+### Disaster Recovery
+
+**Recovery Objectives:**
+- **RPO (Recovery Point Objective)**: 15 minutes maximum data loss
+- **RTO (Recovery Time Objective)**: 30 minutes maximum downtime
+
+**Backup Strategy:**
+```typescript
+// Automated backup configuration
+const backupConfig = {
+  schedule: '0 2 * * *',        // Daily at 2 AM UTC
+  retention_days: 30,
+  encryption: 'AES-256',
+  compression: true,
+  verification: true,
+  incremental_interval: '0 */4 * * *',  // Every 4 hours
+  transaction_log_interval: '*/15 * * * *'  // Every 15 minutes
+};
+```
+
+**Failover Automation:**
+```typescript
+// Automated failover process
+const executeFailover = async (options: {
+  targetRegion: string;
+  reason: string;
+  dryRun?: boolean;
+}) => {
+  const steps = [
+    'Stop traffic to primary region',
+    'Promote standby to primary',
+    'Update DNS records',
+    'Warm caches in new region',
+    'Verify application health',
+    'Resume traffic'
+  ];
+
+  for (const step of steps) {
+    await executeFailoverStep(step, options);
+    await logFailoverProgress(step);
+  }
+};
+```
+
+**DR Drills:**
+- Weekly automated failover testing
+- Monthly full disaster scenario simulation
+- Quarterly cross-region data recovery tests
+- Annual complete disaster simulation
+
+### Edge Caching
+
+**Stale-While-Revalidate (SWR):**
+```typescript
+// Cache strategy implementation
+const cacheStrategy = {
+  static_assets: { ttl: '1y', swr: '0' },
+  api_responses: { ttl: '5m', swr: '5m' },
+  user_data: { ttl: '0', swr: '0' },
+  public_data: { ttl: '1h', swr: '30m' }
+};
+```
+
+**Cache Features:**
+- Intelligent cache key generation
+- Event-driven invalidation
+- Background revalidation
+- Cache warming for critical content
+- Regional cache distribution
+
+### Auto-Scaling
+
+**Horizontal Scaling Configuration:**
+```yaml
+autoscaling:
+  api:
+    min_instances: 2
+    max_instances: 20
+    target_cpu: 70%
+    target_memory: 80%
+    scale_up_cooldown: 5m
+    scale_down_cooldown: 10m
+
+  workers:
+    min_instances: 1
+    max_instances: 10
+    target_queue_depth: 100
+    scale_up_cooldown: 2m
+    scale_down_cooldown: 5m
+```
+
+**Scaling Triggers:**
+- CPU utilization thresholds
+- Memory usage monitoring
+- Request queue depth
+- Response time degradation
+- Custom metric-based scaling
+
+### Load Testing
+
+**Continuous Load Testing:**
+```javascript
+// k6 load test configuration
+export const options = {
+  stages: [
+    { duration: '2m', target: 10 },   // Ramp up
+    { duration: '5m', target: 50 },   // Normal load
+    { duration: '2m', target: 100 },  // Peak load
+    { duration: '5m', target: 0 },    // Ramp down
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<400'],
+    http_req_failed: ['rate<0.01'],
+  },
+};
+```
+
+**Test Types:**
+- **Smoke Tests**: Basic functionality validation (10 RPS)
+- **Load Tests**: Normal traffic simulation (50 RPS)
+- **Stress Tests**: Peak capacity testing (100 RPS)
+- **Spike Tests**: Sudden traffic surge handling (500+ RPS)
+
+### Canary Deployments
+
+**Traffic Shifting Strategy:**
+```typescript
+// Gradual rollout configuration
+const canaryConfig = {
+  initial_percentage: 5,
+  increment_percentage: 10,
+  increment_interval_minutes: 15,
+  target_percentage: 100,
+  error_budget_threshold_pct: 1.0,
+  auto_rollback_enabled: true
+};
+```
+
+**Safety Controls:**
+- Error budget monitoring with automatic rollback
+- Latency threshold validation
+- Manual override capabilities
+- Gradual progression: 5% → 10% → 25% → 50% → 100%
+
+### Performance Gates
+
+**CI/CD Integration:**
+```yaml
+# Web performance validation
+web_performance:
+  lighthouse_audit: true
+  lcp_budget: 2500ms
+  fid_budget: 100ms
+  cls_budget: 0.1
+
+# API performance validation
+api_performance:
+  k6_load_test: true
+  p95_budget: 400ms
+  p99_budget: 900ms
+  error_rate_budget: 1%
+```
+
+**Automated Validation:**
+- Lighthouse audits for web performance
+- k6 load tests for API performance
+- Performance budget enforcement
+- Automatic PR blocking on budget violations
+
+### Database Schema
+
+**Multi-Region Tables:**
+```sql
+-- Regions table for multi-region deployment
+CREATE TABLE regions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  endpoint TEXT NOT NULL,
+  active BOOLEAN DEFAULT true,
+  latency_ms INT DEFAULT 0,
+  last_health_check TIMESTAMPTZ,
+
+  CONSTRAINT valid_region_role CHECK (role IN ('primary', 'replica', 'standby', 'edge'))
+);
+
+-- Performance budgets for SLO tracking
+CREATE TABLE perf_budgets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  service TEXT NOT NULL,
+  metric_type TEXT NOT NULL,
+  p95_ms INT,
+  p99_ms INT,
+  error_budget_pct NUMERIC,
+  availability_pct NUMERIC DEFAULT 99.9,
+  alert_threshold_pct NUMERIC DEFAULT 80,
+
+  CONSTRAINT valid_perf_service CHECK (service IN ('api', 'web', 'edge', 'db', 'worker', 'auth'))
+);
+
+-- Performance snapshots for historical tracking
+CREATE TABLE perf_snapshots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  service TEXT NOT NULL,
+  region_code TEXT,
+  p95_ms INT,
+  p99_ms INT,
+  error_rate NUMERIC,
+  throughput_rps INT,
+  cache_hit_ratio NUMERIC,
+  measured_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### CLI Commands
+
+**Multi-Region Management:**
+```bash
+# List regions and health status
+br regions list --health
+
+# Switch user to specific region
+br regions set --region us-west-1
+
+# Check regional performance
+br performance metrics --region us-east-1 --service api
+```
+
+**Disaster Recovery:**
+```bash
+# Run DR drill
+br dr drill --type failover --target us-west-1
+
+# Execute actual failover
+br dr failover --target us-west-1 --reason "primary_region_failure"
+
+# Check backup status
+br dr backups list --region us-east-1
+```
+
+**Performance Testing:**
+```bash
+# Run load test
+br load-test run --type load --duration 5m --target-rps 50
+
+# Check performance budgets
+br performance budgets --service api
+
+# View slow queries
+br performance slow-queries --service db --limit 10
+```
+
+### Observability Dashboard
+
+**Performance Analytics Interface:**
+- Real-time service health monitoring
+- Performance metrics vs. budget visualization
+- Regional distribution and latency maps
+- Slow query analysis and optimization recommendations
+- Cache hit ratio and invalidation tracking
+
+**Key Metrics Displayed:**
+- P50/P95/P99 latency percentiles
+- Error rates and availability
+- Throughput and request volume
+- Resource utilization (CPU, memory, disk)
+- Cache performance and hit ratios
+
+### Enterprise Features
+
+**High Availability:**
+- Multi-region active-active deployment
+- Automatic failover and recovery
+- Zero-downtime deployments
+- Geographic load distribution
+
+**Performance Optimization:**
+- Intelligent caching strategies
+- Database read replica routing
+- CDN integration for static assets
+- Auto-scaling based on demand
+
+**Business Continuity:**
+- Comprehensive backup and recovery
+- Disaster recovery automation
+- Regular DR drill validation
+- RTO/RPO compliance monitoring

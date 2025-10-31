@@ -1,0 +1,364 @@
+name: API Performance Testing
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/server/**'
+      - 'supabase/**'
+      - '.github/workflows/api-perf.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/server/**'
+      - 'supabase/**'
+  schedule:
+    # Run daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL for testing'
+        required: false
+        default: 'https://api-staging.buildrunner.cloud'
+        type: string
+      duration:
+        description: 'Test duration in minutes'
+        required: false
+        default: '5'
+        type: string
+      max_rps:
+        description: 'Maximum requests per second'
+        required: false
+        default: '100'
+        type: string
+
+env:
+  K6_VERSION: '0.47.0'
+  NODE_VERSION: '18'
+
+jobs:
+  api-load-test:
+    name: API Load Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    strategy:
+      matrix:
+        test_type:
+          - name: 'smoke'
+            script: 'api-load-test.js'
+            rps: 10
+            duration: '2m'
+            p95_budget: 400
+            p99_budget: 900
+            error_budget: 1.0
+          - name: 'load'
+            script: 'api-load-test.js'
+            rps: 50
+            duration: '5m'
+            p95_budget: 400
+            p99_budget: 900
+            error_budget: 1.0
+          - name: 'stress'
+            script: 'api-load-test.js'
+            rps: 100
+            duration: '3m'
+            p95_budget: 600
+            p99_budget: 1200
+            error_budget: 2.0
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6=${{ env.K6_VERSION }}
+
+      - name: Verify k6 installation
+        run: k6 version
+
+      - name: Prepare test environment
+        run: |
+          # Create test results directory
+          mkdir -p test-results
+          
+          # Set test parameters
+          TARGET_URL="${{ github.event.inputs.target_url || 'https://api-staging.buildrunner.cloud' }}"
+          DURATION="${{ github.event.inputs.duration || matrix.test_type.duration }}"
+          MAX_RPS="${{ github.event.inputs.max_rps || matrix.test_type.rps }}"
+          
+          echo "TARGET_URL=$TARGET_URL" >> $GITHUB_ENV
+          echo "DURATION=$DURATION" >> $GITHUB_ENV
+          echo "MAX_RPS=$MAX_RPS" >> $GITHUB_ENV
+          echo "P95_BUDGET=${{ matrix.test_type.p95_budget }}" >> $GITHUB_ENV
+          echo "P99_BUDGET=${{ matrix.test_type.p99_budget }}" >> $GITHUB_ENV
+          echo "ERROR_BUDGET=${{ matrix.test_type.error_budget }}" >> $GITHUB_ENV
+
+      - name: Health check target API
+        run: |
+          echo "Checking API health at $TARGET_URL"
+          
+          # Wait for API to be ready
+          timeout 60 bash -c "
+            until curl -f $TARGET_URL/health > /dev/null 2>&1; do
+              echo 'Waiting for API to be ready...'
+              sleep 5
+            done
+          "
+          
+          echo "API is ready"
+
+      - name: Run k6 load test
+        run: |
+          echo "Running ${{ matrix.test_type.name }} test against $TARGET_URL"
+          echo "Duration: $DURATION, Max RPS: $MAX_RPS"
+          echo "Budgets - P95: ${P95_BUDGET}ms, P99: ${P99_BUDGET}ms, Error Rate: ${ERROR_BUDGET}%"
+          
+          # Run k6 test
+          k6 run \
+            --out json=test-results/${{ matrix.test_type.name }}-results.json \
+            --summary-export=test-results/${{ matrix.test_type.name }}-summary.json \
+            tests/load/k6/${{ matrix.test_type.script }}
+        env:
+          BASE_URL: ${{ env.TARGET_URL }}
+          AUTH_TOKEN: ${{ secrets.API_TEST_TOKEN }}
+          K6_DURATION: ${{ env.DURATION }}
+          K6_MAX_RPS: ${{ env.MAX_RPS }}
+
+      - name: Analyze test results
+        run: |
+          echo "Analyzing test results for ${{ matrix.test_type.name }}"
+          
+          # Parse k6 results
+          if [ -f "test-results/${{ matrix.test_type.name }}-summary.json" ]; then
+            SUMMARY_FILE="test-results/${{ matrix.test_type.name }}-summary.json"
+          else
+            echo "Summary file not found, parsing JSON output"
+            # Extract summary from JSON output if summary file doesn't exist
+            cat test-results/${{ matrix.test_type.name }}-results.json | jq -s '
+              map(select(.type == "Point" and .metric == "http_req_duration")) |
+              group_by(.data.tags.name // "unknown") |
+              map({
+                name: .[0].data.tags.name // "unknown",
+                avg: (map(.data.value) | add / length),
+                p95: (map(.data.value) | sort | .[length * 0.95 | floor]),
+                p99: (map(.data.value) | sort | .[length * 0.99 | floor])
+              })
+            ' > temp-summary.json
+            SUMMARY_FILE="temp-summary.json"
+          fi
+          
+          # Extract key metrics
+          if [ -f "$SUMMARY_FILE" ]; then
+            P95=$(cat "$SUMMARY_FILE" | jq -r '.metrics.http_req_duration.p95 // 0')
+            P99=$(cat "$SUMMARY_FILE" | jq -r '.metrics.http_req_duration.p99 // 0')
+            ERROR_RATE=$(cat "$SUMMARY_FILE" | jq -r '.metrics.http_req_failed.rate // 0')
+            TOTAL_REQUESTS=$(cat "$SUMMARY_FILE" | jq -r '.metrics.http_reqs.count // 0')
+            RPS=$(cat "$SUMMARY_FILE" | jq -r '.metrics.http_reqs.rate // 0')
+          else
+            echo "Could not parse test results"
+            P95=0
+            P99=0
+            ERROR_RATE=0
+            TOTAL_REQUESTS=0
+            RPS=0
+          fi
+          
+          echo "Test Results:"
+          echo "- P95 Latency: ${P95}ms (Budget: ${P95_BUDGET}ms)"
+          echo "- P99 Latency: ${P99}ms (Budget: ${P99_BUDGET}ms)"
+          echo "- Error Rate: $(echo "$ERROR_RATE * 100" | bc -l)% (Budget: ${ERROR_BUDGET}%)"
+          echo "- Total Requests: $TOTAL_REQUESTS"
+          echo "- Requests/Second: $RPS"
+          
+          # Check budgets
+          BUDGET_FAILED=false
+          
+          if (( $(echo "$P95 > $P95_BUDGET" | bc -l) )); then
+            echo "❌ P95 latency budget exceeded: ${P95}ms > ${P95_BUDGET}ms"
+            BUDGET_FAILED=true
+          else
+            echo "✅ P95 latency within budget: ${P95}ms <= ${P95_BUDGET}ms"
+          fi
+          
+          if (( $(echo "$P99 > $P99_BUDGET" | bc -l) )); then
+            echo "❌ P99 latency budget exceeded: ${P99}ms > ${P99_BUDGET}ms"
+            BUDGET_FAILED=true
+          else
+            echo "✅ P99 latency within budget: ${P99}ms <= ${P99_BUDGET}ms"
+          fi
+          
+          ERROR_RATE_PCT=$(echo "$ERROR_RATE * 100" | bc -l)
+          if (( $(echo "$ERROR_RATE_PCT > $ERROR_BUDGET" | bc -l) )); then
+            echo "❌ Error rate budget exceeded: ${ERROR_RATE_PCT}% > ${ERROR_BUDGET}%"
+            BUDGET_FAILED=true
+          else
+            echo "✅ Error rate within budget: ${ERROR_RATE_PCT}% <= ${ERROR_BUDGET}%"
+          fi
+          
+          # Save results for summary
+          cat > test-results/${{ matrix.test_type.name }}-analysis.json << EOF
+          {
+            "test_type": "${{ matrix.test_type.name }}",
+            "target_url": "$TARGET_URL",
+            "duration": "$DURATION",
+            "max_rps": $MAX_RPS,
+            "results": {
+              "p95_ms": $P95,
+              "p99_ms": $P99,
+              "error_rate_pct": $ERROR_RATE_PCT,
+              "total_requests": $TOTAL_REQUESTS,
+              "requests_per_second": $RPS
+            },
+            "budgets": {
+              "p95_ms": $P95_BUDGET,
+              "p99_ms": $P99_BUDGET,
+              "error_rate_pct": $ERROR_BUDGET
+            },
+            "budget_failed": $BUDGET_FAILED
+          }
+          EOF
+          
+          echo "BUDGET_FAILED=$BUDGET_FAILED" >> $GITHUB_ENV
+          
+          if [ "$BUDGET_FAILED" = "true" ]; then
+            echo "Performance budgets exceeded for ${{ matrix.test_type.name }} test"
+            exit 1
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-perf-results-${{ matrix.test_type.name }}
+          path: test-results/
+          retention-days: 30
+
+  performance-summary:
+    name: API Performance Summary
+    runs-on: ubuntu-latest
+    needs: api-load-test
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Generate performance summary
+        run: |
+          echo "# ⚡ API Performance Report" > api-performance-summary.md
+          echo "" >> api-performance-summary.md
+          echo "API performance test results for commit \`${{ github.sha }}\`" >> api-performance-summary.md
+          echo "" >> api-performance-summary.md
+          echo "| Test Type | P95 Latency | P99 Latency | Error Rate | RPS | Total Requests | Status |" >> api-performance-summary.md
+          echo "|-----------|-------------|-------------|------------|-----|----------------|--------|" >> api-performance-summary.md
+          
+          OVERALL_STATUS="✅ PASSED"
+          
+          for dir in ./artifacts/api-perf-results-*; do
+            if [ -d "$dir" ]; then
+              for file in "$dir"/*-analysis.json; do
+                if [ -f "$file" ]; then
+                  TEST_TYPE=$(jq -r '.test_type' "$file")
+                  P95=$(jq -r '.results.p95_ms' "$file")
+                  P99=$(jq -r '.results.p99_ms' "$file")
+                  ERROR_RATE=$(jq -r '.results.error_rate_pct' "$file")
+                  RPS=$(jq -r '.results.requests_per_second' "$file")
+                  TOTAL_REQUESTS=$(jq -r '.results.total_requests' "$file")
+                  BUDGET_FAILED=$(jq -r '.budget_failed' "$file")
+                  
+                  if [ "$BUDGET_FAILED" = "true" ]; then
+                    STATUS="❌ FAILED"
+                    OVERALL_STATUS="❌ FAILED"
+                  else
+                    STATUS="✅ PASSED"
+                  fi
+                  
+                  echo "| $TEST_TYPE | ${P95}ms | ${P99}ms | ${ERROR_RATE}% | ${RPS} | $TOTAL_REQUESTS | $STATUS |" >> api-performance-summary.md
+                fi
+              done
+            fi
+          done
+          
+          echo "" >> api-performance-summary.md
+          echo "**Overall Status: $OVERALL_STATUS**" >> api-performance-summary.md
+          echo "" >> api-performance-summary.md
+          
+          if [ "$OVERALL_STATUS" = "❌ FAILED" ]; then
+            echo "## 🔧 API Performance Optimization Tips" >> api-performance-summary.md
+            echo "" >> api-performance-summary.md
+            echo "- **High Latency**: Check database query performance, add caching, optimize algorithms" >> api-performance-summary.md
+            echo "- **High Error Rate**: Review error logs, check resource limits, validate input handling" >> api-performance-summary.md
+            echo "- **Low Throughput**: Scale horizontally, optimize connection pooling, review bottlenecks" >> api-performance-summary.md
+            echo "" >> api-performance-summary.md
+            echo "📊 [API Performance Best Practices](https://docs.buildrunner.cloud/performance)" >> api-performance-summary.md
+          fi
+          
+          echo "OVERALL_STATUS=$OVERALL_STATUS" >> $GITHUB_ENV
+
+      - name: Comment PR with API performance results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('api-performance-summary.md', 'utf8');
+            
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.data.find(
+              comment => comment.body.includes('⚡ API Performance Report')
+            );
+            
+            if (existingComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: summary
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }
+
+      - name: Fail if API performance budgets exceeded
+        if: env.OVERALL_STATUS == '❌ FAILED'
+        run: |
+          echo "API performance budgets were exceeded. Please optimize the API before merging."
+          exit 1
+
+      - name: Upload API performance summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-performance-summary
+          path: api-performance-summary.md
+          retention-days: 30
