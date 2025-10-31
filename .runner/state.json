@@ -1,7 +1,7 @@
 {
   "phase": 1,
   "step": 10,
-  "total_phases": 6,
+  "total_phases": 25,
   "total_steps_in_current_phase": 10,
   "current_stage": "phase_1_complete",
   "last_sync": "2025-10-31T19:52:14Z",
