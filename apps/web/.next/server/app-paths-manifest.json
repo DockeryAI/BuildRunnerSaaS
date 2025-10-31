@@ -1,1 +1,10 @@
-{}
+{
+  "/api/plans/local/route": "app/api/plans/local/route.js",
+  "/api/spec-diff/route": "app/api/spec-diff/route.js",
+  "/(app)/tests/page": "app/(app)/tests/page.js",
+  "/(app)/reconcile/page": "app/(app)/reconcile/page.js",
+  "/(app)/settings/page": "app/(app)/settings/page.js",
+  "/(app)/timeline/page": "app/(app)/timeline/page.js",
+  "/(app)/flow/page": "app/(app)/flow/page.js",
+  "/(app)/plan/page": "app/(app)/plan/page.js"
+}
