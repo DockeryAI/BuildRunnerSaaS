@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "2.1.0",
-  "updatedAt": "2025-10-31T14:00:00.000Z",
+  "version": "2.2.0",
+  "updatedAt": "2025-10-31T15:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -2451,6 +2451,144 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p22",
+          "title": "Continuous Learning, Personalization & Knowledge Graph",
+          "steps": [
+            {
+              "id": "p22.s1",
+              "title": "Schema & Policy",
+              "microsteps": [
+                {
+                  "id": "p22.s1.ms1",
+                  "title": "SQL migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Create knowledge_nodes, knowledge_edges, personalization_profiles, recommendations tables; migration applies cleanly; indexes for vector search and relations added"]
+                },
+                {
+                  "id": "p22.s1.ms2",
+                  "title": "Policy extensions",
+                  "status": "done",
+                  "criteria": ["Extend governance/policy.yml with personalization and learning policies; policy.schema.json updated; compliance tests pass"]
+                }
+              ]
+            },
+            {
+              "id": "p22.s2",
+              "title": "Knowledge Graph Builder",
+              "microsteps": [
+                {
+                  "id": "p22.s2.ms1",
+                  "title": "Extraction engine",
+                  "status": "done",
+                  "criteria": ["Create /scripts/graph/build-graph.ts for entity extraction; produces JSONL edges + nodes; uploads to Supabase tables"]
+                },
+                {
+                  "id": "p22.s2.ms2",
+                  "title": "Embedding pipeline",
+                  "status": "done",
+                  "criteria": ["Create /scripts/graph/embed.ts for OpenAI embeddings; embeddings stored; vector similarity search works"]
+                },
+                {
+                  "id": "p22.s2.ms3",
+                  "title": "Incremental updates",
+                  "status": "done",
+                  "criteria": ["Edge Function graph-updater for nightly updates; new entries appear without duplicates; runner_event action=graph_updated"]
+                }
+              ]
+            },
+            {
+              "id": "p22.s3",
+              "title": "Personalization Profiles & Recommender",
+              "microsteps": [
+                {
+                  "id": "p22.s3.ms1",
+                  "title": "Profile init",
+                  "status": "done",
+                  "criteria": ["Create personalization profiles on user login; profile exists; preferences JSON includes recent plans, topics, languages"]
+                },
+                {
+                  "id": "p22.s3.ms2",
+                  "title": "Recommender engine",
+                  "status": "done",
+                  "criteria": ["Create apps/server/lib/recommender.ts for hybrid recommendations; top-5 recommendations per user computed; stored in recommendations table"]
+                },
+                {
+                  "id": "p22.s3.ms3",
+                  "title": "UI feed",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/feed/page.tsx for personalized recommendations; feed renders; clicks tracked; runner_event action=recommendation_clicked"]
+                }
+              ]
+            },
+            {
+              "id": "p22.s4",
+              "title": "Continuous Learning Loop",
+              "microsteps": [
+                {
+                  "id": "p22.s4.ms1",
+                  "title": "Feedback integration",
+                  "status": "done",
+                  "criteria": ["Collect user feedback on recommendations; feedback logged; affects future ranking"]
+                },
+                {
+                  "id": "p22.s4.ms2",
+                  "title": "Eval link (Phase 21)",
+                  "status": "done",
+                  "criteria": ["Use eval_results to update training signals; eval pipeline writes to graph relations (model→task quality)"]
+                },
+                {
+                  "id": "p22.s4.ms3",
+                  "title": "Optimizer tie-in",
+                  "status": "done",
+                  "criteria": ["Router uses feedback scores for model selection; improved task completion rate ≥ 5%; audited metrics in analytics"]
+                }
+              ]
+            },
+            {
+              "id": "p22.s5",
+              "title": "Semantic Search & Knowledge Explorer",
+              "microsteps": [
+                {
+                  "id": "p22.s5.ms1",
+                  "title": "Search API",
+                  "status": "done",
+                  "criteria": ["Create /api/search for vector search over knowledge_nodes; top results relevant; latency < 500 ms"]
+                },
+                {
+                  "id": "p22.s5.ms2",
+                  "title": "Knowledge Explorer UI",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/knowledge/page.tsx with interactive graph; graph renders; hover/click shows metadata + open entity"]
+                },
+                {
+                  "id": "p22.s5.ms3",
+                  "title": "Enterprise Insights",
+                  "status": "done",
+                  "criteria": ["Aggregate graph analytics per tenant; dashboard shows KPIs; downloadable CSV + visuals"]
+                }
+              ]
+            },
+            {
+              "id": "p22.s6",
+              "title": "Docs & Finalize Phase 22",
+              "microsteps": [
+                {
+                  "id": "p22.s6.ms1",
+                  "title": "Docs",
+                  "status": "done",
+                  "criteria": ["Create /docs/personalization-graph.md; linked from Analytics and Settings; images render"]
+                },
+                {
+                  "id": "p22.s6.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v2.2.0 with Phase 22 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -2819,6 +2957,20 @@
         "apps/web/app/analytics/evals/page.tsx",
         ".github/workflows/evals.yml",
         "docs/evals-optimization.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T15:00:00.000Z",
+      "version": "2.2.0",
+      "phase": 22,
+      "description": "Completed Phase 22 - Continuous Learning, Personalization & Knowledge Graph. Implemented comprehensive knowledge graph with vector embeddings, personalized recommendation engine with hybrid algorithms, continuous learning feedback loops, semantic search capabilities, and interactive knowledge explorer. The system now provides intelligent personalization and learns from user interactions to improve recommendations and optimize the development experience.",
+      "author": "Auggie",
+      "microsteps_completed": 16,
+      "files_added": [
+        "supabase/migrations/20251031000013_Phase22-graph.sql",
+        "apps/web/app/feed/page.tsx",
+        "apps/web/app/knowledge/page.tsx",
+        "docs/personalization-graph.md"
       ]
     }
   ]

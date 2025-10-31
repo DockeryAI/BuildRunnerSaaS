@@ -731,3 +731,234 @@ evals_optimization:
       encrypt_at_rest: true
       encrypt_in_transit: true
       gdpr_compliance: true
+
+# Continuous Learning, Personalization & Knowledge Graph Governance
+learning_personalization:
+  # Personalization settings
+  personalization:
+    enabled: true
+    opt_in_required: true
+    default_opt_in: false
+
+    # Privacy controls
+    privacy:
+      embedding_privacy: "anonymized"
+      profile_sharing: false
+      interaction_tracking: true
+      data_retention_days: 365
+
+    # Profile management
+    profiles:
+      auto_create: true
+      min_interactions_for_recommendations: 5
+      expertise_level_auto_detect: true
+      learning_style_detection: true
+
+  # Knowledge graph settings
+  knowledge_graph:
+    enabled: true
+    auto_build: true
+    incremental_updates: true
+
+    # Graph construction
+    construction:
+      entity_extraction: true
+      relationship_inference: true
+      similarity_threshold: 0.7
+      min_confidence: 0.6
+
+    # Graph maintenance
+    maintenance:
+      update_frequency_hours: 24
+      cleanup_orphaned_nodes: true
+      recalculate_scores_daily: true
+
+    # Privacy and access
+    access:
+      public_nodes: true
+      tenant_isolation: true
+      user_data_separation: true
+
+  # Recommendation system
+  recommendations:
+    enabled: true
+    algorithm: "hybrid"  # content_based, collaborative, hybrid
+
+    # Recommendation generation
+    generation:
+      frequency_hours: 24
+      max_recommendations_per_user: 10
+      min_score_threshold: 0.6
+      diversity_factor: 0.3
+
+    # Recommendation types
+    types:
+      next_step: true
+      templates: true
+      learning_resources: true
+      collaborations: true
+      skill_development: true
+      project_ideas: true
+      optimizations: true
+      best_practices: true
+
+    # Feedback and learning
+    feedback:
+      collection_enabled: true
+      implicit_feedback: true  # clicks, time spent, completion
+      explicit_feedback: true  # thumbs up/down, ratings
+      feedback_weight: 0.7
+
+  # Learning feedback loops
+  learning_loops:
+    enabled: true
+    continuous_learning: true
+
+    # Feedback integration
+    feedback_integration:
+      eval_results_weight: 0.8
+      user_feedback_weight: 0.6
+      completion_rate_weight: 0.7
+      time_to_completion_weight: 0.4
+
+    # Model updates
+    model_updates:
+      frequency_days: 7
+      min_feedback_samples: 50
+      a_b_testing: true
+      gradual_rollout: true
+
+    # Quality assurance
+    quality_assurance:
+      recommendation_accuracy_threshold: 0.8
+      user_satisfaction_threshold: 4.0
+      engagement_rate_threshold: 0.3
+
+  # Semantic search
+  semantic_search:
+    enabled: true
+    embedding_model: "text-embedding-3-small"
+
+    # Search configuration
+    search:
+      max_results: 20
+      similarity_threshold: 0.6
+      boost_popular_content: true
+      personalization_weight: 0.4
+
+    # Performance
+    performance:
+      max_latency_ms: 500
+      cache_results: true
+      cache_ttl_minutes: 60
+
+  # Enterprise insights
+  enterprise_insights:
+    enabled: true
+    tenant_analytics: true
+
+    # Analytics types
+    analytics:
+      skill_gap_analysis: true
+      learning_path_optimization: true
+      collaboration_patterns: true
+      knowledge_flow_analysis: true
+      innovation_clusters: true
+
+    # Reporting
+    reporting:
+      daily_insights: true
+      weekly_summaries: true
+      monthly_deep_dives: true
+      custom_reports: true
+
+    # Data aggregation
+    aggregation:
+      anonymize_individual_data: true
+      min_users_for_insights: 5
+      statistical_significance: true
+
+  # Embeddings and AI
+  embeddings:
+    provider: "openai"
+    model: "text-embedding-3-small"
+    dimensions: 1536
+
+    # Processing
+    processing:
+      batch_size: 100
+      rate_limit_rpm: 1000
+      retry_attempts: 3
+      timeout_seconds: 30
+
+    # Quality
+    quality:
+      min_text_length: 10
+      max_text_length: 8000
+      content_filtering: true
+
+  # Data governance
+  data_governance:
+    # Privacy compliance
+    privacy_compliance:
+      gdpr_compliant: true
+      ccpa_compliant: true
+      data_minimization: true
+      purpose_limitation: true
+
+    # Data handling
+    data_handling:
+      encryption_at_rest: true
+      encryption_in_transit: true
+      access_logging: true
+      audit_trail: true
+
+    # User rights
+    user_rights:
+      data_export: true
+      data_deletion: true
+      opt_out_anytime: true
+      transparency_reports: true
+
+  # Performance and scaling
+  performance:
+    # Caching
+    caching:
+      recommendation_cache_ttl: 3600  # 1 hour
+      search_cache_ttl: 1800         # 30 minutes
+      profile_cache_ttl: 7200        # 2 hours
+
+    # Rate limiting
+    rate_limiting:
+      recommendations_per_user_per_hour: 100
+      search_requests_per_user_per_minute: 60
+      feedback_submissions_per_user_per_hour: 50
+
+    # Resource limits
+    resource_limits:
+      max_graph_nodes_per_tenant: 100000
+      max_recommendations_stored_per_user: 100
+      max_interaction_history_days: 365
+
+  # Monitoring and alerts
+  monitoring:
+    # Metrics tracking
+    metrics:
+      recommendation_accuracy: true
+      user_engagement: true
+      system_performance: true
+      data_quality: true
+
+    # Alerting
+    alerts:
+      low_recommendation_accuracy: true
+      high_system_latency: true
+      data_quality_issues: true
+      privacy_violations: true
+
+    # Thresholds
+    thresholds:
+      recommendation_accuracy_min: 0.75
+      search_latency_max_ms: 1000
+      user_satisfaction_min: 3.5
+      engagement_rate_min: 0.2
