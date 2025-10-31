@@ -265,15 +265,20 @@ export default function BrainstormPage() {
       const saved = localStorage.getItem('brainstorm_conversation');
       if (saved) {
         const history = JSON.parse(saved);
-        // Convert timestamp strings back to Date objects
+        // Convert timestamp strings back to Date objects and validate
         const messagesWithDates = history.map((msg: any) => ({
           ...msg,
           timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
-        }));
+        })).filter((msg: any) => {
+          // Filter out messages with invalid timestamps
+          return msg.timestamp instanceof Date && !isNaN(msg.timestamp.getTime());
+        });
         setMessages(messagesWithDates);
       }
     } catch (error) {
       console.error('Failed to load conversation history:', error);
+      // Clear corrupted data
+      localStorage.removeItem('brainstorm_conversation');
     }
   };
 

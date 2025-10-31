@@ -1,5 +1,4 @@
 {
-  "/not-found": "app/not-found.js",
   "/api/brainstorm/config/route": "app/api/brainstorm/config/route.js",
   "/(app)/brainstorm/page": "app/(app)/brainstorm/page.js"
 }
