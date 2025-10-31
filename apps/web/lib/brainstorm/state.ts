@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { SuggestionCardData } from '@/components/brainstorm/Card';
+import { SuggestionCardData } from '../../components/brainstorm/Card';
 
 export interface BrainstormState {
   suggestions: SuggestionCardData[];

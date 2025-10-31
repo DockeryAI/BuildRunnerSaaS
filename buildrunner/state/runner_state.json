@@ -1,12 +1,12 @@
 {
-  "projectId": "project-1761927342125",
+  "projectId": "project-1761927620454",
   "title": "a calendar app",
   "version": "0.4.0",
-  "updatedAt": "2025-10-31T16:15:42.125Z",
+  "updatedAt": "2025-10-31T16:20:20.454Z",
   "phase": 4,
   "step": "create",
   "sync": {
-    "lastLocalUpdate": "2025-10-31T16:15:42.138Z",
+    "lastLocalUpdate": "2025-10-31T16:20:20.490Z",
     "lastRemoteUpdate": null,
     "phase3_completed": true,
     "phase4_completed": true,

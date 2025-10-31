@@ -1,8 +1,8 @@
 {
-  "projectId": "project-1761927342125",
+  "projectId": "project-1761927620454",
   "title": "a calendar app",
   "version": "0.4.0",
-  "updatedAt": "2025-10-31T16:15:42.125Z",
+  "updatedAt": "2025-10-31T16:20:20.454Z",
   "milestones": [
     {
       "id": "m1",
@@ -108,7 +108,7 @@
   ],
   "changeHistory": [
     {
-      "timestamp": "2025-10-31T16:15:42.125Z",
+      "timestamp": "2025-10-31T16:20:20.454Z",
       "version": "0.4.0",
       "phase": 4,
       "description": "Generated plan from prompt: a calendar app...",

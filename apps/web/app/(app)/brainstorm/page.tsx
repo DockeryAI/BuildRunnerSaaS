@@ -16,8 +16,8 @@ import {
   LightBulbIcon,
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
-import { SuggestionCard } from '@/components/brainstorm/Card';
-import { BrainstormState, useBrainstormState } from '@/lib/brainstorm/state';
+import { SuggestionCard } from '../../../components/brainstorm/Card';
+import { BrainstormState, useBrainstormState } from '../../../lib/brainstorm/state';
 import Link from 'next/link';
 
 interface Message {
