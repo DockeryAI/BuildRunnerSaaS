@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.8.0",
-  "updatedAt": "2025-10-31T01:30:00.000Z",
+  "version": "0.9.0",
+  "updatedAt": "2025-10-31T02:30:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -573,6 +573,140 @@
           ]
         }
       ]
+    },
+    {
+      "id": "p9",
+          "title": "Analytics & Cost Monitoring",
+          "steps": [
+            {
+              "id": "p9.s1",
+              "title": "Metrics & Cost Schema",
+              "microsteps": [
+                {
+                  "id": "p9.s1.ms1",
+                  "title": "Schema migration",
+                  "status": "done",
+                  "criteria": ["SQL idempotent; indexes created"]
+                },
+                {
+                  "id": "p9.s1.ms2",
+                  "title": "Metrics aggregates view",
+                  "status": "done",
+                  "criteria": ["SELECT returns expected rows"]
+                },
+                {
+                  "id": "p9.s1.ms3",
+                  "title": "Server lib analytics.ts",
+                  "status": "done",
+                  "criteria": ["Create/read/update/delete work; audit runner_events logged"]
+                }
+              ]
+            },
+            {
+              "id": "p9.s2",
+              "title": "Data Collection & Automation",
+              "microsteps": [
+                {
+                  "id": "p9.s2.ms1",
+                  "title": "Usage collector function",
+                  "status": "done",
+                  "criteria": ["Runs locally; logs entries to Supabase"]
+                },
+                {
+                  "id": "p9.s2.ms2",
+                  "title": "Metrics collector",
+                  "status": "done",
+                  "criteria": ["Re-runs safe; runner_event action=metrics_collected"]
+                },
+                {
+                  "id": "p9.s2.ms3",
+                  "title": "Anomaly detector",
+                  "status": "done",
+                  "criteria": ["Simulated spike creates alert"]
+                }
+              ]
+            },
+            {
+              "id": "p9.s3",
+              "title": "Analytics Dashboard (UI)",
+              "microsteps": [
+                {
+                  "id": "p9.s3.ms1",
+                  "title": "Dashboard page",
+                  "status": "done",
+                  "criteria": ["Charts render from metrics_summary"]
+                },
+                {
+                  "id": "p9.s3.ms2",
+                  "title": "Charts",
+                  "status": "done",
+                  "criteria": ["Responsive; tooltips work; filters by phase/project"]
+                },
+                {
+                  "id": "p9.s3.ms3",
+                  "title": "Drilldown",
+                  "status": "done",
+                  "criteria": ["Modal shows accurate linked records"]
+                }
+              ]
+            },
+            {
+              "id": "p9.s4",
+              "title": "Reports & Exports",
+              "microsteps": [
+                {
+                  "id": "p9.s4.ms1",
+                  "title": "PDF/CSV exports",
+                  "status": "done",
+                  "criteria": ["File downloads successfully; data matches dashboard"]
+                },
+                {
+                  "id": "p9.s4.ms2",
+                  "title": "Scheduled reports",
+                  "status": "done",
+                  "criteria": ["Email sent (server-side); runner_event action=report_sent"]
+                }
+              ]
+            },
+            {
+              "id": "p9.s5",
+              "title": "Governance & Audit Integration",
+              "microsteps": [
+                {
+                  "id": "p9.s5.ms1",
+                  "title": "Policy hooks",
+                  "status": "done",
+                  "criteria": ["policy schema updated; violations block merge if cost > threshold"]
+                },
+                {
+                  "id": "p9.s5.ms2",
+                  "title": "Audit logging",
+                  "status": "done",
+                  "criteria": ["Events visible in Timeline (Phase 5)"]
+                }
+              ]
+            },
+            {
+              "id": "p9.s6",
+              "title": "Docs & Finalize Phase 9",
+              "microsteps": [
+                {
+                  "id": "p9.s6.ms1",
+                  "title": "README + Help Guides",
+                  "status": "done",
+                  "criteria": ["Links and images valid"]
+                },
+                {
+                  "id": "p9.s6.ms2",
+                  "title": "Plan/State Update",
+                  "status": "done",
+                  "criteria": ["br lint OK; PR merged"]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "changeHistory": [
@@ -698,6 +832,28 @@
         "apps/web/app/api/templates/packs/route.ts",
         "apps/web/app/api/templates/merge/dry-run/route.ts",
         "apps/web/app/api/templates/merge/apply/route.ts"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T02:30:00.000Z",
+      "version": "0.9.0",
+      "phase": 9,
+      "description": "Completed Phase 9 - Analytics & Cost Monitoring. Implemented comprehensive analytics system with metrics tracking (velocity, quality, duration), multi-provider cost monitoring (OpenAI, Supabase, Vercel, GitHub), automated anomaly detection with severity classification, interactive dashboard with drilldown capabilities, scheduled reporting with PDF/CSV exports, and complete governance integration with budget enforcement and policy compliance. Added Edge Functions for usage collection and report scheduling.",
+      "author": "Auggie",
+      "microsteps_completed": 15,
+      "files_added": [
+        "supabase/migrations/20251031000002_Phase9-analytics.sql",
+        "apps/web/lib/analytics/storage.ts",
+        "apps/web/lib/analytics/collector.ts",
+        "apps/web/lib/analytics/anomaly.ts",
+        "apps/web/components/analytics/Cards.tsx",
+        "apps/web/components/analytics/Charts.tsx",
+        "apps/web/components/analytics/DrilldownModal.tsx",
+        "apps/web/app/(app)/analytics/page.tsx",
+        "apps/web/app/api/analytics/export/route.ts",
+        "supabase/functions/usage-collector/index.ts",
+        "supabase/functions/report-scheduler/index.ts",
+        "buildrunner/governance/policy.yml"
       ]
     }
   ]

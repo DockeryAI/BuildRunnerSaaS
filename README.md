@@ -148,9 +148,72 @@ VAULT_ENCRYPTION_KEY=your-32-character-encryption-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
+## Phase 9 — Analytics & Cost Monitoring ✅
+
+Comprehensive analytics and cost visibility with anomaly detection and automated reporting.
+
+### Features
+- **Metrics Tracking**: Velocity, quality, and duration metrics with trend analysis
+- **Cost Monitoring**: Multi-provider cost tracking with budget management and alerts
+- **Anomaly Detection**: Automated detection of cost spikes, quality drops, and velocity issues
+- **Interactive Dashboard**: Rich visualizations with drilldown capabilities and filtering
+- **Automated Reports**: Scheduled PDF/CSV reports with email delivery
+- **Governance Integration**: Budget enforcement and policy compliance with approval workflows
+
+### Analytics Dashboard
+- **Velocity Metrics**: Development speed tracking (microsteps/week) with phase breakdown
+- **Quality Scores**: Test pass rates and acceptance criteria compliance
+- **Cost Analysis**: Provider-wise cost breakdown with budget usage visualization
+- **Anomaly Management**: Real-time alerts with severity classification and resolution tracking
+
+### Cost Providers Supported
+- **OpenAI**: LLM API usage and token consumption
+- **Supabase**: Database operations and storage costs
+- **Vercel**: Hosting, compute, and function invocations
+- **GitHub**: Actions minutes and storage usage
+- **Custom**: Configurable for additional providers
+
+### Automated Reporting
+- **Daily Reports**: Summary of metrics, costs, and anomalies
+- **Weekly Reports**: Trend analysis and performance insights
+- **Monthly Reports**: Comprehensive project health and budget analysis
+- **Custom Exports**: PDF, CSV, and JSON formats with API access
+
+### Usage
+```bash
+# View analytics dashboard
+http://localhost:3001/analytics
+
+# Export analytics data
+GET /api/analytics/export?format=csv&project_id=123
+
+# Trigger usage collection
+POST /api/analytics/collect
+
+# Generate scheduled reports
+POST /api/analytics/reports/schedule
+```
+
+### Governance Policy
+Analytics operations are governed by policy rules defined in `buildrunner/governance/policy.yml`:
+
+```yaml
+analytics:
+  budget_alert_threshold: 500.00    # Monthly budget limit
+  cost_spike_threshold: 50          # Alert on 50%+ cost increase
+  quality_drop_threshold: 20        # Alert on 20%+ quality decrease
+  require_anomaly_review: true      # Require review for anomalies
+  max_daily_cost: 50.00            # Block operations above daily limit
+```
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
 - **Phase 2**: Schema expansion and Supabase integration
 - **Phase 3**: Automated backend provisioning with UI
-- **Phase 4**: UI MVP and team collaboration (coming next)
+- **Phase 4**: UI MVP and team collaboration
+- **Phase 5**: Flow Inspector + Timeline with visual analytics
+- **Phase 6**: Complete Governance & Safety Layer with policy DSL
+- **Phase 7**: QA & Acceptance Automation with CI/CD integration
+- **Phase 8**: Templates & Marketplace with composable packs
+- **Phase 9**: Analytics & Cost Monitoring with anomaly detection ✅
