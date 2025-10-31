@@ -520,12 +520,14 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'generate_suggestions':
+        console.log('Calling AI with:', { product_idea, user_message, phase });
         result = await service.generatePhaseSuggestions(
           product_idea,
           user_message,
           phase || 1,
           current_prd
         );
+        console.log('AI returned suggestions:', result);
         break;
 
       case 'process_message':
@@ -561,6 +563,7 @@ export async function POST(request: NextRequest) {
       action,
       phase: phase || builder.getCurrentPhase(),
       timestamp: new Date().toISOString(),
+      source: 'real_ai'
     });
 
   } catch (error) {

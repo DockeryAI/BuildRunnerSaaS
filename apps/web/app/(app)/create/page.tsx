@@ -757,7 +757,10 @@ function CreatePage() {
 
       const data = await response.json();
 
+      console.log('API Response:', data);
+
       if (data.result && Array.isArray(data.result)) {
+        console.log('AI Suggestions received:', data.result);
         setSuggestions(data.result);
 
         // Show if using mock data
@@ -765,12 +768,12 @@ function CreatePage() {
           console.log('Using mock AI suggestions (API key not configured)');
           setError('Using demo suggestions - configure OPENROUTER_API_KEY for real AI');
         } else {
-          console.log('Using real AI suggestions');
+          console.log('Using real AI suggestions from Claude');
           setError(null);
         }
       } else {
         // Fallback to smart suggestions if API fails
-        console.warn('API returned unexpected format, using fallback');
+        console.warn('API returned unexpected format:', data);
         const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
         setSuggestions(phaseSuggestions);
         setError('Using fallback suggestions');

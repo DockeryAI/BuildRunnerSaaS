@@ -1,5 +1,6 @@
 {
   "/working/page": "app/working/page.js",
   "/page": "app/page.js",
+  "/(app)/settings/api-keys/page": "app/(app)/settings/api-keys/page.js",
   "/(app)/create/page": "app/(app)/create/page.js"
 }
