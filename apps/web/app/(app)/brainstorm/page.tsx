@@ -165,6 +165,17 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           )}
         </button>
 
+        {/* Debug: Clear All Data Button */}
+        <button
+          onClick={() => {
+            clearAllSessionData();
+            window.location.reload();
+          }}
+          className="w-full mt-2 px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          🗑️ Clear All Data & Refresh (Debug)
+        </button>
+
         {/* Features Preview */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-sm font-medium text-gray-700 mb-4">What you'll get:</p>
@@ -415,18 +426,28 @@ export default function BrainstormPage() {
 
   const clearAllSessionData = () => {
     // Clear all localStorage keys related to brainstorming
-    localStorage.removeItem('buildrunner_current_idea');
-    localStorage.removeItem('buildrunner_initial_idea');
-    localStorage.removeItem('brainstorm_conversation');
-    localStorage.removeItem('brainstorm_state');
+    const keysToRemove = [
+      'buildrunner_current_idea',
+      'buildrunner_initial_idea',
+      'brainstorm_conversation',
+      'brainstorm_state',
+      'brainstorm_session_id'
+    ];
+
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`Removed localStorage key: ${key}`);
+    });
 
     // Reset component state
     setMessages([]);
     setInitialIdea('');
     setSelectedCategory('product');
     setShowOnboarding(true);
+    setError(null);
+    setIsLoading(false);
 
-    console.log('All session data cleared');
+    console.log('All session data cleared completely');
   };
 
   const startBrainstorming = async (idea: string) => {
