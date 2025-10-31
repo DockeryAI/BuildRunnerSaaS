@@ -265,7 +265,12 @@ export default function BrainstormPage() {
       const saved = localStorage.getItem('brainstorm_conversation');
       if (saved) {
         const history = JSON.parse(saved);
-        setMessages(history);
+        // Convert timestamp strings back to Date objects
+        const messagesWithDates = history.map((msg: any) => ({
+          ...msg,
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+        }));
+        setMessages(messagesWithDates);
       }
     } catch (error) {
       console.error('Failed to load conversation history:', error);
@@ -274,7 +279,12 @@ export default function BrainstormPage() {
 
   const saveConversationHistory = (newMessages: Message[]) => {
     try {
-      localStorage.setItem('brainstorm_conversation', JSON.stringify(newMessages));
+      // Convert Date objects to ISO strings for storage
+      const messagesForStorage = newMessages.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
+      }));
+      localStorage.setItem('brainstorm_conversation', JSON.stringify(messagesForStorage));
     } catch (error) {
       console.error('Failed to save conversation history:', error);
     }
@@ -512,7 +522,7 @@ export default function BrainstormPage() {
                     >
                       <p className="whitespace-pre-wrap">{message.content}</p>
                       <div className="mt-2 text-xs opacity-70">
-                        {message.timestamp.toLocaleTimeString()}
+                        {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}
                       </div>
                     </div>
                   </div>
