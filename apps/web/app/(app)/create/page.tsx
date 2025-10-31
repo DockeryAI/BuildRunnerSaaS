@@ -532,9 +532,18 @@ function OnboardingFlow({ onStart }: { onStart: (idea: string) => void }) {
   const [idea, setIdea] = useState('');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <h1 className="text-2xl font-bold text-gray-900">PRD Builder</h1>
+        </div>
+      </div>
+
+      {/* Card aligned to top */}
+      <div className="pt-8 px-6">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
           <div className="mb-8">
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <LightBulbIcon className="w-8 h-8 text-blue-600" />
@@ -566,6 +575,7 @@ function OnboardingFlow({ onStart }: { onStart: (idea: string) => void }) {
           <div className="mt-8 text-sm text-gray-500">
             <p>I'll guide you through creating a professional Product Requirements Document</p>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -720,13 +730,43 @@ function CreatePage() {
     setError(null);
 
     try {
-      // For now, let's use smart fallback suggestions based on the phase and product idea
-      const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
-      setSuggestions(phaseSuggestions);
+      // Call the real AI API
+      const response = await fetch('/api/prd/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'generate_suggestions',
+          product_idea: productIdea,
+          user_message: message,
+          phase: phase,
+          current_prd: prdSections
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.result && Array.isArray(data.result)) {
+        setSuggestions(data.result);
+      } else {
+        // Fallback to smart suggestions if API fails
+        console.warn('API returned unexpected format, using fallback');
+        const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
+        setSuggestions(phaseSuggestions);
+      }
 
     } catch (error) {
       console.error('Error generating suggestions:', error);
-      setError('Failed to generate suggestions. Please try again.');
+      setError('Failed to generate suggestions. Using fallback data.');
+
+      // Use fallback suggestions
+      const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
+      setSuggestions(phaseSuggestions);
     } finally {
       setIsLoading(false);
     }
