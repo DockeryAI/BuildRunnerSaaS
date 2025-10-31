@@ -278,14 +278,19 @@ Return a JSON array of suggestions with this exact schema:
     "id": "unique_id",
     "type": "section_name",
     "title": "Brief suggestion title",
-    "content": "Detailed suggestion content",
-    "reasoning": "Why this suggestion makes sense",
+    "shortDescription": "One line description for the suggestion",
+    "fullDescription": "Detailed explanation with specific data and insights",
+    "citations": ["Source 1: Specific study or report", "Source 2: Another credible source"],
     "priority": "high|medium|low",
     "section": "which PRD section this applies to"
   }
 ]
 
-Generate 3-5 specific, actionable suggestions that align with the current phase and user's message.`
+IMPORTANT:
+- shortDescription must be ONE LINE only
+- Include real citations for any statistics or claims
+- All numbers must have sources cited
+- Generate 3-5 specific, actionable suggestions that align with the current phase and user's message.`
         },
         {
           role: 'user',

@@ -110,17 +110,34 @@ function DraggableSuggestion({
     onDragStart(suggestion);
   };
 
+  const sectionLabels = {
+    'executive_summary': 'Executive Summary',
+    'problem_statement': 'Problem Statement',
+    'target_audience': 'Target Audience',
+    'value_proposition': 'Value Proposition',
+    'objectives': 'Objectives',
+    'scope': 'Scope',
+    'features': 'Features',
+    'non_functional': 'Non-Functional',
+    'dependencies': 'Dependencies',
+    'risks': 'Risks',
+    'analytics': 'Analytics',
+    'monetization': 'Monetization',
+    'rollout': 'Rollout',
+    'open_questions': 'Open Questions'
+  };
+
   return (
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`p-4 rounded-lg border-2 border-dashed cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
+      className={`rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
         priorityColors[suggestion.priority]
       }`}
     >
-      {/* ONE LINE FORMAT as requested */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 flex-1">
+      {/* ONE ROW ONLY - as requested */}
+      <div className="p-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2 flex-1 min-w-0">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -134,14 +151,21 @@ function DraggableSuggestion({
               <ChevronRightIcon className="h-4 w-4 text-gray-600" />
             )}
           </button>
-          <span className="text-sm text-gray-900">{suggestion.shortDescription}</span>
+
+          {/* Clear section targeting */}
+          <div className="flex items-center space-x-2 flex-1 min-w-0">
+            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full flex-shrink-0">
+              {sectionLabels[suggestion.section as keyof typeof sectionLabels] || suggestion.section}
+            </span>
+            <span className="text-sm text-gray-900 truncate">{suggestion.shortDescription}</span>
+          </div>
         </div>
-        <span className="text-xs text-gray-500 ml-2">Drag →</span>
+        <span className="text-xs text-gray-500 ml-2 flex-shrink-0">Drag →</span>
       </div>
 
       {/* EXPANDED DETAILS only when arrow clicked */}
       {isExpanded && (
-        <div className="mt-3 ml-6 space-y-3 border-t border-gray-200 pt-3">
+        <div className="px-3 pb-3 ml-6 space-y-3 border-t border-gray-200 pt-3">
           <div>
             <p className="text-sm text-gray-700 leading-relaxed">
               {suggestion.fullDescription}
@@ -533,13 +557,6 @@ function OnboardingFlow({ onStart }: { onStart: (idea: string) => void }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">PRD Builder</h1>
-        </div>
-      </div>
-
       {/* Card aligned to top */}
       <div className="pt-8 px-6">
         <div className="max-w-2xl mx-auto">
