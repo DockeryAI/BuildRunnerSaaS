@@ -186,3 +186,33 @@ integrations:
   monitoring:
     enabled: true
     alert_on_violations: true
+
+  # External integrations allowed
+  integrations_allowed:
+    - jira
+    - linear
+    - vercel
+    - render
+    - netlify
+    - github
+    - slack
+  external_sync_required: true
+  require_preview_for_phase:
+    - QA
+    - Beta
+  max_integrations_per_project: 10
+
+  # Preview environment requirements
+  preview_environments:
+    required_for_phases:
+      - QA
+      - Beta
+    providers_allowed:
+      - vercel
+      - render
+      - netlify
+    auto_deploy_branches:
+      - main
+      - develop
+      - "feature/*"
+    retention_days: 7
