@@ -64,7 +64,15 @@ Return only a JSON array of suggestions, no additional text.`;
       console.log('Raw OpenRouter suggestions response:', content);
 
       try {
-        const suggestions = JSON.parse(content);
+        // Clean the content by removing markdown code blocks
+        let cleanContent = content.trim();
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        const suggestions = JSON.parse(cleanContent);
         console.log('Parsed suggestions:', suggestions);
         return Array.isArray(suggestions) ? suggestions : [];
       } catch (parseError) {

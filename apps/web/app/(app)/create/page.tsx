@@ -119,7 +119,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {[
               "A SaaS platform for automated CI/CD pipelines",
-              "An AI-powered customer service chatbot",
+              "An AI-powered customer service chatbot", 
               "A mobile app for team project management",
               "A marketplace for freelance developers",
               "A fintech app for small business accounting",
@@ -226,7 +226,6 @@ export default function CreatePage() {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [initialIdea, setInitialIdea] = useState('');
   const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
-  const [showIdeaManager, setShowIdeaManager] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { state, addSuggestion, updateDecision, exportHistory } = useBrainstormState();
@@ -359,8 +358,6 @@ export default function CreatePage() {
 
     console.log('All session data cleared completely');
   };
-
-
 
   const sendMessage = async (content: string, category: string = selectedCategory) => {
     if (!content.trim() || isLoading) return;
