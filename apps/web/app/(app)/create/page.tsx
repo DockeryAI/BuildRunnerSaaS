@@ -216,7 +216,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       </div>
     </div>
   </div>
-);
 
 export default function CreatePage() {
   const [messages, setMessages] = useState<Message[]>([]);
