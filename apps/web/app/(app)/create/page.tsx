@@ -16,9 +16,7 @@ import {
   LightBulbIcon,
   CogIcon,
   ArrowRightIcon,
-  BeakerIcon,
-  DocumentTextIcon,
-  CurrencyDollarIcon
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import { SuggestionCard } from '../../../components/brainstorm/Card';
 import { DraggableSuggestion } from '../../../components/brainstorm/DraggableSuggestion';
