@@ -246,3 +246,65 @@ design_system:
     design_drift_alerts: true
     token_update_notifications: true
     visual_regression_failures: true
+
+# Internationalization & Accessibility Governance
+i18n:
+  required: true
+  default_locale: "en"
+  supported_locales:
+    - "en"
+    - "es"
+    - "fr"
+    - "de"
+  fallback_locale: "en"
+
+  translation_coverage:
+    minimum_percentage: 90
+    enforce_on_build: true
+    exclude_namespaces:
+      - "dev"
+      - "test"
+
+  ai_translation:
+    enabled: true
+    auto_translate_threshold: 80
+    require_human_verification: true
+    max_batch_size: 100
+
+  governance_sync:
+    untranslated_warning_threshold: 10
+    block_deployment_on_missing: false
+    notify_translators: true
+
+accessibility:
+  required: true
+  wcag_level: "AA"
+  wcag_version: "2.1"
+
+  audit_requirements:
+    lighthouse_score_min: 90
+    axe_violations_max: 0
+    color_contrast_min: 4.5
+    keyboard_navigation_required: true
+
+  automated_testing:
+    enabled: true
+    run_on_pr: true
+    fail_on_violations: true
+    include_pages:
+      - "/"
+      - "/dashboard"
+      - "/projects"
+      - "/settings"
+      - "/admin"
+
+  manual_testing:
+    required_for_major_releases: true
+    screen_reader_testing: true
+    keyboard_only_testing: true
+    high_contrast_testing: true
+
+  reporting:
+    store_audit_results: true
+    generate_compliance_report: true
+    notify_on_regression: true

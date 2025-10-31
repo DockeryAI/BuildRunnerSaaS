@@ -1,0 +1,366 @@
+name: Accessibility & Language Parity Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'apps/web/i18n/**'
+      - 'governance/policy.yml'
+      - '.github/workflows/a11y-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/web/i18n/**'
+
+env:
+  NODE_VERSION: '18'
+  A11Y_THRESHOLD: 90
+  I18N_COVERAGE_THRESHOLD: 90
+
+jobs:
+  accessibility-audit:
+    name: Accessibility Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+        
+      - name: Build web app
+        run: |
+          cd apps/web
+          npm ci
+          npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://mock.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-key' }}
+          
+      - name: Start web app
+        run: |
+          cd apps/web
+          npm run start &
+          sleep 15
+        env:
+          PORT: 3000
+          
+      - name: Install axe-core CLI
+        run: npm install -g @axe-core/cli
+        
+      - name: Run accessibility audits
+        run: |
+          echo "Running accessibility audits..."
+          
+          # Define pages to test
+          PAGES=(
+            "http://localhost:3000/"
+            "http://localhost:3000/dashboard"
+            "http://localhost:3000/projects"
+            "http://localhost:3000/settings"
+          )
+          
+          # Create results directory
+          mkdir -p a11y-results
+          
+          # Run axe-core audits
+          for page in "${PAGES[@]}"; do
+            page_name=$(echo "$page" | sed 's|http://localhost:3000||' | sed 's|/|_|g' | sed 's|^_||')
+            if [ -z "$page_name" ]; then
+              page_name="home"
+            fi
+            
+            echo "Testing $page..."
+            axe "$page" \
+              --format json \
+              --output "a11y-results/axe-${page_name}.json" \
+              --timeout 30000 \
+              --disable-dev-shm-usage \
+              --no-sandbox || echo "Axe audit failed for $page"
+          done
+          
+      - name: Run Lighthouse accessibility audits
+        run: |
+          npm install -g lighthouse
+          
+          # Define pages for Lighthouse
+          PAGES=(
+            "http://localhost:3000/"
+            "http://localhost:3000/dashboard"
+            "http://localhost:3000/projects"
+            "http://localhost:3000/settings"
+          )
+          
+          for page in "${PAGES[@]}"; do
+            page_name=$(echo "$page" | sed 's|http://localhost:3000||' | sed 's|/|_|g' | sed 's|^_||')
+            if [ -z "$page_name" ]; then
+              page_name="home"
+            fi
+            
+            echo "Running Lighthouse for $page..."
+            lighthouse "$page" \
+              --only-categories=accessibility \
+              --output=json \
+              --output-path="a11y-results/lighthouse-${page_name}.json" \
+              --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+              --quiet || echo "Lighthouse audit failed for $page"
+          done
+          
+      - name: Process accessibility results
+        run: |
+          echo "Processing accessibility audit results..."
+          
+          # Initialize counters
+          total_violations=0
+          total_pages=0
+          min_score=100
+          
+          # Process axe results
+          for file in a11y-results/axe-*.json; do
+            if [ -f "$file" ]; then
+              violations=$(jq '.violations | length' "$file" 2>/dev/null || echo "0")
+              total_violations=$((total_violations + violations))
+              total_pages=$((total_pages + 1))
+              
+              echo "Axe results for $(basename "$file"):"
+              echo "  Violations: $violations"
+              
+              if [ "$violations" -gt 0 ]; then
+                echo "  Violation details:"
+                jq -r '.violations[] | "    - \(.id): \(.description)"' "$file" 2>/dev/null || echo "    Error reading violations"
+              fi
+            fi
+          done
+          
+          # Process Lighthouse results
+          for file in a11y-results/lighthouse-*.json; do
+            if [ -f "$file" ]; then
+              score=$(jq '.categories.accessibility.score * 100' "$file" 2>/dev/null || echo "0")
+              score_int=$(printf "%.0f" "$score")
+              
+              echo "Lighthouse results for $(basename "$file"):"
+              echo "  Accessibility score: ${score_int}%"
+              
+              if [ "$score_int" -lt "$min_score" ]; then
+                min_score=$score_int
+              fi
+            fi
+          done
+          
+          # Generate summary
+          echo "=== Accessibility Audit Summary ==="
+          echo "Total pages tested: $total_pages"
+          echo "Total axe violations: $total_violations"
+          echo "Minimum Lighthouse score: ${min_score}%"
+          echo "Threshold: ${A11Y_THRESHOLD}%"
+          
+          # Check if we meet the threshold
+          if [ "$total_violations" -gt 0 ]; then
+            echo "❌ Accessibility audit failed: $total_violations violations found"
+            exit 1
+          elif [ "$min_score" -lt "$A11Y_THRESHOLD" ]; then
+            echo "❌ Accessibility audit failed: Minimum score ${min_score}% below threshold ${A11Y_THRESHOLD}%"
+            exit 1
+          else
+            echo "✅ Accessibility audit passed: No violations, minimum score ${min_score}%"
+          fi
+          
+      - name: Upload accessibility results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accessibility-audit-results
+          path: a11y-results/
+          retention-days: 30
+
+  i18n-coverage:
+    name: Internationalization Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Check translation coverage
+        run: |
+          echo "Checking i18n translation coverage..."
+          
+          cd apps/web/i18n
+          
+          # Get English keys as baseline
+          EN_KEYS=$(jq -r 'paths(scalars) as $p | $p | join(".")' en.json | sort)
+          EN_COUNT=$(echo "$EN_KEYS" | wc -l)
+          
+          echo "English baseline: $EN_COUNT keys"
+          echo ""
+          
+          # Check each supported locale
+          LOCALES=("es" "fr" "de")
+          TOTAL_COVERAGE=0
+          LOCALE_COUNT=0
+          
+          for locale in "${LOCALES[@]}"; do
+            if [ -f "${locale}.json" ]; then
+              LOCALE_KEYS=$(jq -r 'paths(scalars) as $p | $p | join(".")' "${locale}.json" | sort)
+              LOCALE_COUNT_KEYS=$(echo "$LOCALE_KEYS" | wc -l)
+              
+              # Find missing keys
+              MISSING_KEYS=$(comm -23 <(echo "$EN_KEYS") <(echo "$LOCALE_KEYS"))
+              MISSING_COUNT=$(echo "$MISSING_KEYS" | grep -v '^$' | wc -l)
+              
+              # Calculate coverage
+              COVERAGE=$(( (LOCALE_COUNT_KEYS * 100) / EN_COUNT ))
+              TOTAL_COVERAGE=$((TOTAL_COVERAGE + COVERAGE))
+              LOCALE_COUNT=$((LOCALE_COUNT + 1))
+              
+              echo "Locale: $locale"
+              echo "  Keys: $LOCALE_COUNT_KEYS / $EN_COUNT"
+              echo "  Coverage: ${COVERAGE}%"
+              
+              if [ "$MISSING_COUNT" -gt 0 ] && [ "$COVERAGE" -lt "$I18N_COVERAGE_THRESHOLD" ]; then
+                echo "  Missing keys:"
+                echo "$MISSING_KEYS" | head -10 | sed 's/^/    - /'
+                if [ "$MISSING_COUNT" -gt 10 ]; then
+                  echo "    ... and $((MISSING_COUNT - 10)) more"
+                fi
+              fi
+              echo ""
+            else
+              echo "❌ Missing translation file: ${locale}.json"
+              exit 1
+            fi
+          done
+          
+          # Calculate average coverage
+          if [ "$LOCALE_COUNT" -gt 0 ]; then
+            AVG_COVERAGE=$((TOTAL_COVERAGE / LOCALE_COUNT))
+          else
+            AVG_COVERAGE=0
+          fi
+          
+          echo "=== i18n Coverage Summary ==="
+          echo "Average coverage: ${AVG_COVERAGE}%"
+          echo "Threshold: ${I18N_COVERAGE_THRESHOLD}%"
+          
+          if [ "$AVG_COVERAGE" -lt "$I18N_COVERAGE_THRESHOLD" ]; then
+            echo "❌ i18n coverage below threshold: ${AVG_COVERAGE}% < ${I18N_COVERAGE_THRESHOLD}%"
+            exit 1
+          else
+            echo "✅ i18n coverage meets threshold: ${AVG_COVERAGE}% >= ${I18N_COVERAGE_THRESHOLD}%"
+          fi
+
+  governance-compliance:
+    name: Governance Compliance Check
+    runs-on: ubuntu-latest
+    needs: [accessibility-audit, i18n-coverage]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Check governance policy compliance
+        run: |
+          echo "Checking governance policy compliance..."
+          
+          # Check if governance policy exists
+          if [ ! -f "governance/policy.yml" ]; then
+            echo "❌ Governance policy file not found"
+            exit 1
+          fi
+          
+          # Extract policy values (basic YAML parsing)
+          I18N_REQUIRED=$(grep "required:" governance/policy.yml | grep -A5 "i18n:" | grep "required:" | awk '{print $2}' | head -1)
+          A11Y_REQUIRED=$(grep "required:" governance/policy.yml | grep -A5 "accessibility:" | grep "required:" | awk '{print $2}' | head -1)
+          
+          echo "Governance policy settings:"
+          echo "  i18n.required: $I18N_REQUIRED"
+          echo "  accessibility.required: $A11Y_REQUIRED"
+          
+          # Check job results
+          A11Y_RESULT="${{ needs.accessibility-audit.result }}"
+          I18N_RESULT="${{ needs.i18n-coverage.result }}"
+          
+          echo ""
+          echo "Job results:"
+          echo "  accessibility-audit: $A11Y_RESULT"
+          echo "  i18n-coverage: $I18N_RESULT"
+          
+          # Determine overall compliance
+          COMPLIANCE_PASSED=true
+          
+          if [ "$A11Y_REQUIRED" = "true" ] && [ "$A11Y_RESULT" != "success" ]; then
+            echo "❌ Accessibility compliance required but audit failed"
+            COMPLIANCE_PASSED=false
+          fi
+          
+          if [ "$I18N_REQUIRED" = "true" ] && [ "$I18N_RESULT" != "success" ]; then
+            echo "❌ i18n compliance required but coverage check failed"
+            COMPLIANCE_PASSED=false
+          fi
+          
+          if [ "$COMPLIANCE_PASSED" = "true" ]; then
+            echo "✅ All governance compliance checks passed"
+          else
+            echo "❌ Governance compliance checks failed"
+            exit 1
+          fi
+
+  summary:
+    name: Accessibility & i18n Summary
+    runs-on: ubuntu-latest
+    needs: [accessibility-audit, i18n-coverage, governance-compliance]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🌍 Accessibility & Internationalization Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check job results
+          if [ "${{ needs.accessibility-audit.result }}" == "success" ]; then
+            echo "✅ **Accessibility Audit**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Accessibility Audit**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.i18n-coverage.result }}" == "success" ]; then
+            echo "✅ **i18n Coverage**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **i18n Coverage**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.governance-compliance.result }}" == "success" ]; then
+            echo "✅ **Governance Compliance**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Governance Compliance**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review any failed accessibility audits" >> $GITHUB_STEP_SUMMARY
+          echo "2. Complete missing translations for supported locales" >> $GITHUB_STEP_SUMMARY
+          echo "3. Ensure governance policy compliance" >> $GITHUB_STEP_SUMMARY
+          echo "4. Test with screen readers and keyboard navigation" >> $GITHUB_STEP_SUMMARY

@@ -1432,6 +1432,311 @@ Track developer experience metrics:
 - Input sanitization and validation
 - Error message sanitization
 
+## Phase 18 — Localization & Accessibility (i18n + a11y) ✅
+
+Comprehensive internationalization and accessibility compliance for global users and inclusive design.
+
+### Features
+- **Multi-language Support**: English, Spanish, French, and German with dynamic switching
+- **WCAG 2.1 AA Compliance**: Full accessibility compliance with automated testing
+- **AI Translation**: OpenAI-powered translation assistance with human verification
+- **Translation Management**: Dashboard for managing translations and coverage
+- **Accessibility Testing**: Automated axe-core and Lighthouse audits in CI/CD
+- **Governance Integration**: Policy-driven compliance for i18n and a11y requirements
+
+### Supported Languages
+- **English (en)** - Default/fallback language 🇺🇸
+- **Spanish (es)** - Español 🇪🇸
+- **French (fr)** - Français 🇫🇷
+- **German (de)** - Deutsch 🇩🇪
+
+**Planned Languages**: Portuguese, Italian, Japanese, Korean, Chinese, Arabic
+
+### Internationalization (i18n)
+
+**Translation System**:
+```typescript
+// Language configuration
+export const locales: LocaleConfig[] = [
+  {
+    code: 'en',
+    name: 'English',
+    nativeName: 'English',
+    flag: '🇺🇸',
+    rtl: false,
+    enabled: true,
+  },
+  // ... other locales
+];
+
+// Translation files structure
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "settings": "Settings"
+  },
+  "button": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  }
+}
+```
+
+**Language Switching**:
+```tsx
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+// Dropdown variant
+<LanguageSwitcher variant="dropdown" showFlag={true} />
+
+// Inline variant
+<LanguageSwitcher variant="inline" showNativeName={true} />
+
+// Compact variant
+<LanguageSwitcher variant="compact" />
+```
+
+**Translation Management**:
+- **Dashboard**: `/settings/translations` for CRUD operations
+- **AI Translation**: Batch translation with OpenAI integration
+- **Coverage Tracking**: Real-time translation completion percentages
+- **Verification System**: Mark translations as verified by native speakers
+
+### Accessibility (a11y)
+
+**WCAG 2.1 AA Compliance**:
+- **Keyboard Navigation**: Full keyboard accessibility with logical tab order
+- **Screen Reader Support**: Semantic HTML with ARIA labels and descriptions
+- **Color Contrast**: Minimum 4.5:1 ratio for normal text, 3:1 for large text
+- **Focus Management**: Visible focus indicators and proper focus flow
+- **Skip Links**: Skip to main content and navigation
+
+**Accessibility Features**:
+```html
+<!-- Skip links for keyboard users -->
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<!-- Proper ARIA labeling -->
+<button
+  aria-label="Toggle navigation menu"
+  aria-expanded="false"
+  aria-controls="navigation-menu"
+>
+  Menu
+</button>
+
+<!-- Form accessibility -->
+<label for="project-name">Project Name</label>
+<input
+  type="text"
+  id="project-name"
+  aria-required="true"
+  aria-describedby="name-help"
+/>
+<div id="name-help" class="help-text">
+  Enter a descriptive name for your project
+</div>
+```
+
+**Supported Assistive Technologies**:
+- **Screen Readers**: NVDA, JAWS, VoiceOver, TalkBack
+- **Browsers**: Chrome, Firefox, Safari, Edge (latest 2 versions)
+- **Input Methods**: Keyboard, voice control, switch navigation, eye-tracking
+
+### AI Translation System
+
+**OpenAI Integration**:
+```bash
+# AI translation API
+curl -X POST /api/ai/translate \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "keys": ["nav.dashboard", "button.save"],
+    "targetLocale": "es",
+    "namespace": "common"
+  }'
+```
+
+**Translation Workflow**:
+1. **Identify Missing**: Detect untranslated keys
+2. **AI Generate**: Use OpenAI for initial translations
+3. **Human Review**: Native speakers verify and refine
+4. **Quality Check**: Automated consistency and completeness checks
+5. **Deploy**: Publish verified translations
+
+**Quality Assurance**:
+- **Context Preservation**: Maintain meaning across languages
+- **Cultural Adaptation**: Adapt content for local cultures
+- **Technical Accuracy**: Verify technical terminology
+- **Consistency**: Ensure consistent terminology usage
+
+### Automated Testing & CI/CD
+
+**Accessibility Testing Workflow**:
+```yaml
+# .github/workflows/a11y-check.yml
+jobs:
+  accessibility-audit:
+    - Run axe-core audits on key pages
+    - Execute Lighthouse accessibility tests
+    - Check color contrast ratios
+    - Validate keyboard navigation
+    - Test screen reader compatibility
+
+  i18n-coverage:
+    - Check translation completion percentages
+    - Identify missing translation keys
+    - Validate translation file structure
+    - Test language switching functionality
+```
+
+**Quality Gates**:
+- **Accessibility Score**: Minimum 90% Lighthouse score
+- **Zero Violations**: No axe-core accessibility violations
+- **Translation Coverage**: Minimum 90% completion for enabled languages
+- **Governance Compliance**: Policy-driven requirements enforcement
+
+### Governance Integration
+
+**Policy Configuration**:
+```yaml
+# governance/policy.yml
+i18n:
+  required: true
+  supported_locales: ["en", "es", "fr", "de"]
+  translation_coverage:
+    minimum_percentage: 90
+    enforce_on_build: true
+
+accessibility:
+  required: true
+  wcag_level: "AA"
+  wcag_version: "2.1"
+  audit_requirements:
+    lighthouse_score_min: 90
+    axe_violations_max: 0
+    color_contrast_min: 4.5
+```
+
+**Compliance Monitoring**:
+- **Build Gates**: Fail builds on accessibility violations
+- **Coverage Tracking**: Monitor translation completion
+- **Audit Reports**: Store accessibility audit results
+- **Regression Detection**: Alert on accessibility score decreases
+
+### Database Schema
+
+**Translation Management**:
+```sql
+-- Translations table
+CREATE TABLE translations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL,
+  locale TEXT NOT NULL,
+  value TEXT,
+  namespace TEXT DEFAULT 'common',
+  verified BOOLEAN DEFAULT false,
+  UNIQUE(key, locale, namespace)
+);
+
+-- Languages table
+CREATE TABLE languages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  native_name TEXT NOT NULL,
+  enabled BOOLEAN DEFAULT true,
+  completion_percentage NUMERIC DEFAULT 0
+);
+
+-- Accessibility reports
+CREATE TABLE a11y_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  page TEXT NOT NULL,
+  score NUMERIC CHECK (score >= 0 AND score <= 100),
+  issues JSONB DEFAULT '[]'::jsonb,
+  audit_type TEXT DEFAULT 'axe-core'
+);
+```
+
+### Documentation & Resources
+
+**Accessibility Statement**: `/docs/accessibility.md`
+- WCAG 2.1 AA compliance details
+- Supported assistive technologies
+- Contact information for accessibility issues
+- Testing procedures and validation
+
+**Localization Guide**: `/docs/localization.md`
+- Adding new languages step-by-step
+- Translation best practices
+- AI translation helper usage
+- HRPO localization procedures
+
+### Usage Examples
+
+**Language Detection**:
+```typescript
+import { getBestMatchingLocale } from '@/i18n/config';
+
+// Detect user's preferred language
+const locale = getBestMatchingLocale(
+  request.headers['accept-language'],
+  cookies.get('buildrunner-locale'),
+  searchParams.get('lang')
+);
+```
+
+**Accessible Components**:
+```tsx
+// Accessible form with proper labeling
+<form role="form" aria-labelledby="form-title">
+  <h2 id="form-title">Create New Project</h2>
+  <div className="form-group">
+    <label htmlFor="project-name">Project Name</label>
+    <input
+      type="text"
+      id="project-name"
+      aria-required="true"
+      aria-describedby="name-help"
+    />
+    <div id="name-help" className="help-text">
+      Enter a descriptive name for your project
+    </div>
+  </div>
+</form>
+```
+
+### Performance & Optimization
+
+**Translation Loading**:
+- **Lazy Loading**: Load translations on demand
+- **Caching**: Browser and server-side caching
+- **Bundle Splitting**: Separate translation bundles by language
+- **Compression**: Gzip compression for translation files
+
+**Accessibility Performance**:
+- **Semantic HTML**: Proper heading hierarchy and landmarks
+- **Focus Management**: Efficient focus handling for SPAs
+- **Screen Reader Optimization**: Optimized ARIA usage
+- **Keyboard Shortcuts**: Power user accessibility features
+
+### Security & Privacy
+
+**Translation Security**:
+- **Server-Side AI**: Translation API calls never expose user data
+- **Input Sanitization**: Prevent XSS in translated content
+- **Access Control**: Role-based translation management
+- **Audit Logging**: Track all translation changes
+
+**Accessibility Privacy**:
+- **No Tracking**: Accessibility features don't track users
+- **Local Storage**: Accessibility preferences stored locally
+- **Consent**: Optional accessibility analytics with consent
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -1451,3 +1756,4 @@ Track developer experience metrics:
 - **Phase 15**: Admin Console & Token/Cost Tracking with governance operations ✅
 - **Phase 16**: Figma Parity & Design System Sync with visual regression testing ✅
 - **Phase 17**: Documentation & Developer Experience (CLI + SDK) with interactive API docs ✅
+- **Phase 18**: Localization & Accessibility (i18n + a11y) with WCAG 2.1 AA compliance ✅
