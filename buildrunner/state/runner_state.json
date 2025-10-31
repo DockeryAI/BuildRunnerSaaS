@@ -1,12 +1,12 @@
 {
-  "projectId": "project-1761926896141",
-  "title": "a sales agent that schedules",
+  "projectId": "project-1761927342125",
+  "title": "a calendar app",
   "version": "0.4.0",
-  "updatedAt": "2025-10-31T16:08:16.141Z",
+  "updatedAt": "2025-10-31T16:15:42.125Z",
   "phase": 4,
   "step": "create",
   "sync": {
-    "lastLocalUpdate": "2025-10-31T16:08:16.231Z",
+    "lastLocalUpdate": "2025-10-31T16:15:42.138Z",
     "lastRemoteUpdate": null,
     "phase3_completed": true,
     "phase4_completed": true,

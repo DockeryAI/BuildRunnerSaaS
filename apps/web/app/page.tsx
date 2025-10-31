@@ -11,8 +11,8 @@ export default function HomePage() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        // User is authenticated, redirect to main app
-        router.push('/create');
+        // User is authenticated, redirect to brainstorm
+        router.push('/brainstorm');
       } else {
         // User is not authenticated, redirect to sign-in
         router.push('/sign-in');

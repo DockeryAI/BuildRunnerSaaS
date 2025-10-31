@@ -1,8 +1,8 @@
 {
-  "projectId": "project-1761926896141",
-  "title": "a sales agent that schedules",
+  "projectId": "project-1761927342125",
+  "title": "a calendar app",
   "version": "0.4.0",
-  "updatedAt": "2025-10-31T16:08:16.141Z",
+  "updatedAt": "2025-10-31T16:15:42.125Z",
   "milestones": [
     {
       "id": "m1",
@@ -108,10 +108,10 @@
   ],
   "changeHistory": [
     {
-      "timestamp": "2025-10-31T16:08:16.141Z",
+      "timestamp": "2025-10-31T16:15:42.125Z",
       "version": "0.4.0",
       "phase": 4,
-      "description": "Generated plan from prompt: a sales agent that schedules meetings\n...",
+      "description": "Generated plan from prompt: a calendar app...",
       "author": "AI Planner",
       "microsteps_completed": 0,
       "files_added": []

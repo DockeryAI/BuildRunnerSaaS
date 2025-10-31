@@ -20,12 +20,14 @@ import {
   BarChart3,
   TrendingUp,
   Package,
-  Shield
+  Shield,
+  Lightbulb
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
 
 const navigation = [
+  { name: 'Brainstorm', href: '/brainstorm', icon: Lightbulb },
   { name: 'Create', href: '/create', icon: FileText },
   { name: 'Plan', href: '/plan', icon: Edit3 },
   { name: 'Flow', href: '/flow', icon: GitMerge },
