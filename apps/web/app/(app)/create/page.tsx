@@ -17,6 +17,7 @@ import {
   BeakerIcon
 } from '@heroicons/react/24/outline';
 import { SuggestionCard } from '../../../components/brainstorm/Card';
+import { DraggableSuggestion } from '../../../components/brainstorm/DraggableSuggestion';
 import { BrainstormState, useBrainstormState } from '../../../lib/brainstorm/state';
 import Link from 'next/link';
 
@@ -226,6 +227,13 @@ export default function CreatePage() {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [initialIdea, setInitialIdea] = useState('');
   const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
+  const [prdSections, setPrdSections] = useState({
+    features: [] as any[],
+    metrics: [] as any[],
+    monetization: [] as any[],
+    strategy: [] as any[],
+  });
+  const [draggedSuggestion, setDraggedSuggestion] = useState<any>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { state, addSuggestion, updateDecision, exportHistory } = useBrainstormState();
@@ -327,6 +335,38 @@ export default function CreatePage() {
     setInputValue('');
 
     console.log('All session data cleared completely - fresh start guaranteed');
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (suggestion: any) => {
+    setDraggedSuggestion(suggestion);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, section: string) => {
+    e.preventDefault();
+
+    try {
+      const suggestionData = e.dataTransfer.getData('application/json');
+      const suggestion = JSON.parse(suggestionData);
+
+      // Add to PRD section
+      setPrdSections(prev => ({
+        ...prev,
+        [section]: [...prev[section as keyof typeof prev], suggestion]
+      }));
+
+      // Remove from suggestions (we'll implement this)
+      console.log(`Added suggestion "${suggestion.title}" to ${section} section`);
+
+      setDraggedSuggestion(null);
+    } catch (error) {
+      console.error('Error handling drop:', error);
+    }
   };
 
   const sendMessage = async (content: string, category: string = selectedCategory) => {
@@ -540,10 +580,10 @@ Let's start with product development. What are the core features and user experi
       {/* Main Content - Proper spacing to avoid header overlap */}
       <div className="pt-20 pb-8">
         <div className="max-w-full px-6">
-          <div className="grid grid-cols-12 gap-6 h-[calc(100vh-8rem)]">
+          <div className="grid grid-cols-2 gap-8 h-[calc(100vh-8rem)]">
 
             {/* Left Column - Product Requirements Document */}
-            <div className="col-span-4">
+            <div className="col-span-1">
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
                   <h2 className="text-lg font-bold text-white">Product Requirements Document</h2>
@@ -582,10 +622,33 @@ Let's start with product development. What are the core features and user experi
                         <BeakerIcon className="h-5 w-5 text-green-600 mr-2" />
                         Key Features
                       </h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="text-gray-500 text-sm italic">
-                          Features will appear here as you discuss product development with the AI...
-                        </div>
+                      <div
+                        className="bg-gray-50 rounded-lg p-4 min-h-[120px] border-2 border-dashed border-gray-300 hover:border-green-400 transition-colors"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, 'features')}
+                      >
+                        {prdSections.features.length === 0 ? (
+                          <div className="text-gray-500 text-sm italic text-center py-8">
+                            Drag feature suggestions here from the AI chat →
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {prdSections.features.map((feature, index) => (
+                              <div key={index} className="bg-white rounded-lg p-3 border border-green-200">
+                                <h4 className="font-medium text-gray-900 mb-1">{feature.title}</h4>
+                                <p className="text-sm text-gray-600">{feature.summary}</p>
+                                <div className="mt-2 flex items-center space-x-2">
+                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    Impact: {feature.impact_score}/10
+                                  </span>
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                    {feature.implementation_effort} effort
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </section>
 
@@ -595,10 +658,25 @@ Let's start with product development. What are the core features and user experi
                         <ChartBarIcon className="h-5 w-5 text-purple-600 mr-2" />
                         Success Metrics
                       </h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="text-gray-500 text-sm italic">
-                          Metrics will be defined as you discuss strategy...
-                        </div>
+                      <div
+                        className="bg-gray-50 rounded-lg p-4 min-h-[120px] border-2 border-dashed border-gray-300 hover:border-purple-400 transition-colors"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, 'metrics')}
+                      >
+                        {prdSections.metrics.length === 0 ? (
+                          <div className="text-gray-500 text-sm italic text-center py-8">
+                            Drag strategy suggestions here from the AI chat →
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {prdSections.metrics.map((metric, index) => (
+                              <div key={index} className="bg-white rounded-lg p-3 border border-purple-200">
+                                <h4 className="font-medium text-gray-900 mb-1">{metric.title}</h4>
+                                <p className="text-sm text-gray-600">{metric.summary}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </section>
 
@@ -608,10 +686,25 @@ Let's start with product development. What are the core features and user experi
                         <CurrencyDollarIcon className="h-5 w-5 text-yellow-600 mr-2" />
                         Monetization
                       </h3>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <div className="text-gray-500 text-sm italic">
-                          Revenue model will be developed during monetization discussion...
-                        </div>
+                      <div
+                        className="bg-gray-50 rounded-lg p-4 min-h-[120px] border-2 border-dashed border-gray-300 hover:border-yellow-400 transition-colors"
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, 'monetization')}
+                      >
+                        {prdSections.monetization.length === 0 ? (
+                          <div className="text-gray-500 text-sm italic text-center py-8">
+                            Drag monetization suggestions here from the AI chat →
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {prdSections.monetization.map((item, index) => (
+                              <div key={index} className="bg-white rounded-lg p-3 border border-yellow-200">
+                                <h4 className="font-medium text-gray-900 mb-1">{item.title}</h4>
+                                <p className="text-sm text-gray-600">{item.summary}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </section>
                   </div>
@@ -619,8 +712,8 @@ Let's start with product development. What are the core features and user experi
               </div>
             </div>
 
-            {/* Middle Column - AI Chat Interface */}
-            <div className="col-span-5">
+            {/* Right Column - AI Chat Interface with Draggable Suggestions */}
+            <div className="col-span-1">
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col overflow-hidden">
                 {/* Category Tabs */}
                 <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
@@ -642,36 +735,56 @@ Let's start with product development. What are the core features and user experi
                   </div>
                 </div>
 
-                {/* Messages */}
+                {/* Messages and Suggestions */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {messages.length === 0 ? (
                     <div className="text-center py-12">
                       <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to brainstorm!</h3>
                       <p className="text-gray-500">Start by asking about {selectedCategory} or any aspect of your product.</p>
+                      <p className="text-gray-400 text-sm mt-2">AI suggestions will appear as draggable cards you can move to your PRD.</p>
                     </div>
                   ) : (
-                    messages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[85%] rounded-xl px-4 py-3 ${
-                            message.role === 'user'
-                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                              : message.role === 'system'
-                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
-                              : 'bg-gray-50 text-gray-900 border border-gray-200'
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                          <div className="mt-2 text-xs opacity-70">
-                            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}
+                    <>
+                      {messages.map((message, messageIndex) => (
+                        <div key={message.id}>
+                          {/* Message */}
+                          <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+                            <div
+                              className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                                message.role === 'user'
+                                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                                  : message.role === 'system'
+                                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+                                  : 'bg-gray-50 text-gray-900 border border-gray-200'
+                              }`}
+                            >
+                              <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                              <div className="mt-2 text-xs opacity-70">
+                                {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}
+                              </div>
+                            </div>
                           </div>
+
+                          {/* Show suggestions after AI messages */}
+                          {message.role === 'assistant' && state.suggestions.length > 0 && messageIndex === messages.length - 1 && (
+                            <div className="ml-4 space-y-3">
+                              <div className="flex items-center space-x-2 mb-3">
+                                <SparklesIcon className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm font-medium text-gray-700">AI Suggestions - Drag to PRD</span>
+                              </div>
+                              {state.suggestions.slice(-5).map((suggestion) => (
+                                <DraggableSuggestion
+                                  key={suggestion.id}
+                                  suggestion={suggestion}
+                                  onDragStart={handleDragStart}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </>
                   )}
 
                   {isLoading && (
@@ -721,44 +834,7 @@ Let's start with product development. What are the core features and user experi
               </div>
             </div>
 
-            {/* Right Column - AI Suggestions */}
-            <div className="col-span-3">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
-                  <h2 className="text-lg font-bold text-white">AI Suggestions</h2>
-                  <p className="text-purple-100 text-sm">{state.suggestions.length} actionable insights</p>
-                </div>
 
-                <div className="p-6 overflow-y-auto h-[calc(100%-5rem)]">
-                  {state.suggestions.length === 0 ? (
-                    <div className="text-center py-12">
-                      <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">AI Insights Coming</h3>
-                      <p className="text-gray-500 text-sm">
-                        As you chat with the AI, actionable suggestions will appear here.
-                        You can drag them into your PRD document.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {state.suggestions.map((suggestion) => (
-                        <div
-                          key={suggestion.id}
-                          className="bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer"
-                        >
-                          <SuggestionCard
-                            suggestion={suggestion}
-                            onDecision={(decision, reasoning) =>
-                              updateDecision(suggestion.id, decision, reasoning)
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
