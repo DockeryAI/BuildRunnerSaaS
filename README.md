@@ -303,6 +303,117 @@ enterprise:
   features: [all_features, sso, audit_logs]
 ```
 
+## Phase 11 — Explainability & Multi-Model ✅
+
+AI-powered explanations and intelligent model routing with dual-run arbitration for optimal performance.
+
+### Features
+- **Explain Mode**: Generate AI narratives for any project component (milestone, step, microstep)
+- **Teach-Me Walkthrough**: Guided tour of project architecture with interactive explanations
+- **Model Router**: Task-type aware model selection with performance optimization
+- **Dual-Run Arbitration**: Optional side-by-side model comparison with judge selection
+- **Performance Analytics**: Comprehensive model performance tracking and comparison
+- **Project Model Settings**: Per-project model preferences with cost and quality controls
+
+### Explain Mode
+- **AI Narratives**: Generate plain-English explanations for complex technical components
+- **Multiple Audiences**: Technical, business, or general audience targeting
+- **Export to HRPO**: Human-Readable Project Overview integration
+- **Context-Aware**: Explanations consider project scope, dependencies, and current state
+- **Multi-Language**: Support for different languages and technical levels
+
+### Model Router
+- **Task-Type Mapping**: Automatic model selection based on task requirements
+  - **Planner**: High-quality models for architecture and planning (GPT-4, Claude-3-Sonnet)
+  - **Builder**: Fast models for code generation (GPT-3.5-Turbo, Claude-3-Haiku)
+  - **QA**: Efficient models for testing and validation
+  - **Explain**: High-quality models for documentation and explanations
+  - **Rescope**: Balanced models for plan modifications
+  - **Arbitrate**: Premium models for comparison and decision-making
+
+### Dual-Run Arbitration
+- **Side-by-Side Execution**: Run two models simultaneously for critical tasks
+- **AI Judge**: Automated comparison with confidence scoring and rationale
+- **Cost Controls**: Budget guards and multiplier limits to prevent runaway costs
+- **Quality Thresholds**: Minimum quality requirements for task acceptance
+- **Audit Trail**: Complete logging of arbitration decisions and reasoning
+
+### Performance Analytics
+- **Model Comparison**: Success rates, latency, quality scores, and cost analysis
+- **Win Rate Tracking**: Arbitration results and model performance rankings
+- **Cost Optimization**: Token usage and cost per task type analysis
+- **Quality Metrics**: Automated scoring and performance grading (A-F scale)
+- **Trend Analysis**: Performance changes over time with recommendations
+
+### Usage
+```bash
+# Generate explanation for any component
+POST /api/explain
+{
+  "scope": "milestone",
+  "entity_id": "p1.m1",
+  "audience": "business",
+  "language": "en"
+}
+
+# Get model recommendations for task type
+GET /api/models/recommend?task_type=planner
+
+# Configure project model settings
+POST /api/models/settings
+{
+  "project_id": "123",
+  "task_type": "builder",
+  "preferred_model": "gpt-3.5-turbo",
+  "dual_run_enabled": true,
+  "max_cost_multiplier": 2.0
+}
+
+# Compare model performance
+GET /api/models/compare?task_type=explain&period=30d
+```
+
+### Model Profiles
+```yaml
+gpt-4:
+  provider: openai
+  task_types: [planner, explain, arbitrate]
+  quality_rating: 9.5/10
+  speed_rating: 6.0/10
+  cost_per_token: $0.00003
+
+claude-3-sonnet:
+  provider: anthropic
+  task_types: [planner, explain, arbitrate]
+  quality_rating: 9.0/10
+  speed_rating: 7.5/10
+  cost_per_token: $0.000003
+
+gpt-3.5-turbo:
+  provider: openai
+  task_types: [builder, qa, rescope]
+  quality_rating: 7.5/10
+  speed_rating: 9.0/10
+  cost_per_token: $0.0000015
+```
+
+### Arbitration Example
+```yaml
+task_type: planner
+candidates:
+  - model: gpt-4
+    response: "Detailed architecture plan..."
+    quality_score: 92
+  - model: claude-3-sonnet
+    response: "Alternative architecture..."
+    quality_score: 89
+
+winner: gpt-4
+rationale: "Higher quality score and more comprehensive coverage of requirements"
+confidence: 85%
+cost_multiplier: 1.8x
+```
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -315,3 +426,4 @@ enterprise:
 - **Phase 8**: Templates & Marketplace with composable packs
 - **Phase 9**: Analytics & Cost Monitoring with anomaly detection ✅
 - **Phase 10**: Collaboration & Comments Integration with realtime presence ✅
+- **Phase 11**: Explainability & Multi-Model with AI narratives and model router ✅

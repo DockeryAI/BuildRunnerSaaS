@@ -1128,11 +1128,18 @@ video {
   --tw-divide-opacity: 1;
   border-color: rgb(243 244 246 / var(--tw-divide-opacity, 1));
 }
+.divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-opacity: 1;
+  border-color: rgb(229 231 235 / var(--tw-divide-opacity, 1));
+}
 .overflow-auto {
   overflow: auto;
 }
 .overflow-hidden {
   overflow: hidden;
+}
+.overflow-x-auto {
+  overflow-x: auto;
 }
 .overflow-y-auto {
   overflow-y: auto;
@@ -1605,6 +1612,9 @@ video {
 }
 .tracking-wide {
   letter-spacing: 0.025em;
+}
+.tracking-wider {
+  letter-spacing: 0.05em;
 }
 .text-amber-500 {
   --tw-text-opacity: 1;

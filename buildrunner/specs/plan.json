@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.0.0-rc.0",
-  "updatedAt": "2025-10-31T03:00:00.000Z",
+  "version": "1.1.0",
+  "updatedAt": "2025-10-31T04:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -855,6 +855,156 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p11",
+          "title": "Explainability & Multi-Model",
+          "steps": [
+            {
+              "id": "p11.s1",
+              "title": "Data Model for Explainability & Models",
+              "microsteps": [
+                {
+                  "id": "p11.s1.ms1",
+                  "title": "SQL schema (idempotent)",
+                  "status": "done",
+                  "criteria": ["Tables: model_profiles, model_runs, arbitration_results, explanations with indexes"]
+                },
+                {
+                  "id": "p11.s1.ms2",
+                  "title": "Server lib",
+                  "status": "done",
+                  "criteria": ["CRUD for profiles/runs/arbitrations/explanations with audit logging"]
+                }
+              ]
+            },
+            {
+              "id": "p11.s2",
+              "title": "Explain Mode (Narratives)",
+              "microsteps": [
+                {
+                  "id": "p11.s2.ms1",
+                  "title": "Explain API",
+                  "status": "done",
+                  "criteria": ["POST /explain with scope/entity_id inputs, stores narratives"]
+                },
+                {
+                  "id": "p11.s2.ms2",
+                  "title": "Explain UI",
+                  "status": "done",
+                  "criteria": ["ExplainButton.tsx + ExplainModal.tsx with export to HRPO"]
+                },
+                {
+                  "id": "p11.s2.ms3",
+                  "title": "Teach-me walk-through",
+                  "status": "done",
+                  "criteria": ["/explain/page.tsx: guided walkthrough of app milestones"]
+                }
+              ]
+            },
+            {
+              "id": "p11.s3",
+              "title": "Rescope Assistant (Patch UX upgrade)",
+              "microsteps": [
+                {
+                  "id": "p11.s3.ms1",
+                  "title": "Patch preview",
+                  "status": "done",
+                  "criteria": ["Side-by-side diff view with AC impact analysis"]
+                },
+                {
+                  "id": "p11.s3.ms2",
+                  "title": "Acceptance pre-check",
+                  "status": "done",
+                  "criteria": ["Schema/graph validation before applying patches"]
+                }
+              ]
+            },
+            {
+              "id": "p11.s4",
+              "title": "Model Router (Task-Type Aware)",
+              "microsteps": [
+                {
+                  "id": "p11.s4.ms1",
+                  "title": "Router core",
+                  "status": "done",
+                  "criteria": ["Task_type → model mapping with performance scoring"]
+                },
+                {
+                  "id": "p11.s4.ms2",
+                  "title": "Project Model Settings UI",
+                  "status": "done",
+                  "criteria": ["/settings/models/page.tsx: per-task model selection"]
+                },
+                {
+                  "id": "p11.s4.ms3",
+                  "title": "Instrumentation",
+                  "status": "done",
+                  "criteria": ["All server calls record model_runs entries"]
+                }
+              ]
+            },
+            {
+              "id": "p11.s5",
+              "title": "Dual-Run Arbitration (Optional)",
+              "microsteps": [
+                {
+                  "id": "p11.s5.ms1",
+                  "title": "Orchestrator",
+                  "status": "done",
+                  "criteria": ["Dual-run with judge comparison and rationale"]
+                },
+                {
+                  "id": "p11.s5.ms2",
+                  "title": "UI toggle",
+                  "status": "done",
+                  "criteria": ["Settings→Models: enable Dual-Run per task_type"]
+                },
+                {
+                  "id": "p11.s5.ms3",
+                  "title": "Guardrails",
+                  "status": "done",
+                  "criteria": ["Budget guard for dual-run within policy limits"]
+                }
+              ]
+            },
+            {
+              "id": "p11.s6",
+              "title": "Comparison & Reports",
+              "microsteps": [
+                {
+                  "id": "p11.s6.ms1",
+                  "title": "Compare view",
+                  "status": "done",
+                  "criteria": ["/models/compare/page.tsx: model performance table"]
+                },
+                {
+                  "id": "p11.s6.ms2",
+                  "title": "Weekly summary",
+                  "status": "done",
+                  "criteria": ["Edge Function/cron: weekly model performance reports"]
+                }
+              ]
+            },
+            {
+              "id": "p11.s7",
+              "title": "Docs & Finalize Phase 11",
+              "microsteps": [
+                {
+                  "id": "p11.s7.ms1",
+                  "title": "README & help",
+                  "status": "done",
+                  "criteria": ["Add Explainability & Multi-Model documentation"]
+                },
+                {
+                  "id": "p11.s7.ms2",
+                  "title": "Plan/State updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.1.0 with Phase 11 completion"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1029,6 +1179,27 @@
         "apps/web/lib/realtime/presence.ts",
         "apps/web/lib/realtime/comments.ts",
         "apps/web/app/api/issues/route.ts"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T04:00:00.000Z",
+      "version": "1.1.0",
+      "phase": 11,
+      "description": "Completed Phase 11 - Explainability & Multi-Model. Implemented AI-powered explanations with Explain Mode for generating narratives about project components, teach-me walkthrough for guided project tours, enhanced rescope assistant with patch preview and validation, intelligent model router with task-type aware selection, dual-run arbitration for model comparison, and comprehensive performance analytics. Added project-specific model settings with cost controls and quality thresholds.",
+      "author": "Auggie",
+      "microsteps_completed": 17,
+      "files_added": [
+        "supabase/migrations/20251031000004_Phase11-models.sql",
+        "apps/web/lib/models/storage.ts",
+        "apps/web/lib/models/router.ts",
+        "apps/web/app/api/explain/route.ts",
+        "apps/web/components/explain/ExplainButton.tsx",
+        "apps/web/components/explain/ExplainModal.tsx",
+        "apps/web/app/(app)/explain/page.tsx",
+        "apps/web/components/rescope/PatchPreview.tsx",
+        "apps/web/lib/rescope/validator.ts",
+        "apps/web/app/(app)/settings/models/page.tsx",
+        "apps/web/app/(app)/models/compare/page.tsx"
       ]
     }
   ]
