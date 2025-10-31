@@ -311,7 +311,7 @@ export default function BrainstormPage() {
                   </p>
                 </div>
                 <Link
-                  href="/settings"
+                  href="/settings/api-keys"
                   className="flex items-center space-x-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors"
                 >
                   <CogIcon className="h-4 w-4" />
