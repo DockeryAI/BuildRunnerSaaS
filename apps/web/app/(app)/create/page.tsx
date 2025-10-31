@@ -8,7 +8,13 @@ import {
   DocumentTextIcon,
   ChartBarIcon,
   CurrencyDollarIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  PencilIcon,
+  TrashIcon,
+  ArchiveBoxIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 type Message = { role: 'user' | 'assistant'; content: string };
@@ -17,15 +23,27 @@ interface Suggestion {
   id: string;
   type: string;
   title: string;
-  content: string;
+  shortDescription: string;
+  fullDescription: string;
+  citations: string[];
   section: string;
   priority: 'high' | 'medium' | 'low';
+}
+
+interface PRDItem {
+  id: string;
+  title: string;
+  shortDescription: string;
+  fullDescription: string;
+  citations: string[];
+  status: 'active' | 'shelved' | 'future';
+  isExpanded: boolean;
 }
 
 interface PRDSection {
   id: string;
   name: string;
-  content: string;
+  items: PRDItem[];
   completed: boolean;
 }
 
@@ -78,6 +96,8 @@ function DraggableSuggestion({
   suggestion: Suggestion;
   onDragStart: (suggestion: Suggestion) => void;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const priorityColors = {
     high: 'border-red-200 bg-red-50',
     medium: 'border-yellow-200 bg-yellow-50',
@@ -99,13 +119,63 @@ function DraggableSuggestion({
       }`}
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="font-medium text-gray-900 text-sm">{suggestion.title}</h4>
+        <div className="flex items-center space-x-2 flex-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            className="flex-shrink-0 p-1 hover:bg-gray-200 rounded"
+          >
+            {isExpanded ? (
+              <ChevronDownIcon className="h-4 w-4 text-gray-600" />
+            ) : (
+              <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+            )}
+          </button>
+          <h4 className="font-medium text-gray-900 text-sm">{suggestion.title}</h4>
+        </div>
         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
           {suggestion.section}
         </span>
       </div>
-      <p className="text-sm text-gray-700 leading-relaxed">{suggestion.content}</p>
-      <div className="mt-2 flex items-center justify-between">
+
+      <div className="ml-6">
+        <p className="text-sm text-gray-700 leading-relaxed mb-2">
+          {suggestion.shortDescription}
+        </p>
+
+        {isExpanded && (
+          <div className="space-y-3 border-t border-gray-200 pt-3">
+            <div>
+              <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                Full Description
+              </h5>
+              <p className="text-sm text-gray-700 leading-relaxed">
+                {suggestion.fullDescription}
+              </p>
+            </div>
+
+            {suggestion.citations.length > 0 && (
+              <div>
+                <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                  Sources
+                </h5>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  {suggestion.citations.map((citation, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-1">•</span>
+                      <span>{citation}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between">
         <span className={`text-xs px-2 py-1 rounded-full ${
           suggestion.priority === 'high' ? 'bg-red-100 text-red-700' :
           suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
@@ -114,6 +184,189 @@ function DraggableSuggestion({
           {suggestion.priority} priority
         </span>
         <span className="text-xs text-gray-500">Drag to PRD →</span>
+      </div>
+    </div>
+  );
+}
+
+function PRDItemComponent({
+  item,
+  onEdit,
+  onDelete,
+  onShelve,
+  onMoveToFuture,
+}: {
+  item: PRDItem;
+  onEdit: (id: string, newContent: { title: string; shortDescription: string; fullDescription: string }) => void;
+  onDelete: (id: string) => void;
+  onShelve: (id: string) => void;
+  onMoveToFuture: (id: string) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(item.isExpanded);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(item.title);
+  const [editShort, setEditShort] = useState(item.shortDescription);
+  const [editFull, setEditFull] = useState(item.fullDescription);
+
+  const handleSave = () => {
+    onEdit(item.id, {
+      title: editTitle,
+      shortDescription: editShort,
+      fullDescription: editFull
+    });
+    setIsEditing(false);
+  };
+
+  const statusColors = {
+    active: 'border-green-200 bg-green-50',
+    shelved: 'border-yellow-200 bg-yellow-50',
+    future: 'border-blue-200 bg-blue-50',
+  };
+
+  return (
+    <div className={`p-4 rounded-lg border ${statusColors[item.status]} mb-3`}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center space-x-2 flex-1">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex-shrink-0 p-1 hover:bg-gray-200 rounded"
+          >
+            {isExpanded ? (
+              <ChevronDownIcon className="h-4 w-4 text-gray-600" />
+            ) : (
+              <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+            )}
+          </button>
+
+          {isEditing ? (
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="font-medium text-gray-900 text-sm bg-white border border-gray-300 rounded px-2 py-1 flex-1"
+            />
+          ) : (
+            <h4 className="font-medium text-gray-900 text-sm">{item.title}</h4>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-1">
+          {item.status === 'shelved' && (
+            <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">
+              Shelved
+            </span>
+          )}
+          {item.status === 'future' && (
+            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+              Future
+            </span>
+          )}
+
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="p-1 hover:bg-gray-200 rounded"
+          >
+            <PencilIcon className="h-4 w-4 text-gray-600" />
+          </button>
+
+          <button
+            onClick={() => onShelve(item.id)}
+            className="p-1 hover:bg-gray-200 rounded"
+            title="Shelve"
+          >
+            <ArchiveBoxIcon className="h-4 w-4 text-gray-600" />
+          </button>
+
+          <button
+            onClick={() => onMoveToFuture(item.id)}
+            className="p-1 hover:bg-gray-200 rounded"
+            title="Move to Future Version"
+          >
+            <ClockIcon className="h-4 w-4 text-gray-600" />
+          </button>
+
+          <button
+            onClick={() => onDelete(item.id)}
+            className="p-1 hover:bg-gray-200 rounded"
+            title="Delete"
+          >
+            <TrashIcon className="h-4 w-4 text-red-600" />
+          </button>
+        </div>
+      </div>
+
+      <div className="ml-6">
+        {isEditing ? (
+          <textarea
+            value={editShort}
+            onChange={(e) => setEditShort(e.target.value)}
+            className="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded px-2 py-1 mb-2"
+            rows={2}
+          />
+        ) : (
+          <p className="text-sm text-gray-700 leading-relaxed mb-2">
+            {item.shortDescription}
+          </p>
+        )}
+
+        {isExpanded && (
+          <div className="space-y-3 border-t border-gray-200 pt-3">
+            <div>
+              <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                Full Description
+              </h5>
+              {isEditing ? (
+                <textarea
+                  value={editFull}
+                  onChange={(e) => setEditFull(e.target.value)}
+                  className="w-full text-sm text-gray-700 bg-white border border-gray-300 rounded px-2 py-1"
+                  rows={4}
+                />
+              ) : (
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {item.fullDescription}
+                </p>
+              )}
+            </div>
+
+            {item.citations.length > 0 && (
+              <div>
+                <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                  Sources
+                </h5>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  {item.citations.map((citation, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="mr-1">•</span>
+                      <span>{citation}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="flex space-x-2 mt-3">
+            <button
+              onClick={handleSave}
+              className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                setEditTitle(item.title);
+                setEditShort(item.shortDescription);
+                setEditFull(item.fullDescription);
+              }}
+              className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -170,10 +423,18 @@ function PRDSectionPanel({
   phase,
   sections,
   onDrop,
+  onEditItem,
+  onDeleteItem,
+  onShelveItem,
+  onMoveToFuture,
 }: {
   phase: number;
   sections: PRDSection[];
   onDrop: (sectionId: string, suggestion: Suggestion) => void;
+  onEditItem: (sectionId: string, itemId: string, newContent: { title: string; shortDescription: string; fullDescription: string }) => void;
+  onDeleteItem: (sectionId: string, itemId: string) => void;
+  onShelveItem: (sectionId: string, itemId: string) => void;
+  onMoveToFuture: (sectionId: string, itemId: string) => void;
 }) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -218,13 +479,56 @@ function PRDSectionPanel({
             </div>
 
             <div
-              className="min-h-[120px] p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors bg-gray-50"
+              className="min-h-[120px] border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors bg-gray-50"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, section.id)}
             >
-              {section.content ? (
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-gray-900 whitespace-pre-wrap">{section.content}</p>
+              {section.items.length > 0 ? (
+                <div className="p-4">
+                  {section.items.filter(item => item.status === 'active').map((item) => (
+                    <PRDItemComponent
+                      key={item.id}
+                      item={item}
+                      onEdit={(itemId, newContent) => onEditItem(section.id, itemId, newContent)}
+                      onDelete={(itemId) => onDeleteItem(section.id, itemId)}
+                      onShelve={(itemId) => onShelveItem(section.id, itemId)}
+                      onMoveToFuture={(itemId) => onMoveToFuture(section.id, itemId)}
+                    />
+                  ))}
+
+                  {/* Shelved Items */}
+                  {section.items.filter(item => item.status === 'shelved').length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-600 mb-2">Shelved Items</h4>
+                      {section.items.filter(item => item.status === 'shelved').map((item) => (
+                        <PRDItemComponent
+                          key={item.id}
+                          item={item}
+                          onEdit={(itemId, newContent) => onEditItem(section.id, itemId, newContent)}
+                          onDelete={(itemId) => onDeleteItem(section.id, itemId)}
+                          onShelve={(itemId) => onShelveItem(section.id, itemId)}
+                          onMoveToFuture={(itemId) => onMoveToFuture(section.id, itemId)}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Future Items */}
+                  {section.items.filter(item => item.status === 'future').length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h4 className="text-sm font-medium text-gray-600 mb-2">Future Version</h4>
+                      {section.items.filter(item => item.status === 'future').map((item) => (
+                        <PRDItemComponent
+                          key={item.id}
+                          item={item}
+                          onEdit={(itemId, newContent) => onEditItem(section.id, itemId, newContent)}
+                          onDelete={(itemId) => onDeleteItem(section.id, itemId)}
+                          onShelve={(itemId) => onShelveItem(section.id, itemId)}
+                          onMoveToFuture={(itemId) => onMoveToFuture(section.id, itemId)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
