@@ -1,0 +1,656 @@
+openapi: 3.1.0
+info:
+  title: BuildRunner API
+  description: |
+    BuildRunner API provides comprehensive project management, planning, execution, and governance capabilities.
+    
+    ## Authentication
+    
+    All API endpoints require authentication using an API key in the Authorization header:
+    ```
+    Authorization: Bearer your-api-key
+    ```
+    
+    ## Rate Limiting
+    
+    API requests are rate limited based on your subscription plan:
+    - Free: 1,000 requests/month
+    - Pro: 10,000 requests/month  
+    - Team: 50,000 requests/month
+    - Enterprise: 250,000 requests/month
+    
+    ## Error Handling
+    
+    The API uses standard HTTP status codes and returns error details in JSON format:
+    ```json
+    {
+      "error": "Invalid request",
+      "code": "VALIDATION_ERROR",
+      "details": {
+        "field": "project_id",
+        "message": "Project ID is required"
+      }
+    }
+    ```
+  version: 1.7.0
+  contact:
+    name: BuildRunner Support
+    url: https://buildrunner.com/support
+    email: support@buildrunner.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://buildrunner.com/terms
+
+servers:
+  - url: https://api.buildrunner.com
+    description: Production server
+  - url: https://staging-api.buildrunner.com
+    description: Staging server
+  - url: http://localhost:3000/api
+    description: Local development server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # Project Management
+  /projects:
+    get:
+      summary: List projects
+      description: Retrieve a list of projects for the authenticated user
+      tags: [Projects]
+      parameters:
+        - name: org_id
+          in: query
+          description: Filter by organization ID
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: Filter by project status
+          schema:
+            type: string
+            enum: [active, archived, draft]
+        - name: limit
+          in: query
+          description: Maximum number of projects to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of projects to skip
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Create project
+      description: Create a new project
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                org_id:
+                  type: string
+                  format: uuid
+                template_id:
+                  type: string
+                  format: uuid
+                settings:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /projects/{project_id}:
+    get:
+      summary: Get project
+      description: Retrieve a specific project by ID
+      tags: [Projects]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    put:
+      summary: Update project
+      description: Update an existing project
+      tags: [Projects]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                status:
+                  type: string
+                  enum: [active, archived, draft]
+                settings:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    delete:
+      summary: Delete project
+      description: Delete a project (soft delete)
+      tags: [Projects]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Planning & Specs
+  /projects/{project_id}/plan:
+    get:
+      summary: Get project plan
+      description: Retrieve the current plan for a project
+      tags: [Planning]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Project plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    post:
+      summary: Create or update plan
+      description: Create a new plan or update the existing plan for a project
+      tags: [Planning]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phases]
+              properties:
+                phases:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Phase'
+                metadata:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Plan updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '201':
+          description: Plan created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Execution & Sync
+  /projects/{project_id}/sync:
+    post:
+      summary: Sync project
+      description: Synchronize project state with the plan
+      tags: [Execution]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dry_run:
+                  type: boolean
+                  default: false
+                phases:
+                  type: array
+                  items:
+                    type: string
+                  description: Specific phases to sync (optional)
+      responses:
+        '200':
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: API key for authentication
+
+  schemas:
+    Project:
+      type: object
+      required: [id, name, description, status, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique project identifier
+        name:
+          type: string
+          description: Project name
+          example: "E-commerce Platform"
+        description:
+          type: string
+          description: Project description
+          example: "Modern e-commerce platform with React and Node.js"
+        status:
+          type: string
+          enum: [active, archived, draft]
+          description: Project status
+        org_id:
+          type: string
+          format: uuid
+          description: Organization ID
+        template_id:
+          type: string
+          format: uuid
+          description: Template used to create the project
+        settings:
+          type: object
+          additionalProperties: true
+          description: Project-specific settings
+        created_at:
+          type: string
+          format: date-time
+          description: Project creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    Plan:
+      type: object
+      required: [id, project_id, phases, version]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Plan identifier
+        project_id:
+          type: string
+          format: uuid
+          description: Associated project ID
+        phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Phase'
+          description: Plan phases
+        version:
+          type: string
+          description: Plan version
+          example: "1.0.0"
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Plan metadata
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Phase:
+      type: object
+      required: [id, title, steps]
+      properties:
+        id:
+          type: string
+          description: Phase identifier
+          example: "p1"
+        title:
+          type: string
+          description: Phase title
+          example: "Foundation & Setup"
+        description:
+          type: string
+          description: Phase description
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Step'
+          description: Phase steps
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, blocked]
+          description: Phase status
+
+    Step:
+      type: object
+      required: [id, title, microsteps]
+      properties:
+        id:
+          type: string
+          description: Step identifier
+          example: "p1.s1"
+        title:
+          type: string
+          description: Step title
+          example: "Project Initialization"
+        description:
+          type: string
+          description: Step description
+        microsteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Microstep'
+          description: Step microsteps
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, blocked]
+          description: Step status
+
+    Microstep:
+      type: object
+      required: [id, title, criteria]
+      properties:
+        id:
+          type: string
+          description: Microstep identifier
+          example: "p1.s1.ms1"
+        title:
+          type: string
+          description: Microstep title
+          example: "Initialize repository"
+        description:
+          type: string
+          description: Microstep description
+        criteria:
+          type: array
+          items:
+            type: string
+          description: Acceptance criteria
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, blocked]
+          description: Microstep status
+
+    SyncResult:
+      type: object
+      required: [success, changes_applied, summary]
+      properties:
+        success:
+          type: boolean
+          description: Whether sync was successful
+        changes_applied:
+          type: integer
+          description: Number of changes applied
+        summary:
+          type: object
+          properties:
+            phases_synced:
+              type: integer
+            steps_synced:
+              type: integer
+            microsteps_synced:
+              type: integer
+            errors:
+              type: array
+              items:
+                type: string
+        dry_run:
+          type: boolean
+          description: Whether this was a dry run
+        timestamp:
+          type: string
+          format: date-time
+          description: Sync timestamp
+
+    Error:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Invalid request parameters"
+            code: "VALIDATION_ERROR"
+            details:
+              field: "project_id"
+              message: "Project ID must be a valid UUID"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Insufficient permissions"
+            code: "FORBIDDEN"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Resource not found"
+            code: "NOT_FOUND"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Internal server error"
+            code: "INTERNAL_ERROR"
+
+tags:
+  - name: Projects
+    description: Project management operations
+  - name: Planning
+    description: Project planning and specification management
+  - name: Execution
+    description: Project execution and synchronization
+  - name: QA
+    description: Quality assurance and testing
+  - name: Analytics
+    description: Analytics and reporting
+  - name: Governance
+    description: Governance and compliance
+  - name: Billing
+    description: Billing and subscription management
+  - name: Admin
+    description: Administrative operations

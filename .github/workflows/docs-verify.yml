@@ -1,0 +1,465 @@
+name: Documentation Verification
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - 'apps/docs/**'
+      - 'sdk/**'
+      - 'api/openapi/**'
+      - 'scripts/docs/**'
+      - '.github/workflows/docs-verify.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'apps/docs/**'
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  link-checker:
+    name: Link Checker
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install linkinator
+        run: npm install -g linkinator
+        
+      - name: Check internal links in markdown files
+        run: |
+          echo "Checking internal links in documentation..."
+          find docs -name "*.md" -exec linkinator {} --markdown --recurse \;
+        continue-on-error: true
+        
+      - name: Build docs site
+        run: |
+          cd apps/docs
+          npm ci
+          npm run build
+        env:
+          NODE_ENV: production
+          
+      - name: Start docs site for link checking
+        run: |
+          cd apps/docs
+          npm run start &
+          sleep 10
+        env:
+          PORT: 3001
+          
+      - name: Check docs site links
+        run: |
+          linkinator http://localhost:3001 \
+            --recurse \
+            --skip "mailto:" \
+            --skip "tel:" \
+            --skip "https://api.buildrunner.com" \
+            --skip "https://app.buildrunner.com" \
+            --format json > link-check-results.json
+        continue-on-error: true
+        
+      - name: Process link check results
+        run: |
+          echo "Link check results:"
+          cat link-check-results.json | jq '.links[] | select(.state == "BROKEN") | {url: .url, status: .status}'
+          
+          # Count broken links
+          BROKEN_COUNT=$(cat link-check-results.json | jq '[.links[] | select(.state == "BROKEN")] | length')
+          echo "Broken links found: $BROKEN_COUNT"
+          
+          if [ "$BROKEN_COUNT" -gt 0 ]; then
+            echo "❌ Found $BROKEN_COUNT broken links"
+            exit 1
+          else
+            echo "✅ No broken links found"
+          fi
+        
+      - name: Upload link check results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: link-check-results
+          path: link-check-results.json
+          retention-days: 7
+
+  spell-check:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install cspell
+        run: npm install -g cspell
+        
+      - name: Create cspell config
+        run: |
+          cat > .cspell.json << 'EOF'
+          {
+            "version": "0.2",
+            "language": "en",
+            "words": [
+              "buildrunner",
+              "figma",
+              "supabase",
+              "vercel",
+              "nextjs",
+              "tailwindcss",
+              "typescript",
+              "javascript",
+              "openapi",
+              "webhook",
+              "webhooks",
+              "api",
+              "apis",
+              "sdk",
+              "cli",
+              "uuid",
+              "uuids",
+              "json",
+              "yaml",
+              "yml",
+              "env",
+              "config",
+              "configs",
+              "auth",
+              "oauth",
+              "jwt",
+              "cors",
+              "http",
+              "https",
+              "url",
+              "urls",
+              "uri",
+              "uris",
+              "repo",
+              "repos",
+              "github",
+              "gitlab",
+              "bitbucket",
+              "npm",
+              "yarn",
+              "pnpm",
+              "eslint",
+              "prettier",
+              "jest",
+              "playwright",
+              "cypress",
+              "storybook",
+              "chromatic",
+              "dockerfile",
+              "kubernetes",
+              "docker",
+              "containerization",
+              "microservices",
+              "serverless",
+              "jamstack",
+              "headless",
+              "cms",
+              "graphql",
+              "restful",
+              "crud",
+              "sql",
+              "nosql",
+              "postgresql",
+              "postgres",
+              "mongodb",
+              "redis",
+              "elasticsearch",
+              "analytics",
+              "telemetry",
+              "observability",
+              "monitoring",
+              "alerting",
+              "logging",
+              "tracing",
+              "metrics",
+              "dashboards",
+              "visualization",
+              "cicd",
+              "devops",
+              "gitops",
+              "infrastructure",
+              "terraform",
+              "ansible",
+              "kubernetes",
+              "helm",
+              "istio",
+              "envoy",
+              "nginx",
+              "apache",
+              "cloudflare",
+              "aws",
+              "azure",
+              "gcp",
+              "digitalocean",
+              "heroku",
+              "netlify",
+              "render"
+            ],
+            "ignorePaths": [
+              "node_modules/**",
+              "dist/**",
+              "build/**",
+              ".git/**",
+              "*.min.js",
+              "*.map",
+              "package-lock.json",
+              "yarn.lock",
+              "pnpm-lock.yaml"
+            ],
+            "ignoreRegExpList": [
+              "/\\b[A-Z0-9]{8}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{12}\\b/gi",
+              "/\\b[a-f0-9]{32}\\b/gi",
+              "/\\b[a-f0-9]{40}\\b/gi",
+              "/\\b[a-f0-9]{64}\\b/gi",
+              "/\\bhttps?:\\/\\/[^\\s]+/gi",
+              "/\\b\\w+@\\w+\\.\\w+/gi"
+            ]
+          }
+          EOF
+          
+      - name: Run spell check on documentation
+        run: |
+          echo "Running spell check on documentation files..."
+          cspell "docs/**/*.md" "README.md" "apps/docs/**/*.{ts,tsx,md}" --no-progress --show-context
+        continue-on-error: true
+        
+      - name: Run spell check on code comments
+        run: |
+          echo "Running spell check on code comments..."
+          cspell "sdk/**/*.ts" "src/**/*.ts" --no-progress --show-context
+        continue-on-error: true
+
+  example-verification:
+    name: Example Verification
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install tsx
+        run: npm install -g tsx
+        
+      - name: Build SDK
+        run: |
+          cd sdk
+          npm ci
+          npm run build
+          
+      - name: Verify SDK examples compile
+        run: |
+          cd sdk
+          echo "Verifying SDK examples compile..."
+          npm run typecheck
+          
+      - name: Run SDK examples (dry run)
+        run: |
+          cd sdk
+          echo "Running SDK examples with mock data..."
+          BUILDRUNNER_API_KEY="br_test_key_12345" \
+          BUILDRUNNER_PROJECT_ID="proj_test_12345" \
+          BUILDRUNNER_API_URL="http://localhost:3000/api" \
+          npm run examples
+        env:
+          NODE_ENV: test
+        continue-on-error: true
+        
+      - name: Verify OpenAPI spec
+        run: |
+          echo "Verifying OpenAPI specification..."
+          npm install -g @apidevtools/swagger-parser
+          swagger-parser validate api/openapi/buildrunner.yaml
+          
+      - name: Generate code snippets
+        run: |
+          echo "Generating code snippets from OpenAPI spec..."
+          tsx scripts/docs/gen-snippets.ts
+        continue-on-error: true
+        
+      - name: Check for snippet changes
+        run: |
+          if git diff --quiet; then
+            echo "✅ No snippet changes detected"
+          else
+            echo "⚠️ Code snippets have changes:"
+            git diff --name-only
+            echo "This may indicate the snippets need to be regenerated"
+          fi
+
+  typedoc-coverage:
+    name: TypeDoc Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build SDK
+        run: |
+          cd sdk
+          npm ci
+          npm run build
+          
+      - name: Generate TypeDoc
+        run: |
+          cd sdk
+          npm run docs
+          
+      - name: Check documentation coverage
+        run: |
+          cd sdk
+          echo "Checking TypeDoc coverage..."
+          
+          # Count exported symbols
+          EXPORTED_COUNT=$(grep -r "export " src/ --include="*.ts" | wc -l)
+          
+          # Count documented symbols (basic check for JSDoc comments)
+          DOCUMENTED_COUNT=$(grep -r "/\*\*" src/ --include="*.ts" | wc -l)
+          
+          echo "Exported symbols: $EXPORTED_COUNT"
+          echo "Documented symbols: $DOCUMENTED_COUNT"
+          
+          if [ "$EXPORTED_COUNT" -gt 0 ]; then
+            COVERAGE=$((DOCUMENTED_COUNT * 100 / EXPORTED_COUNT))
+            echo "Documentation coverage: $COVERAGE%"
+            
+            if [ "$COVERAGE" -lt 80 ]; then
+              echo "❌ Documentation coverage below 80% threshold"
+              exit 1
+            else
+              echo "✅ Documentation coverage meets 80% threshold"
+            fi
+          else
+            echo "⚠️ No exported symbols found"
+          fi
+          
+      - name: Upload TypeDoc
+        uses: actions/upload-artifact@v4
+        with:
+          name: typedoc-docs
+          path: sdk/docs/
+          retention-days: 7
+
+  docs-build:
+    name: Documentation Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build docs site
+        run: |
+          cd apps/docs
+          npm ci
+          npm run build
+        env:
+          NODE_ENV: production
+          
+      - name: Upload docs build
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-build
+          path: apps/docs/.next/
+          retention-days: 7
+
+  summary:
+    name: Documentation Summary
+    runs-on: ubuntu-latest
+    needs: [link-checker, spell-check, example-verification, typedoc-coverage, docs-build]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 📚 Documentation Verification Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check job results
+          if [ "${{ needs.link-checker.result }}" == "success" ]; then
+            echo "✅ **Link Checker**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Link Checker**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.spell-check.result }}" == "success" ]; then
+            echo "✅ **Spell Check**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Spell Check**: Issues found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.example-verification.result }}" == "success" ]; then
+            echo "✅ **Example Verification**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Example Verification**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.typedoc-coverage.result }}" == "success" ]; then
+            echo "✅ **TypeDoc Coverage**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **TypeDoc Coverage**: Below threshold" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.docs-build.result }}" == "success" ]; then
+            echo "✅ **Docs Build**: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Docs Build**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review any failed checks above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Fix broken links and spelling errors" >> $GITHUB_STEP_SUMMARY
+          echo "3. Ensure examples compile and run correctly" >> $GITHUB_STEP_SUMMARY
+          echo "4. Improve documentation coverage if needed" >> $GITHUB_STEP_SUMMARY

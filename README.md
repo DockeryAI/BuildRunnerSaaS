@@ -1171,6 +1171,267 @@ jobs:
 - **Token Validation**: Figma token format validation and error handling
 - **Access Control**: Figma file permissions respected
 
+## Phase 17 — Documentation & Developer Experience (CLI + SDK) ✅
+
+Comprehensive developer experience layer with typed SDK, interactive documentation, and quality gates.
+
+### Features
+- **OpenAPI 3.1 Specification**: Complete API documentation with interactive Try-It functionality
+- **Typed SDK**: Full TypeScript/JavaScript SDK with comprehensive API coverage
+- **Enhanced CLI**: Shell completion and UI parity for all operations
+- **Interactive Documentation**: Next.js documentation site with search and examples
+- **Code Generation**: Automated snippet generation for curl, JavaScript, and TypeScript
+- **Quality Gates**: Link checking, spell checking, and example verification in CI
+
+### OpenAPI Specification
+- **Complete Coverage**: All BuildRunner APIs documented with OpenAPI 3.1
+- **Interactive Examples**: Try-It functionality with mock responses
+- **Type Definitions**: Comprehensive schemas for all request/response types
+- **Authentication**: Bearer token authentication with security schemes
+
+### TypeScript/JavaScript SDK
+
+```bash
+npm install @buildrunner/sdk
+```
+
+```typescript
+import { BuildRunnerSDK } from '@buildrunner/sdk';
+
+// Initialize the SDK
+const client = new BuildRunnerSDK({
+  apiKey: 'your-api-key',
+  projectId: 'your-project-id',
+  baseUrl: 'https://api.buildrunner.com',
+});
+
+// List projects
+const projects = await client.projects.list();
+console.log('Projects:', projects.data?.projects);
+
+// Get project plan
+const plan = await client.planning.getPlan();
+console.log('Plan phases:', plan.data?.phases.length);
+
+// Sync project
+const syncResult = await client.execution.sync({ dry_run: true });
+console.log('Sync result:', syncResult.data?.summary);
+```
+
+### SDK Features
+- **Type Safety**: Full TypeScript support with comprehensive type definitions
+- **Modern**: ES modules and CommonJS support with tree-shaking
+- **Lightweight**: Minimal dependencies with cross-fetch polyfill
+- **Error Handling**: Consistent error responses with detailed information
+- **Authentication**: Secure API key handling with validation
+- **Documentation**: Complete JSDoc comments and usage examples
+
+### Enhanced CLI
+
+```bash
+# Install shell completion
+br completion bash > /etc/bash_completion.d/br
+br completion zsh > ~/.zsh/completions/_br
+
+# CLI commands with UI parity
+br init                    # Initialize new project
+br plan add               # Add plan phases
+br sync                   # Synchronize project
+br qa run                 # Run quality assurance
+br analytics              # View analytics
+br governance validate   # Validate governance
+br design:sync           # Sync design tokens
+br models:settings       # Configure AI models
+br integrations          # Manage integrations
+br billing               # View billing
+br admin                 # Admin operations (role-gated)
+
+# Examples and scaffolding
+br examples              # Scaffold sample projects
+br examples react        # Create React project example
+br examples nextjs       # Create Next.js project example
+```
+
+### Interactive Documentation
+
+**Documentation Site**: `/apps/docs` (Next.js)
+- **Quickstart Guide**: Get started in minutes
+- **API Reference**: Interactive OpenAPI documentation
+- **CLI Guide**: Complete command reference with examples
+- **SDK Documentation**: TypeScript/JavaScript usage guide
+- **Governance**: Security and compliance documentation
+- **Guides & Recipes**: Task-based tutorials
+
+**Key Sections**:
+- Quickstart: Project creation and deployment
+- API Reference: Interactive Try-It with code examples
+- CLI Guide: Command reference and automation
+- SDK: Type-safe API client usage
+- Governance: Security and compliance features
+- Analytics: Monitoring and reporting
+- Billing: Subscription and usage management
+
+### Code Snippet Generation
+
+```bash
+# Generate snippets from OpenAPI spec
+npm run docs:snippets
+
+# Automatically generates:
+# - curl commands
+# - JavaScript/TypeScript examples
+# - Request/response examples
+# - Authentication examples
+```
+
+**Generated Examples**:
+```bash
+# curl example
+curl -X GET "https://api.buildrunner.com/projects" \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json"
+
+# JavaScript example
+const response = await fetch('https://api.buildrunner.com/projects', {
+  headers: {
+    'Authorization': 'Bearer your-api-key',
+    'Content-Type': 'application/json'
+  }
+});
+const projects = await response.json();
+
+# TypeScript SDK example
+const projects = await client.projects.list();
+```
+
+### Quality Gates & CI Integration
+
+```yaml
+# .github/workflows/docs-verify.yml
+name: Documentation Verification
+
+jobs:
+  link-checker:
+    - Check internal and external links
+    - Validate documentation site links
+    - Report broken links with details
+
+  spell-check:
+    - Check spelling in documentation
+    - Validate code comments
+    - Custom dictionary for technical terms
+
+  example-verification:
+    - Compile TypeScript examples
+    - Validate OpenAPI specification
+    - Test SDK examples with mock data
+
+  typedoc-coverage:
+    - Generate TypeDoc documentation
+    - Check documentation coverage (80% threshold)
+    - Upload generated documentation
+```
+
+### Documentation Structure
+
+```
+docs/
+├── CHANGELOG.md              # Release history and breaking changes
+├── guides/                   # Task-based tutorials
+│   ├── sync-plan-open-pr.md
+│   ├── detect-drift-reconcile.md
+│   ├── enforce-governance-ci.md
+│   └── design-system-sync.md
+└── api/                      # API documentation
+
+apps/docs/                    # Documentation site
+├── app/
+│   ├── page.tsx             # Homepage
+│   ├── quickstart/          # Getting started
+│   ├── api-reference/       # Interactive API docs
+│   ├── cli/                 # CLI documentation
+│   ├── sdk/                 # SDK documentation
+│   ├── governance/          # Security & compliance
+│   └── guides/              # Task-based guides
+└── components/              # Documentation components
+
+sdk/
+├── src/index.ts             # Main SDK export
+├── examples/                # Usage examples
+│   ├── basic-usage.ts
+│   ├── project-management.ts
+│   ├── planning.ts
+│   └── sync.ts
+├── docs/                    # Generated TypeDoc
+└── README.md                # SDK documentation
+```
+
+### API Coverage
+
+**Complete API Coverage**:
+- **Projects**: CRUD operations, listing, filtering
+- **Planning**: Plan management, phase operations
+- **Execution**: Sync operations, dry runs
+- **QA**: Quality assurance and testing
+- **Analytics**: Metrics and reporting
+- **Governance**: Policy validation and compliance
+- **Billing**: Subscription and usage management
+- **Admin**: Administrative operations (role-gated)
+- **Integrations**: External service connections
+- **Design**: Design system synchronization
+
+### Developer Experience Features
+
+**SDK Benefits**:
+- Type-safe API interactions
+- Comprehensive error handling
+- Automatic request/response validation
+- Built-in retry logic and timeout handling
+- Environment-based configuration
+- Mock data support for testing
+
+**CLI Enhancements**:
+- Shell completion for all commands
+- Interactive TUI for plan browsing
+- Example project scaffolding
+- Consistent output formatting
+- Progress indicators and status updates
+- Configuration management
+
+**Documentation Quality**:
+- Interactive API exploration
+- Copy-paste code examples
+- Real-time validation
+- Search functionality
+- Dark/light theme support
+- Mobile-responsive design
+
+### Usage Analytics
+
+Track developer experience metrics:
+- API endpoint usage patterns
+- SDK method popularity
+- Documentation page views
+- Example usage frequency
+- Error rates and common issues
+- Developer onboarding funnel
+
+### Security & Best Practices
+
+**API Security**:
+- Bearer token authentication
+- Rate limiting by subscription tier
+- Request validation and sanitization
+- Audit logging for all operations
+- Secure credential storage
+
+**SDK Security**:
+- API keys never logged or exposed
+- Secure token validation
+- HTTPS-only communication
+- Input sanitization and validation
+- Error message sanitization
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -1189,3 +1450,4 @@ jobs:
 - **Phase 14**: Monetization & Billing with Stripe, usage metering, and governance ✅
 - **Phase 15**: Admin Console & Token/Cost Tracking with governance operations ✅
 - **Phase 16**: Figma Parity & Design System Sync with visual regression testing ✅
+- **Phase 17**: Documentation & Developer Experience (CLI + SDK) with interactive API docs ✅

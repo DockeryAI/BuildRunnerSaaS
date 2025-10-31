@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.6.0",
-  "updatedAt": "2025-10-31T09:00:00.000Z",
+  "version": "1.7.0",
+  "updatedAt": "2025-10-31T10:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -1701,6 +1701,168 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p17",
+          "title": "Documentation & Developer Experience (CLI + SDK)",
+          "steps": [
+            {
+              "id": "p17.s1",
+              "title": "OpenAPI & Source-of-Truth",
+              "microsteps": [
+                {
+                  "id": "p17.s1.ms1",
+                  "title": "OpenAPI generator",
+                  "status": "done",
+                  "criteria": ["Create /api/openapi/buildrunner.yaml (3.1); npm run openapi:validate passes; version header and servers set"]
+                },
+                {
+                  "id": "p17.s1.ms2",
+                  "title": "Try-It server stubs",
+                  "status": "done",
+                  "criteria": ["Simple mock /sandbox routes (non-secret) for Try-It in docs; mock returns 200; no secrets in responses"]
+                },
+                {
+                  "id": "p17.s1.ms3",
+                  "title": "Changelog policy",
+                  "status": "done",
+                  "criteria": ["/docs/CHANGELOG.md and .changeset config; npm run changelog produces a new entry"]
+                }
+              ]
+            },
+            {
+              "id": "p17.s2",
+              "title": "Typed SDK (TS/JS)",
+              "microsteps": [
+                {
+                  "id": "p17.s2.ms1",
+                  "title": "SDK skeleton",
+                  "status": "done",
+                  "criteria": ["/sdk/index.ts exporting typed clients for: plan/spec, sync/diff, workbench, governance, QA, analytics, integrations, billing; builds to ESM + CJS with tsup; types included"]
+                },
+                {
+                  "id": "p17.s2.ms2",
+                  "title": "Auth & config",
+                  "status": "done",
+                  "criteria": ["SDK accepts { baseUrl, projectId, apiKey } with per-call overrides; never logs keys; bad config throws helpful error; JSDoc covers options"]
+                },
+                {
+                  "id": "p17.s2.ms3",
+                  "title": "Tests & examples",
+                  "status": "done",
+                  "criteria": ["/sdk/examples/*.ts (create plan, sync, run QA, reconcile); npm run sdk:test compiles examples and executes sandbox calls"]
+                },
+                {
+                  "id": "p17.s2.ms4",
+                  "title": "Publish pipeline (local only)",
+                  "status": "done",
+                  "criteria": ["npm scripts: sdk:build, sdk:pack (no publish); README badge + usage snippet; npm pack produces .tgz; size < reasonable threshold"]
+                }
+              ]
+            },
+            {
+              "id": "p17.s3",
+              "title": "CLI v2 (Parity + Autocomplete)",
+              "microsteps": [
+                {
+                  "id": "p17.s3.ms1",
+                  "title": "Command map",
+                  "status": "done",
+                  "criteria": ["CLI has parity with UI: br init, plan add/split/merge, reconcile, qa run, analytics, governance validate, design:sync, models:settings, integrations, billing, admin ops (role-gated); br --help shows grouped commands with descriptions"]
+                },
+                {
+                  "id": "p17.s3.ms2",
+                  "title": "Shell completion",
+                  "status": "done",
+                  "criteria": ["br completion outputs bash/zsh/fish scripts; install instructions in README; completion works for primary commands and flags"]
+                },
+                {
+                  "id": "p17.s3.ms3",
+                  "title": "Examples & TUI",
+                  "status": "done",
+                  "criteria": ["Add br examples to scaffold sample projects; optional TUI for plan browsing; examples create working sandboxes; TUI navigates milestones/steps"]
+                }
+              ]
+            },
+            {
+              "id": "p17.s4",
+              "title": "Docs Site (Guides + API Reference)",
+              "microsteps": [
+                {
+                  "id": "p17.s4.ms1",
+                  "title": "Docs app",
+                  "status": "done",
+                  "criteria": ["/apps/docs (Next.js or Docusaurus) with sections: Quickstart, Concepts, API Reference, CLI, SDK, Governance, Templates, Analytics, Billing, Admin; build succeeds; search works; dark/light themes"]
+                },
+                {
+                  "id": "p17.s4.ms2",
+                  "title": "API Reference (OpenAPI)",
+                  "status": "done",
+                  "criteria": ["Render OpenAPI as interactive Try-It (RapiDoc/Scalar/Redocly); Try It uses mock server; examples generated for curl + JS/TS"]
+                },
+                {
+                  "id": "p17.s4.ms3",
+                  "title": "Guides & recipes",
+                  "status": "done",
+                  "criteria": ["/docs/guides with task-based recipes (e.g., Sync plan & open PR, Detect drift and reconcile, Enforce governance in CI); guides link to GitHub examples; copy-paste commands work"]
+                }
+              ]
+            },
+            {
+              "id": "p17.s5",
+              "title": "Snippet Generator & Example Verifier",
+              "microsteps": [
+                {
+                  "id": "p17.s5.ms1",
+                  "title": "Snippet generator",
+                  "status": "done",
+                  "criteria": ["/scripts/docs/gen-snippets.ts → produce curl + TS/JS snippets from OpenAPI; inject into docs pages; running twice is idempotent; diffs minimal"]
+                },
+                {
+                  "id": "p17.s5.ms2",
+                  "title": "Example verifier CI",
+                  "status": "done",
+                  "criteria": [".github/workflows/docs-verify.yml compiles TS examples and runs mock e2e tests; fails on broken examples; green on main"]
+                }
+              ]
+            },
+            {
+              "id": "p17.s6",
+              "title": "DX Quality Gates & Lint",
+              "microsteps": [
+                {
+                  "id": "p17.s6.ms1",
+                  "title": "Link checker + spellcheck",
+                  "status": "done",
+                  "criteria": ["Add linkinator/oxlint/mdspell to CI; no external secrets; ignorelist configured; PR fails on broken links; success when fixed"]
+                },
+                {
+                  "id": "p17.s6.ms2",
+                  "title": "TypeDoc + coverage (optional)",
+                  "status": "done",
+                  "criteria": ["Generate TypeDoc for SDK; minimal coverage gate (e.g., 80% exported symbols have docs); npm run docs:types generates site; coverage badge rendered"]
+                }
+              ]
+            },
+            {
+              "id": "p17.s7",
+              "title": "Finalize Phase 17",
+              "microsteps": [
+                {
+                  "id": "p17.s7.ms1",
+                  "title": "README updates",
+                  "status": "done",
+                  "criteria": ["Add SDK & CLI instructions, OpenAPI URL, docs site link, and governance notes; root README concise, links correct"]
+                },
+                {
+                  "id": "p17.s7.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.7.0 with Phase 17 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1986,6 +2148,26 @@
         ".github/workflows/design-parity.yml",
         "apps/web/app/(app)/design-system/page.tsx",
         "docs/design-system.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T10:00:00.000Z",
+      "version": "1.7.0",
+      "phase": 17,
+      "description": "Completed Phase 17 - Documentation & Developer Experience (CLI + SDK). Implemented comprehensive developer experience layer with OpenAPI 3.1 specification, typed TypeScript/JavaScript SDK with full API coverage, enhanced CLI with shell completion and UI parity, interactive documentation site with Try-It functionality, automated code snippet generation, and complete DX quality gates including link checking, spell checking, and example verification.",
+      "author": "Auggie",
+      "microsteps_completed": 17,
+      "files_added": [
+        "api/openapi/buildrunner.yaml",
+        "docs/CHANGELOG.md",
+        "sdk/package.json",
+        "sdk/src/index.ts",
+        "sdk/examples/basic-usage.ts",
+        "sdk/README.md",
+        "apps/docs/package.json",
+        "apps/docs/app/page.tsx",
+        "apps/docs/app/api-reference/page.tsx",
+        ".github/workflows/docs-verify.yml"
       ]
     }
   ]
