@@ -1762,10 +1762,11 @@ const locale = getBestMatchingLocale(
 - **Phase 21**: Continuous Evaluation & Auto-Optimization with AI quality monitoring ✅
 - **Phase 22**: Continuous Learning, Personalization & Knowledge Graph with intelligent recommendations ✅
 - **Phase 23**: Enterprise AI Automation & Cross-Agent Orchestration with multi-agent workflows ✅
+- **Phase 24**: White-Label/OEM, Custom Domains, and Partner API with full branding capabilities ✅
 
-**🎉 BuildRunner SaaS v2.3.0 - ENTERPRISE AI AUTOMATION PLATFORM! 🤖**
+**🎉 BuildRunner SaaS v2.4.0 - WHITE-LABEL OEM PLATFORM! 🏷️**
 
-BuildRunner now features sophisticated multi-agent workflows, human-in-the-loop controls, and enterprise-grade automation orchestration!
+BuildRunner now features comprehensive white-label capabilities, custom domains, partner API, and full OEM distribution support!
 
 ## Phase 19 — Offline & Resilience ✅
 
@@ -2950,4 +2951,198 @@ interface ApprovalGate {
 3. Approver reviews context and makes decision
 4. Justification and audit trail recorded
 5. Workflow continues or terminates based on decision
+
+## Phase 24 — White-Label/OEM, Custom Domains, and Partner API ✅
+
+Comprehensive white-label and OEM capabilities enabling partners to offer BuildRunner services under their own brand with custom domains, theming, and full API integration.
+
+### Features
+- **Partner Program**: Revenue sharing, tenant management, and partner portal
+- **Custom Branding**: Per-tenant theming, logos, and email templates
+- **Custom Domains**: DNS verification and automated TLS certificates
+- **Partner API**: Comprehensive REST API for integration and automation
+- **Webhooks**: Real-time event notifications with HMAC signing
+- **Revenue Sharing**: Automated calculations and payout management
+
+### Partner Program
+
+Partners can be registered and managed with different relationship types:
+
+```typescript
+interface Partner {
+  id: string;
+  slug: string;
+  name: string;
+  contact_email: string;
+  status: 'active' | 'inactive' | 'suspended' | 'pending';
+  description?: string;
+  website_url?: string;
+  logo_url?: string;
+}
+
+interface PartnerTenant {
+  partner_id: string;
+  tenant_id: string;
+  role: 'managed' | 'reseller' | 'white_label' | 'affiliate';
+  permissions: any;
+  provisioned_at: Date;
+}
 ```
+
+**Relationship Types:**
+- **Managed**: Partner manages tenant on behalf of customer
+- **Reseller**: Partner resells BuildRunner services
+- **White Label**: Partner offers BuildRunner under their brand
+- **Affiliate**: Partner refers customers for commission
+
+### Custom Branding
+
+Each tenant can customize their branding independently:
+
+```typescript
+interface TenantBranding {
+  tenant_id: string;
+  logo_url?: string;
+  favicon_url?: string;
+  brand_name?: string;
+  theme: {
+    colors: {
+      primary: string;
+      secondary: string;
+      accent: string;
+      background: string;
+      foreground: string;
+      muted: string;
+      border: string;
+    };
+    typography: {
+      font_family: string;
+      heading_weight: string;
+      body_weight: string;
+    };
+    radius: string;
+  };
+  email_templates: {
+    welcome: string;
+    invite: string;
+    invoice: string;
+    report: string;
+  };
+  custom_css?: string;
+}
+```
+
+**Supported Customizations:**
+- Colors (primary, secondary, accent, background, foreground, muted, border)
+- Typography (font family, weights)
+- Border radius
+- Logo and favicon
+- Brand name
+- Email templates
+- Custom CSS (limited scope)
+
+### Custom Domains
+
+Tenants can add custom domains for white-label access:
+
+```typescript
+interface DomainMapping {
+  id: string;
+  tenant_id: string;
+  domain: string;
+  verified: boolean;
+  txt_token: string;
+  txt_record_name: string;
+  tls_status: 'pending' | 'issued' | 'failed' | 'expired' | 'revoked';
+  tls_certificate_id?: string;
+  tls_issued_at?: Date;
+  tls_expires_at?: Date;
+}
+```
+
+**Domain Verification Process:**
+1. **Domain Addition**: Add domain and receive verification token
+2. **DNS Configuration**: Add TXT record to DNS settings
+3. **Verification**: Automated verification checks TXT record
+4. **TLS Certificate**: SSL certificate automatically provisioned via Let's Encrypt
+
+**Domain Management:**
+- Maximum 3 domains per tenant (configurable)
+- Automated DNS verification
+- Let's Encrypt SSL certificates
+- Host-based tenant routing
+
+### Partner API
+
+Comprehensive REST API with scoped authentication:
+
+```typescript
+interface PartnerApiKey {
+  id: string;
+  partner_id: string;
+  name: string;
+  key_hash: string;  // Hashed for security
+  scopes: string[];
+  expires_at?: Date;
+  enabled: boolean;
+}
+```
+
+**Available Scopes:**
+- `tenants:read` / `tenants:write` - Tenant management
+- `usage:read` - Usage metrics and analytics
+- `invoices:read` - Billing information
+- `domains:read` / `domains:write` - Domain management
+- `branding:read` / `branding:write` - Branding customization
+- `webhooks:read` / `webhooks:write` - Webhook configuration
+
+**API Endpoints:**
+```typescript
+// Tenant Management
+GET /partner/v1/tenants
+POST /partner/v1/tenants
+PUT /partner/v1/tenants/{id}
+
+// Usage Analytics
+GET /partner/v1/usage
+GET /partner/v1/invoices
+
+// Domain Management
+GET /partner/v1/domains
+POST /partner/v1/domains
+POST /partner/v1/domains/{id}/verify
+
+// Branding Management
+GET /partner/v1/branding/{tenant_id}
+PUT /partner/v1/branding/{tenant_id}
+```
+
+### Webhooks
+
+Real-time event notifications with HMAC signing:
+
+```typescript
+interface PartnerWebhook {
+  id: string;
+  partner_id: string;
+  url: string;
+  secret_hash: string;  // For HMAC signing
+  events: string[];
+  enabled: boolean;
+}
+```
+
+**Available Events:**
+- `tenant.created` - New tenant provisioned
+- `tenant.updated` - Tenant information changed
+- `usage.updated` - Usage metrics updated
+- `invoice.created` - New invoice generated
+- `invoice.paid` - Invoice payment received
+- `domain.verified` - Domain verification successful
+- `branding.updated` - Branding configuration changed
+
+**Webhook Security:**
+- HMAC-SHA256 signature verification
+- Exponential backoff retry logic
+- 30-second timeout per attempt
+- Up to 6 retry attempts

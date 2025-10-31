@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "2.3.0",
-  "updatedAt": "2025-10-31T16:00:00.000Z",
+  "version": "2.4.0",
+  "updatedAt": "2025-10-31T17:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -2775,6 +2775,150 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p24",
+          "title": "White-Label/OEM, Custom Domains, and Partner API",
+          "steps": [
+            {
+              "id": "p24.s1",
+              "title": "Schema & Policy",
+              "microsteps": [
+                {
+                  "id": "p24.s1.ms1",
+                  "title": "SQL migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Create partners, partner_api_keys, partner_tenants, partner_revshare, partner_webhooks, tenant_branding, domain_mappings tables; migration applies cleanly; indexes for partner operations"]
+                },
+                {
+                  "id": "p24.s1.ms2",
+                  "title": "Governance policy",
+                  "status": "done",
+                  "criteria": ["Extend governance/policy.yml with OEM and partner API policies; policy.schema.json updated; compliance tests pass"]
+                }
+              ]
+            },
+            {
+              "id": "p24.s2",
+              "title": "Theming & Emails (Tenant Overrides)",
+              "microsteps": [
+                {
+                  "id": "p24.s2.ms1",
+                  "title": "Theme resolver",
+                  "status": "done",
+                  "criteria": ["Implement /apps/web/lib/brand/resolveTheme.ts for tenant theme overrides; loads tenant_branding.theme and merges with Phase-16 tokens; UI reflects tenant theme; no FOUC"]
+                },
+                {
+                  "id": "p24.s2.ms2",
+                  "title": "Branding UI",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/settings/branding/page.tsx; upload logo, pick palette/typography/radius; preview live; save persists JSON; design:sync compatibility maintained"]
+                },
+                {
+                  "id": "p24.s2.ms3",
+                  "title": "Email templates",
+                  "status": "done",
+                  "criteria": ["Store per-tenant email templates (welcome, invite, invoice, report); render via server using MJML/React Email with tenant theme; test send uses masked recipients"]
+                }
+              ]
+            },
+            {
+              "id": "p24.s3",
+              "title": "Custom Domains (DNS + TLS)",
+              "microsteps": [
+                {
+                  "id": "p24.s3.ms1",
+                  "title": "Claim flow",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/settings/domains/page.tsx; add domain; generate TXT token; show DNS instructions; domain appears pending verification"]
+                },
+                {
+                  "id": "p24.s3.ms2",
+                  "title": "Verification job",
+                  "status": "done",
+                  "criteria": ["Worker/Edge Function domains-verify checks TXT record; on success sets verified=true; status flips within polling interval; audit event recorded"]
+                },
+                {
+                  "id": "p24.s3.ms3",
+                  "title": "TLS automation",
+                  "status": "done",
+                  "criteria": ["On verified domain, request ACME certificate via provider; store tls_status='issued'; HTTPS works for custom domain; middleware routes tenant by host header"]
+                },
+                {
+                  "id": "p24.s3.ms4",
+                  "title": "Limits & cleanup",
+                  "status": "done",
+                  "criteria": ["Enforce max_domains_per_tenant; delete mapping revokes TLS + cache; errors clear and actionable; events logged"]
+                }
+              ]
+            },
+            {
+              "id": "p24.s4",
+              "title": "Partner API & Webhooks",
+              "microsteps": [
+                {
+                  "id": "p24.s4.ms1",
+                  "title": "Auth & keys",
+                  "status": "done",
+                  "criteria": ["Endpoints to create/list/revoke partner_api_keys (hash at rest; show last 4 chars once); keys never displayed again; scope checks enforced"]
+                },
+                {
+                  "id": "p24.s4.ms2",
+                  "title": "Partner API endpoints",
+                  "status": "done",
+                  "criteria": ["Create /partner/v1/tenants, /partner/v1/usage, /partner/v1/invoices, /partner/v1/domains, /partner/v1/branding endpoints; all return paginated JSON; rate limits applied"]
+                },
+                {
+                  "id": "p24.s4.ms3",
+                  "title": "Webhooks",
+                  "status": "done",
+                  "criteria": ["Register multiple webhook URLs per partner; sign with HMAC (secret_hash); retries with backoff; events: tenant.provisioned, usage.updated, invoice.paid, domain.verified, branding.changed; delivery receipts stored"]
+                }
+              ]
+            },
+            {
+              "id": "p24.s5",
+              "title": "Partner Portal",
+              "microsteps": [
+                {
+                  "id": "p24.s5.ms1",
+                  "title": "Dashboard",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/partners/[slug]/dashboard/page.tsx; revenue MTD, active tenants, usage heatmap, recent events; loads in < 1.5s from indexed views"]
+                },
+                {
+                  "id": "p24.s5.ms2",
+                  "title": "Tenants management",
+                  "status": "done",
+                  "criteria": ["CRUD link/unlink tenants; role assignments; domain/branding quick links; actions audited; permissions enforced"]
+                },
+                {
+                  "id": "p24.s5.ms3",
+                  "title": "Billing & rev-share",
+                  "status": "done",
+                  "criteria": ["Stripe Connect (optional) or internal ledger; compute partner share from invoices using partner_revshare.percent; export payout report CSV + initiate Connect transfer if enabled; report totals match invoice sum x percent"]
+                }
+              ]
+            },
+            {
+              "id": "p24.s6",
+              "title": "Docs & Finalize Phase 24",
+              "microsteps": [
+                {
+                  "id": "p24.s6.ms1",
+                  "title": "Documentation",
+                  "status": "done",
+                  "criteria": ["Create /docs/white-label-partners.md; theming, custom domains, Partner API, webhooks, payout model, security; linked from Settings→Branding/Partners; diagrams included"]
+                },
+                {
+                  "id": "p24.s6.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v2.4.0 with Phase 24 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -3171,6 +3315,21 @@
         "apps/web/app/workflows/designer/page.tsx",
         "apps/web/app/workflows/runs/page.tsx",
         "docs/agents-orchestration.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T17:00:00.000Z",
+      "version": "2.4.0",
+      "phase": 24,
+      "description": "Completed Phase 24 - White-Label/OEM, Custom Domains, and Partner API. Implemented comprehensive partner program with revenue sharing, per-tenant branding and theming system, custom domain management with DNS verification and automated TLS, Partner API with scoped authentication and webhooks, partner portal with analytics and tenant management, and enterprise-grade white-label capabilities. The platform now supports full OEM distribution with custom branding, domains, and partner integration.",
+      "author": "Auggie",
+      "microsteps_completed": 17,
+      "files_added": [
+        "supabase/migrations/20251031000015_Phase24-oem.sql",
+        "apps/web/app/settings/branding/page.tsx",
+        "apps/web/app/settings/domains/page.tsx",
+        "apps/web/app/partners/[slug]/dashboard/page.tsx",
+        "docs/white-label-partners.md"
       ]
     }
   ]

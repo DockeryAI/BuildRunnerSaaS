@@ -1275,3 +1275,294 @@ enterprise_automation:
       require_approval_for_prod: true
       staging_environment_required: true
       canary_deployment_support: true
+
+# White-Label/OEM, Custom Domains, and Partner API Governance
+oem_white_label:
+  # OEM and white-label capabilities
+  oem:
+    enabled: true
+    allow_white_label: true
+    partner_program_enabled: true
+
+    # Partner management
+    partners:
+      max_partners: 1000
+      require_approval: true
+      auto_provision_tenants: false
+      default_status: "pending"
+
+    # White-label restrictions
+    white_label:
+      allow_custom_branding: true
+      allow_custom_domains: true
+      allow_custom_email_templates: true
+      allow_custom_css: true
+      require_partner_approval: true
+
+  # Custom domains
+  custom_domains:
+    enabled: true
+    max_domains_per_tenant: 3
+    verification_required: true
+    auto_tls: true
+
+    # Domain validation
+    validation:
+      txt_record_required: true
+      verification_timeout_hours: 24
+      max_verification_attempts: 5
+      cleanup_failed_domains_days: 7
+
+    # TLS management
+    tls:
+      auto_provision: true
+      certificate_provider: "letsencrypt"
+      renewal_days_before_expiry: 30
+      max_certificate_attempts: 3
+
+    # Domain restrictions
+    restrictions:
+      blocked_domains: ["localhost", "127.0.0.1", "buildrunner.cloud"]
+      require_subdomain: false
+      allow_wildcard: false
+      min_domain_length: 4
+
+  # Tenant branding
+  branding:
+    enabled: true
+    per_tenant_customization: true
+
+    # Allowed customizations
+    allowed_overrides:
+      - "colors"
+      - "typography"
+      - "radius"
+      - "logo"
+      - "favicon"
+      - "brand_name"
+      - "email_templates"
+      - "custom_css"
+
+    # Branding limits
+    limits:
+      max_logo_size_mb: 5
+      max_favicon_size_mb: 1
+      max_custom_css_kb: 100
+      allowed_image_formats: ["png", "jpg", "jpeg", "svg", "webp"]
+
+    # Theme validation
+    theme_validation:
+      validate_colors: true
+      validate_contrast: true
+      min_contrast_ratio: 4.5
+      validate_accessibility: true
+
+  # Partner API
+  partner_api:
+    enabled: true
+    versioned: true
+    current_version: "v1"
+
+    # Authentication
+    authentication:
+      api_key_required: true
+      key_rotation_enabled: true
+      key_expiry_days: 365
+      max_keys_per_partner: 10
+
+    # Rate limiting
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+      burst_limit: 100
+      rate_limit_by_key: true
+
+    # API scopes
+    scopes:
+      available_scopes:
+        - "tenants:read"
+        - "tenants:write"
+        - "usage:read"
+        - "invoices:read"
+        - "domains:read"
+        - "domains:write"
+        - "branding:read"
+        - "branding:write"
+        - "webhooks:read"
+        - "webhooks:write"
+      default_scopes: ["tenants:read", "usage:read"]
+      require_explicit_scopes: true
+
+    # Response format
+    response:
+      pagination_enabled: true
+      default_page_size: 20
+      max_page_size: 100
+      include_metadata: true
+
+  # Webhooks
+  webhooks:
+    enabled: true
+    max_webhooks_per_partner: 10
+
+    # Delivery
+    delivery:
+      timeout_seconds: 30
+      retry_enabled: true
+      max_retry_attempts: 6
+      backoff_strategy: "exponential"
+      backoff_base_ms: 1000
+      backoff_multiplier: 2
+
+    # Security
+    security:
+      hmac_signing: true
+      signature_header: "X-BuildRunner-Signature"
+      timestamp_tolerance_seconds: 300
+      require_https: true
+
+    # Events
+    events:
+      available_events:
+        - "tenant.created"
+        - "tenant.updated"
+        - "tenant.deleted"
+        - "usage.updated"
+        - "invoice.created"
+        - "invoice.paid"
+        - "domain.verified"
+        - "domain.failed"
+        - "branding.updated"
+      default_events: ["tenant.created", "usage.updated"]
+
+  # Revenue sharing
+  revenue_sharing:
+    enabled: true
+    calculation_method: "percentage"
+
+    # Revenue share configuration
+    configuration:
+      min_percentage: 0
+      max_percentage: 50
+      default_percentage: 10
+      allow_tenant_specific: true
+
+    # Payout management
+    payouts:
+      minimum_payout_usd: 100
+      payout_frequency: "monthly"
+      payout_delay_days: 30
+      auto_payout_enabled: false
+
+    # Reporting
+    reporting:
+      real_time_tracking: true
+      monthly_reports: true
+      detailed_breakdown: true
+      export_formats: ["csv", "json", "pdf"]
+
+  # Partner portal
+  partner_portal:
+    enabled: true
+    self_service: true
+
+    # Dashboard features
+    dashboard:
+      revenue_analytics: true
+      usage_metrics: true
+      tenant_management: true
+      api_key_management: true
+      webhook_management: true
+
+    # Analytics
+    analytics:
+      real_time_metrics: true
+      historical_data_months: 12
+      custom_date_ranges: true
+      export_capabilities: true
+
+    # Tenant management
+    tenant_management:
+      view_tenants: true
+      provision_tenants: false  # Requires approval
+      manage_branding: true
+      manage_domains: true
+      view_usage: true
+
+  # Security and compliance
+  security:
+    # Access control
+    access_control:
+      partner_isolation: true
+      tenant_data_separation: true
+      api_key_encryption: true
+      webhook_secret_encryption: true
+
+    # Audit and logging
+    audit:
+      log_all_api_calls: true
+      log_webhook_deliveries: true
+      log_partner_actions: true
+      retention_days: 90
+
+    # Data protection
+    data_protection:
+      encrypt_sensitive_data: true
+      mask_api_keys: true
+      secure_webhook_secrets: true
+      gdpr_compliant: true
+
+  # Monitoring and alerting
+  monitoring:
+    # Performance monitoring
+    performance:
+      track_api_response_times: true
+      track_webhook_delivery_times: true
+      track_domain_verification_times: true
+      alert_on_slow_responses: true
+
+    # Health checks
+    health_checks:
+      api_endpoint_health: true
+      webhook_delivery_health: true
+      domain_verification_health: true
+      partner_portal_health: true
+
+    # Alerting
+    alerts:
+      failed_webhook_deliveries: true
+      domain_verification_failures: true
+      api_rate_limit_exceeded: true
+      revenue_share_calculation_errors: true
+
+  # Integration and extensibility
+  integration:
+    # External services
+    external_services:
+      stripe_connect_enabled: false
+      dns_provider_integration: true
+      email_service_integration: true
+      analytics_service_integration: true
+
+    # API integrations
+    api_integrations:
+      rest_api: true
+      graphql_api: false
+      webhook_api: true
+      batch_api: false
+
+  # Development and testing
+  development:
+    # Testing
+    testing:
+      sandbox_mode: true
+      test_webhooks: true
+      test_api_keys: true
+      mock_responses: true
+
+    # Development tools
+    tools:
+      api_documentation: true
+      sdk_generation: true
+      postman_collection: true
+      openapi_spec: true
