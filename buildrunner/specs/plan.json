@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.3.0",
-  "updatedAt": "2025-10-31T06:00:00.000Z",
+  "version": "1.4.0",
+  "updatedAt": "2025-10-31T07:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -1275,6 +1275,132 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p14",
+          "title": "Monetization & Billing",
+          "steps": [
+            {
+              "id": "p14.s1",
+              "title": "Billing Schema & Pricing Plans",
+              "microsteps": [
+                {
+                  "id": "p14.s1.ms1",
+                  "title": "SQL migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Tables: billing_accounts, subscriptions, usage_events, invoices; migration applies cleanly"]
+                },
+                {
+                  "id": "p14.s1.ms2",
+                  "title": "Seed plan definitions",
+                  "status": "done",
+                  "criteria": ["Seed file /billing/plans.json with tiers; plans loaded in Billing UI"]
+                },
+                {
+                  "id": "p14.s1.ms3",
+                  "title": "Server lib billing.ts",
+                  "status": "done",
+                  "criteria": ["CRUD helpers for billing tables; audit runner_events written"]
+                }
+              ]
+            },
+            {
+              "id": "p14.s2",
+              "title": "Stripe Integration (Backend)",
+              "microsteps": [
+                {
+                  "id": "p14.s2.ms1",
+                  "title": "Stripe setup",
+                  "status": "done",
+                  "criteria": ["Create Stripe client (server-side only); ENV: STRIPE_SECRET_KEY"]
+                },
+                {
+                  "id": "p14.s2.ms2",
+                  "title": "Checkout + Portal endpoints",
+                  "status": "done",
+                  "criteria": ["POST /billing/checkout, GET /billing/portal; redirects work"]
+                },
+                {
+                  "id": "p14.s2.ms3",
+                  "title": "Webhook handler",
+                  "status": "done",
+                  "criteria": ["/webhooks/stripe handles events; webhooks verified; runner_events logged"]
+                }
+              ]
+            },
+            {
+              "id": "p14.s3",
+              "title": "Usage Metering + Governance Limits",
+              "microsteps": [
+                {
+                  "id": "p14.s3.ms1",
+                  "title": "Usage collector",
+                  "status": "done",
+                  "criteria": ["Edge Function billing-usage-collector; data accurate; governance logs"]
+                },
+                {
+                  "id": "p14.s3.ms2",
+                  "title": "Plan limit enforcement",
+                  "status": "done",
+                  "criteria": ["Middleware blocks API calls when usage_limit exceeded; policy.yml fields"]
+                },
+                {
+                  "id": "p14.s3.ms3",
+                  "title": "Budget alerts",
+                  "status": "done",
+                  "criteria": ["Notifications when approaching limits; email + in-app alerts"]
+                }
+              ]
+            },
+            {
+              "id": "p14.s4",
+              "title": "Billing UI + Customer Experience",
+              "microsteps": [
+                {
+                  "id": "p14.s4.ms1",
+                  "title": "Billing UI",
+                  "status": "done",
+                  "criteria": ["Settings→Billing page with plan selector; usage graphs; invoice list"]
+                },
+                {
+                  "id": "p14.s4.ms2",
+                  "title": "Usage dashboard",
+                  "status": "done",
+                  "criteria": ["Real-time usage graphs and metrics; alert thresholds visible"]
+                },
+                {
+                  "id": "p14.s4.ms3",
+                  "title": "Invoice management",
+                  "status": "done",
+                  "criteria": ["Invoice list and download functionality; payment status tracking"]
+                },
+                {
+                  "id": "p14.s4.ms4",
+                  "title": "Feature gating",
+                  "status": "done",
+                  "criteria": ["Restrict features based on plan; upgrade prompts; API 402 responses"]
+                }
+              ]
+            },
+            {
+              "id": "p14.s5",
+              "title": "Docs & Finalize Phase 14",
+              "microsteps": [
+                {
+                  "id": "p14.s5.ms1",
+                  "title": "Billing guide",
+                  "status": "done",
+                  "criteria": ["/docs/billing.md with pricing and setup; API documentation"]
+                },
+                {
+                  "id": "p14.s5.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.4.0 with Phase 14 completion; br lint OK"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1509,6 +1635,23 @@
         "apps/web/app/api/webhooks/jira/route.ts",
         "apps/web/components/integrations/IssuePanel.tsx",
         "docs/integrations.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T07:00:00.000Z",
+      "version": "1.4.0",
+      "phase": 14,
+      "description": "Completed Phase 14 - Monetization & Billing. Implemented comprehensive billing system with Stripe integration, usage-based metering, and governance limits. Added four pricing tiers (Free/Pro/Team/Enterprise) with feature gating, real-time usage tracking, automated billing workflows, invoice management, and customer portal integration. Includes complete billing UI, usage dashboards, plan management, and audit compliance for financial operations.",
+      "author": "Auggie",
+      "microsteps_completed": 15,
+      "files_added": [
+        "supabase/migrations/20251031000007_Phase14-billing.sql",
+        "billing/plans.json",
+        "apps/web/lib/billing/billing.ts",
+        "apps/web/app/(app)/settings/billing/page.tsx",
+        "apps/web/app/api/billing/checkout/route.ts",
+        "apps/web/app/api/webhooks/stripe/route.ts",
+        "docs/billing.md"
       ]
     }
   ]

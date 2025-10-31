@@ -1,0 +1,296 @@
+{
+  "plans": {
+    "free": {
+      "id": "free",
+      "name": "Free",
+      "description": "Perfect for getting started with BuildRunner",
+      "price": {
+        "monthly": 0,
+        "yearly": 0,
+        "currency": "USD"
+      },
+      "stripe_price_ids": {
+        "monthly": null,
+        "yearly": null
+      },
+      "limits": {
+        "seats": 1,
+        "projects": 3,
+        "tokens_per_month": 100000,
+        "api_calls_per_month": 1000,
+        "storage_gb": 1,
+        "integrations": 2,
+        "preview_environments": 1,
+        "audit_retention_days": 30
+      },
+      "features": {
+        "core_planning": true,
+        "basic_analytics": true,
+        "community_support": true,
+        "templates": true,
+        "github_integration": true,
+        "ai_models": ["gpt-3.5-turbo"],
+        "export_formats": ["json"],
+        "collaboration": false,
+        "advanced_analytics": false,
+        "sso": false,
+        "priority_support": false,
+        "custom_models": false,
+        "api_access": false,
+        "webhooks": false,
+        "audit_logs": false,
+        "compliance_reports": false,
+        "dedicated_support": false
+      },
+      "popular": false,
+      "trial_days": 0
+    },
+    "pro": {
+      "id": "pro",
+      "name": "Pro",
+      "description": "For individual developers and small teams",
+      "price": {
+        "monthly": 29,
+        "yearly": 290,
+        "currency": "USD"
+      },
+      "stripe_price_ids": {
+        "monthly": "price_pro_monthly",
+        "yearly": "price_pro_yearly"
+      },
+      "limits": {
+        "seats": 5,
+        "projects": 25,
+        "tokens_per_month": 1000000,
+        "api_calls_per_month": 10000,
+        "storage_gb": 10,
+        "integrations": 10,
+        "preview_environments": 5,
+        "audit_retention_days": 90
+      },
+      "features": {
+        "core_planning": true,
+        "basic_analytics": true,
+        "community_support": true,
+        "templates": true,
+        "github_integration": true,
+        "ai_models": ["gpt-3.5-turbo", "gpt-4", "claude-3-haiku"],
+        "export_formats": ["json", "pdf", "csv"],
+        "collaboration": true,
+        "advanced_analytics": true,
+        "sso": false,
+        "priority_support": true,
+        "custom_models": false,
+        "api_access": true,
+        "webhooks": true,
+        "audit_logs": true,
+        "compliance_reports": false,
+        "dedicated_support": false
+      },
+      "popular": true,
+      "trial_days": 14
+    },
+    "team": {
+      "id": "team",
+      "name": "Team",
+      "description": "For growing teams and organizations",
+      "price": {
+        "monthly": 99,
+        "yearly": 990,
+        "currency": "USD"
+      },
+      "stripe_price_ids": {
+        "monthly": "price_team_monthly",
+        "yearly": "price_team_yearly"
+      },
+      "limits": {
+        "seats": 25,
+        "projects": 100,
+        "tokens_per_month": 5000000,
+        "api_calls_per_month": 50000,
+        "storage_gb": 50,
+        "integrations": 25,
+        "preview_environments": 15,
+        "audit_retention_days": 365
+      },
+      "features": {
+        "core_planning": true,
+        "basic_analytics": true,
+        "community_support": true,
+        "templates": true,
+        "github_integration": true,
+        "ai_models": ["gpt-3.5-turbo", "gpt-4", "claude-3-haiku", "claude-3-sonnet"],
+        "export_formats": ["json", "pdf", "csv", "docx"],
+        "collaboration": true,
+        "advanced_analytics": true,
+        "sso": true,
+        "priority_support": true,
+        "custom_models": true,
+        "api_access": true,
+        "webhooks": true,
+        "audit_logs": true,
+        "compliance_reports": true,
+        "dedicated_support": false
+      },
+      "popular": false,
+      "trial_days": 30
+    },
+    "enterprise": {
+      "id": "enterprise",
+      "name": "Enterprise",
+      "description": "For large organizations with advanced needs",
+      "price": {
+        "monthly": 299,
+        "yearly": 2990,
+        "currency": "USD"
+      },
+      "stripe_price_ids": {
+        "monthly": "price_enterprise_monthly",
+        "yearly": "price_enterprise_yearly"
+      },
+      "limits": {
+        "seats": 100,
+        "projects": 500,
+        "tokens_per_month": 25000000,
+        "api_calls_per_month": 250000,
+        "storage_gb": 250,
+        "integrations": 50,
+        "preview_environments": 50,
+        "audit_retention_days": 2555
+      },
+      "features": {
+        "core_planning": true,
+        "basic_analytics": true,
+        "community_support": true,
+        "templates": true,
+        "github_integration": true,
+        "ai_models": ["gpt-3.5-turbo", "gpt-4", "claude-3-haiku", "claude-3-sonnet", "claude-3-opus"],
+        "export_formats": ["json", "pdf", "csv", "docx", "xml"],
+        "collaboration": true,
+        "advanced_analytics": true,
+        "sso": true,
+        "priority_support": true,
+        "custom_models": true,
+        "api_access": true,
+        "webhooks": true,
+        "audit_logs": true,
+        "compliance_reports": true,
+        "dedicated_support": true
+      },
+      "popular": false,
+      "trial_days": 30
+    }
+  },
+  "addons": {
+    "extra_seats": {
+      "id": "extra_seats",
+      "name": "Additional Seats",
+      "description": "Add more team members to your plan",
+      "price_per_unit": {
+        "pro": 5,
+        "team": 8,
+        "enterprise": 12
+      },
+      "stripe_price_ids": {
+        "pro": "price_pro_extra_seat",
+        "team": "price_team_extra_seat",
+        "enterprise": "price_enterprise_extra_seat"
+      }
+    },
+    "extra_tokens": {
+      "id": "extra_tokens",
+      "name": "Additional Tokens",
+      "description": "Increase your monthly token allowance",
+      "price_per_unit": 10,
+      "unit_size": 1000000,
+      "stripe_price_id": "price_extra_tokens"
+    },
+    "extra_storage": {
+      "id": "extra_storage",
+      "name": "Additional Storage",
+      "description": "Increase your storage capacity",
+      "price_per_unit": 5,
+      "unit_size": 10,
+      "unit": "GB",
+      "stripe_price_id": "price_extra_storage"
+    },
+    "priority_support": {
+      "id": "priority_support",
+      "name": "Priority Support",
+      "description": "Get faster response times and dedicated support",
+      "price": 49,
+      "stripe_price_id": "price_priority_support",
+      "available_for": ["free", "pro"]
+    }
+  },
+  "feature_gates": {
+    "collaboration": {
+      "required_plans": ["pro", "team", "enterprise"],
+      "description": "Real-time collaboration and comments"
+    },
+    "sso": {
+      "required_plans": ["team", "enterprise"],
+      "description": "Single Sign-On integration"
+    },
+    "advanced_analytics": {
+      "required_plans": ["pro", "team", "enterprise"],
+      "description": "Advanced analytics and reporting"
+    },
+    "custom_models": {
+      "required_plans": ["team", "enterprise"],
+      "description": "Custom AI model configurations"
+    },
+    "api_access": {
+      "required_plans": ["pro", "team", "enterprise"],
+      "description": "Full API access"
+    },
+    "webhooks": {
+      "required_plans": ["pro", "team", "enterprise"],
+      "description": "Webhook integrations"
+    },
+    "audit_logs": {
+      "required_plans": ["pro", "team", "enterprise"],
+      "description": "Detailed audit logging"
+    },
+    "compliance_reports": {
+      "required_plans": ["team", "enterprise"],
+      "description": "Compliance and governance reports"
+    },
+    "dedicated_support": {
+      "required_plans": ["enterprise"],
+      "description": "Dedicated customer success manager"
+    }
+  },
+  "usage_pricing": {
+    "tokens": {
+      "free_tier": 100000,
+      "price_per_1k": 0.002,
+      "currency": "USD"
+    },
+    "api_calls": {
+      "free_tier": 1000,
+      "price_per_100": 0.10,
+      "currency": "USD"
+    },
+    "storage": {
+      "free_tier_gb": 1,
+      "price_per_gb": 0.50,
+      "currency": "USD"
+    },
+    "preview_environments": {
+      "free_tier": 1,
+      "price_per_environment": 5.00,
+      "currency": "USD"
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "last_updated": "2025-10-31T06:00:00.000Z",
+    "currency": "USD",
+    "tax_inclusive": false,
+    "billing_cycles": ["monthly", "yearly"],
+    "trial_available": true,
+    "cancellation_policy": "Cancel anytime, no questions asked",
+    "refund_policy": "30-day money-back guarantee"
+  }
+}

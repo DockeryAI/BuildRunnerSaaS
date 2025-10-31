@@ -743,6 +743,154 @@ CREATE TABLE preview_envs (
 - **Performance Monitoring**: Response times and availability tracking
 - **Trend Analysis**: Historical usage patterns and optimization opportunities
 
+## Phase 14 — Monetization & Billing ✅
+
+Complete billing system with Stripe integration, usage-based metering, and governance limits.
+
+### Features
+- **Pricing Plans**: Four tiers (Free/Pro/Team/Enterprise) with clear feature differentiation
+- **Usage-Based Billing**: Token consumption, API calls, storage, and integration metering
+- **Stripe Integration**: Secure payment processing with customer portal
+- **Feature Gating**: Plan-based access control with upgrade prompts
+- **Real-Time Monitoring**: Usage dashboards with alerts and limits
+
+### Pricing Tiers
+- **Free ($0/month)**: 1 seat, 100K tokens, basic features
+- **Pro ($29/month)**: 5 seats, 1M tokens, collaboration, advanced analytics
+- **Team ($99/month)**: 25 seats, 5M tokens, SSO, compliance reports
+- **Enterprise ($299/month)**: 100 seats, 25M tokens, dedicated support, custom deployment
+
+### Billing System
+- **Subscription Management**: Automated billing cycles with Stripe webhooks
+- **Usage Tracking**: Real-time metering with governance integration
+- **Invoice Management**: Automated invoice generation and payment processing
+- **Customer Portal**: Self-service billing management through Stripe
+- **Audit Compliance**: All billing events logged for financial compliance
+
+### Usage Metering
+- **Token Tracking**: Per-model consumption with different rates
+- **API Monitoring**: Request counting with rate limiting
+- **Storage Metering**: Project file and artifact storage tracking
+- **Integration Costs**: External service usage and deployment minutes
+- **Overage Billing**: Automatic charges for usage beyond plan limits
+
+### Usage
+```bash
+# Create checkout session
+curl -X POST /api/billing/checkout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "org_id": "org_123",
+    "plan": "pro",
+    "billing_cycle": "monthly"
+  }'
+
+# Get usage summary
+curl /api/billing/usage?org_id=org_123 \
+  -H "Authorization: Bearer your-token"
+
+# Record usage event
+curl -X POST /api/billing/usage \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "proj_123",
+    "event_type": "tokens",
+    "quantity": 1000,
+    "model_name": "gpt-4"
+  }'
+```
+
+### Billing Configuration
+```json
+{
+  "plans": {
+    "pro": {
+      "price": { "monthly": 29, "yearly": 290 },
+      "limits": {
+        "seats": 5,
+        "tokens_per_month": 1000000,
+        "api_calls_per_month": 10000,
+        "storage_gb": 10
+      },
+      "features": {
+        "collaboration": true,
+        "advanced_analytics": true,
+        "api_access": true,
+        "priority_support": true
+      }
+    }
+  }
+}
+```
+
+### Database Schema
+```sql
+-- Billing accounts for organizations
+CREATE TABLE billing_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID NOT NULL,
+  stripe_customer_id TEXT UNIQUE,
+  plan TEXT CHECK (plan IN ('free','pro','team','enterprise')) DEFAULT 'free',
+  status TEXT CHECK (status IN ('active','inactive','suspended','cancelled')) DEFAULT 'active',
+  seats_included INTEGER DEFAULT 1,
+  seats_used INTEGER DEFAULT 1,
+  renewal_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Usage events for metering
+CREATE TABLE usage_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  org_id UUID NOT NULL,
+  billing_account_id UUID REFERENCES billing_accounts(id),
+  event_type TEXT CHECK (event_type IN ('tokens','api_calls','storage','compute','integrations')) NOT NULL,
+  quantity BIGINT NOT NULL CHECK (quantity >= 0),
+  unit TEXT NOT NULL,
+  usd_cost NUMERIC(10,4) DEFAULT 0,
+  recorded_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Subscriptions linked to Stripe
+CREATE TABLE subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  billing_account_id UUID NOT NULL REFERENCES billing_accounts(id),
+  stripe_subscription_id TEXT UNIQUE,
+  plan TEXT NOT NULL,
+  seats INTEGER DEFAULT 1,
+  usage_limit_tokens BIGINT DEFAULT 100000,
+  usage_limit_api_calls INTEGER DEFAULT 1000,
+  active BOOLEAN DEFAULT true,
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ
+);
+```
+
+### Feature Gating
+- **Plan-Based Access**: Features automatically enabled/disabled based on subscription
+- **Usage Limits**: API calls blocked when quotas exceeded
+- **Upgrade Prompts**: Contextual upgrade suggestions for gated features
+- **Graceful Degradation**: Soft limits with warnings before hard enforcement
+
+### Governance Integration
+- **Policy Enforcement**: Billing limits integrated with governance rules
+- **Budget Alerts**: Automated notifications for spending thresholds
+- **Audit Logging**: All billing events tracked for compliance
+- **Cost Allocation**: Usage attribution by project and team
+
+### Stripe Integration
+- **Secure Payments**: PCI-compliant payment processing
+- **Webhook Handling**: Real-time subscription and payment updates
+- **Customer Portal**: Self-service billing management
+- **Invoice Management**: Automated invoice generation and delivery
+- **Tax Handling**: Automatic tax calculation and compliance
+
+### Usage Monitoring
+- **Real-Time Dashboard**: Live usage tracking with visual indicators
+- **Alert System**: Proactive notifications for approaching limits
+- **Historical Analysis**: Usage trends and optimization recommendations
+- **Cost Breakdown**: Detailed cost attribution by service and project
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -758,3 +906,4 @@ CREATE TABLE preview_envs (
 - **Phase 11**: Explainability & Multi-Model with AI narratives and model router ✅
 - **Phase 12**: Enterprise & Compliance with VPC deployment, SSO, and audit ✅
 - **Phase 13**: Integrations with Jira, Linear, and Preview Environments ✅
+- **Phase 14**: Monetization & Billing with Stripe, usage metering, and governance ✅
