@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.8.0",
-  "updatedAt": "2025-10-31T11:00:00.000Z",
+  "version": "1.9.0",
+  "updatedAt": "2025-10-31T12:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -2001,6 +2001,150 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p19",
+          "title": "Offline & Resilience",
+          "steps": [
+            {
+              "id": "p19.s1",
+              "title": "Schema & Resilience Config",
+              "microsteps": [
+                {
+                  "id": "p19.s1.ms1",
+                  "title": "SQL migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Create tables: sync_events, conflict_logs, outages, health_snapshots; migration applies cleanly; helpful indexes added"]
+                },
+                {
+                  "id": "p19.s1.ms2",
+                  "title": "Policy additions",
+                  "status": "done",
+                  "criteria": ["Add offline_mode_enabled, sync_backoff, circuit_breaker, conflict_resolution to governance/policy.yml; policy.schema.json updated; config loaded server-side"]
+                }
+              ]
+            },
+            {
+              "id": "p19.s2",
+              "title": "Client Offline Cache & Sync Queue",
+              "microsteps": [
+                {
+                  "id": "p19.s2.ms1",
+                  "title": "IndexedDB cache",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/lib/offline/db.ts with Dexie for outbox, plan_cache, state_cache; write/read tested; cache survives reloads"]
+                },
+                {
+                  "id": "p19.s2.ms2",
+                  "title": "Queue engine",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/lib/offline/queue.ts with exponential backoff and circuit breaker; retries with exponential backoff + jitter; respects circuit breaker"]
+                },
+                {
+                  "id": "p19.s2.ms3",
+                  "title": "Mutations wrapper",
+                  "status": "done",
+                  "criteria": ["Wrap spec-sync calls for offline writes to outbox with background flush; turning off network still allows edits; flush on reconnect"]
+                },
+                {
+                  "id": "p19.s2.ms4",
+                  "title": "CLI cache",
+                  "status": "done",
+                  "criteria": ["Local file cache .runner/offline/queue.jsonl with same backoff & IDs; CLI continues offline; syncs on br sync or network restore"]
+                }
+              ]
+            },
+            {
+              "id": "p19.s3",
+              "title": "Conflict Detection & Resolution",
+              "microsteps": [
+                {
+                  "id": "p19.s3.ms1",
+                  "title": "3-way merge",
+                  "status": "done",
+                  "criteria": ["Create /apps/server/lib/merge3.ts for base/local/remote diffs; classify trivial vs. manual; unit tests with tricky plan.json structures pass"]
+                },
+                {
+                  "id": "p19.s3.ms2",
+                  "title": "Conflict UI",
+                  "status": "done",
+                  "criteria": ["Modal with side-by-side diffs and resolution options; resolution writes to conflict_logs & plan via spec-sync; Change History appended"]
+                },
+                {
+                  "id": "p19.s3.ms3",
+                  "title": "Auto-resolve trivial",
+                  "status": "done",
+                  "criteria": ["Auto-merge non-overlapping changes with logging; log entry indicates auto-resolved; no user interaction"]
+                }
+              ]
+            },
+            {
+              "id": "p19.s4",
+              "title": "Health, Failover & Degraded Mode",
+              "microsteps": [
+                {
+                  "id": "p19.s4.ms1",
+                  "title": "Health probes",
+                  "status": "done",
+                  "criteria": ["Create /apps/server/routes/health.ts with Supabase and provider checks; writes health_snapshots; displays in Settings→Health; green/yellow/red"]
+                },
+                {
+                  "id": "p19.s4.ms2",
+                  "title": "Failover endpoints",
+                  "status": "done",
+                  "criteria": ["Configurable secondary endpoints for reads when primary circuit open; reads served from cache; writes queued"]
+                },
+                {
+                  "id": "p19.s4.ms3",
+                  "title": "Degraded mode",
+                  "status": "done",
+                  "criteria": ["UI banners and feature gating for offline operations; policy flag toggles; clear UX with resumption notes"]
+                }
+              ]
+            },
+            {
+              "id": "p19.s5",
+              "title": "Queue Visibility, Alerts & Chaos Drills",
+              "microsteps": [
+                {
+                  "id": "p19.s5.ms1",
+                  "title": "Queue dashboard",
+                  "status": "done",
+                  "criteria": ["Create /apps/web/app/resilience/queue/page.tsx for outbox visibility; shows outbox items, status, attempts, next run; allow retry/clear (guarded); real-time updates via polling"]
+                },
+                {
+                  "id": "p19.s5.ms2",
+                  "title": "Alerts",
+                  "status": "done",
+                  "criteria": ["Notify admins on queue backlog or outages via Slack/email; alerts delivered; runner_event action=resilience_alert_sent"]
+                },
+                {
+                  "id": "p19.s5.ms3",
+                  "title": "Chaos harness",
+                  "status": "done",
+                  "criteria": ["Create /scripts/resilience/chaos.ts for failure injection testing; report uploaded; failures open support tickets"]
+                }
+              ]
+            },
+            {
+              "id": "p19.s6",
+              "title": "Docs, Finishing & Plan Update",
+              "microsteps": [
+                {
+                  "id": "p19.s6.ms1",
+                  "title": "Docs",
+                  "status": "done",
+                  "criteria": ["Create /docs/resilience.md with offline rules, queue behavior, conflict resolution, degraded mode, chaos drills; linked from Settings→Health; screenshots included"]
+                },
+                {
+                  "id": "p19.s6.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.9.0 with Phase 19 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -2326,6 +2470,21 @@
         ".github/workflows/a11y-check.yml",
         "docs/accessibility.md",
         "docs/localization.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T12:00:00.000Z",
+      "version": "1.9.0",
+      "phase": 19,
+      "description": "Completed Phase 19 - Offline & Resilience. Implemented comprehensive offline-first architecture with IndexedDB caching, persistent sync queue with exponential backoff and circuit breaker patterns, 3-way conflict detection and resolution with auto-merge capabilities, health monitoring with failover strategies, degraded mode operations, queue visibility dashboard, automated alerts, and chaos engineering harness for resilience testing.",
+      "author": "Auggie",
+      "microsteps_completed": 17,
+      "files_added": [
+        "supabase/migrations/20251031000010_Phase19-resilience.sql",
+        "apps/web/lib/offline/db.ts",
+        "apps/web/lib/offline/queue.ts",
+        "apps/web/app/resilience/queue/page.tsx",
+        "docs/resilience.md"
       ]
     }
   ]

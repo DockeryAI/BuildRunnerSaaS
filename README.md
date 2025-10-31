@@ -1757,3 +1757,169 @@ const locale = getBestMatchingLocale(
 - **Phase 16**: Figma Parity & Design System Sync with visual regression testing ✅
 - **Phase 17**: Documentation & Developer Experience (CLI + SDK) with interactive API docs ✅
 - **Phase 18**: Localization & Accessibility (i18n + a11y) with WCAG 2.1 AA compliance ✅
+- **Phase 19**: Offline & Resilience with sync queue and conflict resolution ✅
+
+Ready for global enterprise deployment with world-class resilience and offline capabilities! 🌍🚀
+
+## Phase 19 — Offline & Resilience ✅
+
+Comprehensive offline-first architecture with robust sync capabilities and conflict resolution for reliable operation under any network conditions.
+
+### Features
+- **Offline-First Operations**: Local IndexedDB cache with persistent sync queue
+- **Conflict Resolution**: 3-way merge with auto-resolution and manual conflict UI
+- **Circuit Breaker Pattern**: Exponential backoff with jitter and failure protection
+- **Health Monitoring**: Real-time service health probes with failover strategies
+- **Degraded Mode**: Graceful feature degradation during outages
+- **Queue Dashboard**: Real-time visibility into sync operations and conflicts
+
+### Offline Architecture
+
+**Local Storage System**:
+```typescript
+// IndexedDB structure with Dexie
+interface OfflineDatabase {
+  outbox: OutboxItem[];        // Pending sync operations
+  planCache: PlanCacheItem[];  // Cached project plans
+  stateCache: StateCacheItem[]; // Cached project state
+  conflicts: ConflictItem[];   // Unresolved conflicts
+  healthSnapshots: HealthSnapshot[]; // System health data
+}
+
+// Sync queue with persistent IDs
+await syncQueue.enqueue('plan_edit', {
+  planId: 'plan_123',
+  changes: { title: 'Updated Title' }
+}, 'project_456');
+```
+
+**Supported Offline Operations**:
+- Browse existing projects and plans
+- Edit project specifications locally
+- Update microstep status and notes
+- Add comments and annotations
+- Export project data
+- View cached analytics
+
+### Sync Queue & Circuit Breaker
+
+**Exponential Backoff Configuration**:
+```yaml
+# governance/policy.yml
+sync_backoff:
+  min_ms: 500        # Initial retry delay
+  max_ms: 30000      # Maximum retry delay
+  factor: 2          # Backoff multiplier
+  jitter: true       # Add random jitter
+  max_attempts: 5    # Maximum retry attempts
+
+circuit_breaker:
+  failure_threshold: 5      # Failures to open circuit
+  success_threshold: 3      # Successes to close circuit
+  cooldown_ms: 60000       # Time before half-open
+  half_open_max_calls: 3   # Max calls in half-open
+```
+
+**Circuit Breaker States**:
+- **Closed**: Normal operation, all requests pass through
+- **Open**: Failing fast, prevents cascading failures
+- **Half-Open**: Testing recovery with limited requests
+
+### Conflict Detection & Resolution
+
+**3-Way Merge Process**:
+```
+Base Version (Common Ancestor)
+├── Local Changes (Your Edits)
+└── Remote Changes (Server/Other Users)
+    └── Merged Result (Resolution)
+```
+
+**Auto-Resolution Rules**:
+- Non-overlapping field changes
+- Additive operations (new comments, files)
+- Status updates to different microsteps
+- Metadata changes
+
+**Manual Conflict UI**:
+- Side-by-side diff view showing base, local, and remote versions
+- Resolution options: keep local, accept remote, or manual merge
+- Impact assessment showing affected acceptance criteria
+- Preview of the merged result
+
+### Health Monitoring & Failover
+
+**Health Probe Targets**:
+```typescript
+// Monitored services
+const healthTargets = [
+  'supabase_db',      // Database connectivity
+  'supabase_edge',    // Edge Functions
+  'openai_api',       // AI model availability
+  'github_api',       // Repository access
+  'figma_api',        // Design token sync
+];
+```
+
+**Failover Strategies**:
+- **Read-Only Fallback**: Serve from local cache when primary unavailable
+- **Secondary Endpoints**: Use read replicas and backup services
+- **CDN Fallback**: Static assets from backup CDN
+- **Degraded Mode**: Limited functionality with clear UX indicators
+
+### Queue Dashboard & Management
+
+**Real-Time Queue Visibility** (`/resilience/queue`):
+- Total items in queue with status breakdown
+- Failed items requiring attention
+- Conflicts needing manual resolution
+- Circuit breaker status and statistics
+- Real-time updates via polling
+
+### Database Schema
+
+**Resilience Tables**:
+```sql
+-- Sync events for offline queue
+CREATE TABLE sync_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID,
+  kind TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  status TEXT DEFAULT 'queued',
+  attempts INT DEFAULT 0,
+  next_run_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Conflict logs for merge resolution
+CREATE TABLE conflict_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID,
+  entity TEXT NOT NULL,
+  base JSONB,
+  local JSONB,
+  remote JSONB,
+  resolution JSONB,
+  resolution_strategy TEXT,
+  auto_resolved BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### CLI Offline Support
+
+**Offline CLI Commands**:
+```bash
+# Work offline
+br plan edit --offline
+
+# View queue status
+br queue status
+
+# Sync when online
+br sync
+
+# Force sync retry
+br sync --retry-failed
+```
