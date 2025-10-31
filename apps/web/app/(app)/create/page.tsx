@@ -493,173 +493,269 @@ Let's start with product development. What are the core features and user experi
     />;
   }
 
-  // Main interactive brainstorming interface
+  // Main interactive brainstorming interface with beautiful design
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Fixed Header - No overlap issues */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="max-w-full px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl">
                 <LightBulbIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">AI Brainstorming</h1>
-                <p className="text-gray-600">{initialIdea}</p>
+                <h1 className="text-xl font-bold text-gray-900">Product Development Session</h1>
+                <p className="text-sm text-gray-600 max-w-md truncate">{initialIdea}</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-3">
               <button
                 onClick={exportConversation}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                Export Session
+                Export PRD
               </button>
 
               <button
                 onClick={() => {
                   clearAllSessionData();
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                Start New Idea
+                New Product
               </button>
 
-              <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
-                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-green-700">AI Connected</span>
+              <div className="flex items-center space-x-2 px-3 py-1 bg-green-50 rounded-full">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-700 font-medium">AI Active</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chat Interface */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border h-[600px] flex flex-col">
-              {/* Category Tabs */}
-              <div className="border-b border-gray-200 px-6 py-4">
-                <div className="flex space-x-1">
-                  {Object.entries(categoryIcons).map(([category, IconComponent]) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                        selectedCategory === category
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                    >
-                      <IconComponent className="h-4 w-4" />
-                      <span className="capitalize">{category}</span>
-                    </button>
-                  ))}
+      {/* Main Content - Proper spacing to avoid header overlap */}
+      <div className="pt-20 pb-8">
+        <div className="max-w-full px-6">
+          <div className="grid grid-cols-12 gap-6 h-[calc(100vh-8rem)]">
+
+            {/* Left Column - Product Requirements Document */}
+            <div className="col-span-4">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+                  <h2 className="text-lg font-bold text-white">Product Requirements Document</h2>
+                  <p className="text-blue-100 text-sm">Live document • Updates as you brainstorm</p>
                 </div>
-              </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : message.role === 'system'
-                          ? 'bg-green-50 text-green-800 border border-green-200'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                      <div className="mt-2 text-xs opacity-70">
-                        {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}
+                <div className="p-6 overflow-y-auto h-[calc(100%-5rem)]">
+                  <div className="space-y-6">
+                    {/* Product Overview */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <DocumentTextIcon className="h-5 w-5 text-blue-600 mr-2" />
+                        Product Overview
+                      </h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                            <div className="text-gray-900 font-medium">{initialIdea.split(' ').slice(0, 4).join(' ') || 'Untitled Product'}</div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <div className="text-gray-700 text-sm">{initialIdea}</div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Target Users</label>
+                            <div className="text-gray-500 text-sm italic">Will be populated as you discuss with AI...</div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </section>
 
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 rounded-lg px-4 py-3">
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        <span className="text-gray-600">AI is thinking...</span>
+                    {/* Key Features */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <BeakerIcon className="h-5 w-5 text-green-600 mr-2" />
+                        Key Features
+                      </h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="text-gray-500 text-sm italic">
+                          Features will appear here as you discuss product development with the AI...
+                        </div>
                       </div>
-                    </div>
+                    </section>
+
+                    {/* Success Metrics */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <ChartBarIcon className="h-5 w-5 text-purple-600 mr-2" />
+                        Success Metrics
+                      </h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="text-gray-500 text-sm italic">
+                          Metrics will be defined as you discuss strategy...
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Monetization Strategy */}
+                    <section>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <CurrencyDollarIcon className="h-5 w-5 text-yellow-600 mr-2" />
+                        Monetization
+                      </h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="text-gray-500 text-sm italic">
+                          Revenue model will be developed during monetization discussion...
+                        </div>
+                      </div>
+                    </section>
                   </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="border-t border-gray-200 p-4">
-                {error && (
-                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-800 text-sm">{error}</p>
-                  </div>
-                )}
-
-                <div className="flex space-x-3">
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(inputValue)}
-                    placeholder={`Ask about ${selectedCategory}...`}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    disabled={isLoading}
-                  />
-                  <button
-                    onClick={() => sendMessage(inputValue)}
-                    disabled={!inputValue.trim() || isLoading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Send
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Suggestions Panel */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">AI Suggestions</h3>
-                  <span className="text-sm text-gray-500">
-                    {state.suggestions.length} suggestions
-                  </span>
+            {/* Middle Column - AI Chat Interface */}
+            <div className="col-span-5">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col overflow-hidden">
+                {/* Category Tabs */}
+                <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
+                  <div className="flex space-x-1">
+                    {Object.entries(categoryIcons).map(([category, IconComponent]) => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          selectedCategory === category
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-white'
+                        }`}
+                      >
+                        <IconComponent className="h-4 w-4" />
+                        <span className="capitalize">{category}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to brainstorm!</h3>
+                      <p className="text-gray-500">Start by asking about {selectedCategory} or any aspect of your product.</p>
+                    </div>
+                  ) : (
+                    messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                            message.role === 'user'
+                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                              : message.role === 'system'
+                              ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
+                              : 'bg-gray-50 text-gray-900 border border-gray-200'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                          <div className="mt-2 text-xs opacity-70">
+                            {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          <span className="text-gray-600 text-sm">AI is analyzing and generating suggestions...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input */}
+                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                  {error && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <ExclamationTriangleIcon className="h-4 w-4 text-red-600" />
+                        <p className="text-red-800 text-sm">{error}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex space-x-3">
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(inputValue)}
+                      placeholder={`Ask about ${selectedCategory} development...`}
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      disabled={isLoading}
+                    />
+                    <button
+                      onClick={() => sendMessage(inputValue)}
+                      disabled={!inputValue.trim() || isLoading}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                    >
+                      <ArrowRightIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="p-6 space-y-4 max-h-[500px] overflow-y-auto">
-                {state.suggestions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">
-                      AI suggestions will appear here as you chat
-                    </p>
-                  </div>
-                ) : (
-                  state.suggestions.map((suggestion) => (
-                    <SuggestionCard
-                      key={suggestion.id}
-                      suggestion={suggestion}
-                      onDecision={(decision, reasoning) =>
-                        updateDecision(suggestion.id, decision, reasoning)
-                      }
-                    />
-                  ))
-                )}
+            {/* Right Column - AI Suggestions */}
+            <div className="col-span-3">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+                  <h2 className="text-lg font-bold text-white">AI Suggestions</h2>
+                  <p className="text-purple-100 text-sm">{state.suggestions.length} actionable insights</p>
+                </div>
+
+                <div className="p-6 overflow-y-auto h-[calc(100%-5rem)]">
+                  {state.suggestions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">AI Insights Coming</h3>
+                      <p className="text-gray-500 text-sm">
+                        As you chat with the AI, actionable suggestions will appear here.
+                        You can drag them into your PRD document.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {state.suggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.id}
+                          className="bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer"
+                        >
+                          <SuggestionCard
+                            suggestion={suggestion}
+                            onDecision={(decision, reasoning) =>
+                              updateDecision(suggestion.id, decision, reasoning)
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
