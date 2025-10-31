@@ -17,7 +17,13 @@ while (( $# )); do
   esac
 done
 
-proj_root="$PWD"
+# Support both ~/projects/slug and current directory
+if [[ -d "$HOME/projects/$slug" ]]; then
+    proj_root="$HOME/projects/$slug"
+else
+    proj_root="$PWD"
+fi
+
 spec="$proj_root/docs/${slug}-spec.md"
 hrpo="$proj_root/docs/${slug}-overview.md"
 state="$proj_root/.runner/state.json"
