@@ -14,10 +14,13 @@ import {
   CogIcon,
   LightBulbIcon,
   ArrowRightIcon,
-  BeakerIcon
+  BeakerIcon,
+  ArchiveBoxIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { SuggestionCard } from '../../../components/brainstorm/Card';
 import { DraggableSuggestion } from '../../../components/brainstorm/DraggableSuggestion';
+import { CompactFeature } from '../../../components/brainstorm/CompactFeature';
 import { BrainstormState, useBrainstormState } from '../../../lib/brainstorm/state';
 import Link from 'next/link';
 
@@ -223,6 +226,8 @@ export default function CreatePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useDeepThink, setUseDeepThink] = useState(false);
+  const [shelvedFeatures, setShelvedFeatures] = useState<any[]>([]);
+  const [futureVersionFeatures, setFutureVersionFeatures] = useState<any[]>([]);
   const [modelCategories, setModelCategories] = useState<Record<string, ModelCategory>>({});
   const [predefinedPrompts, setPredefinedPrompts] = useState<Record<string, string>>({});
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -248,6 +253,17 @@ export default function CreatePage() {
 
     loadModelConfig();
     checkApiKeys();
+
+    // Load shelved and future features (these persist across sessions)
+    const savedShelved = localStorage.getItem('buildrunner_shelved_features');
+    if (savedShelved) {
+      setShelvedFeatures(JSON.parse(savedShelved));
+    }
+
+    const savedFuture = localStorage.getItem('buildrunner_future_features');
+    if (savedFuture) {
+      setFutureVersionFeatures(JSON.parse(savedFuture));
+    }
 
     // Don't load conversation history - always start fresh
     console.log('Create page loaded - starting fresh');
@@ -338,6 +354,60 @@ export default function CreatePage() {
     setInputValue('');
 
     console.log('All session data cleared completely - fresh start guaranteed');
+  };
+
+  // Feature management functions
+  const deleteFeature = (featureId: string) => {
+    setPrdSections(prev => ({
+      ...prev,
+      features: prev.features.filter((f: any) => f.id !== featureId)
+    }));
+  };
+
+  const shelveFeature = (featureId: string) => {
+    const feature = prdSections.features.find((f: any) => f.id === featureId);
+    if (feature) {
+      const newShelvedFeatures = [...shelvedFeatures, { ...feature, shelvedAt: new Date().toISOString() }];
+      setShelvedFeatures(newShelvedFeatures);
+      localStorage.setItem('buildrunner_shelved_features', JSON.stringify(newShelvedFeatures));
+      deleteFeature(featureId);
+    }
+  };
+
+  const moveToFutureVersion = (featureId: string) => {
+    const feature = prdSections.features.find((f: any) => f.id === featureId);
+    if (feature) {
+      const newFutureFeatures = [...futureVersionFeatures, { ...feature, movedAt: new Date().toISOString() }];
+      setFutureVersionFeatures(newFutureFeatures);
+      localStorage.setItem('buildrunner_future_features', JSON.stringify(newFutureFeatures));
+      deleteFeature(featureId);
+    }
+  };
+
+  const restoreFromShelved = (featureId: string) => {
+    const feature = shelvedFeatures.find((f: any) => f.id === featureId);
+    if (feature) {
+      const { shelvedAt, ...cleanFeature } = feature;
+      const newFeatures = [...prdSections.features, cleanFeature];
+      setPrdSections(prev => ({ ...prev, features: newFeatures }));
+
+      const newShelvedFeatures = shelvedFeatures.filter((f: any) => f.id !== featureId);
+      setShelvedFeatures(newShelvedFeatures);
+      localStorage.setItem('buildrunner_shelved_features', JSON.stringify(newShelvedFeatures));
+    }
+  };
+
+  const restoreFromFuture = (featureId: string) => {
+    const feature = futureVersionFeatures.find((f: any) => f.id === featureId);
+    if (feature) {
+      const { movedAt, ...cleanFeature } = feature;
+      const newFeatures = [...prdSections.features, cleanFeature];
+      setPrdSections(prev => ({ ...prev, features: newFeatures }));
+
+      const newFutureFeatures = futureVersionFeatures.filter((f: any) => f.id !== featureId);
+      setFutureVersionFeatures(newFutureFeatures);
+      localStorage.setItem('buildrunner_future_features', JSON.stringify(newFutureFeatures));
+    }
   };
 
   // Drag and drop handlers
@@ -669,25 +739,86 @@ Let's start with product development. What are the core features and user experi
                             Drag feature suggestions here from the AI chat →
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {prdSections.features.map((feature, index) => (
-                              <div key={index} className="bg-white rounded-lg p-3 border border-green-200">
-                                <h4 className="font-medium text-gray-900 mb-1">{feature.title}</h4>
-                                <p className="text-sm text-gray-600">{feature.summary}</p>
-                                <div className="mt-2 flex items-center space-x-2">
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    Impact: {feature.impact_score}/10
-                                  </span>
-                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                    {feature.implementation_effort} effort
-                                  </span>
-                                </div>
-                              </div>
+                              <CompactFeature
+                                key={feature.id || index}
+                                feature={feature}
+                                onDelete={deleteFeature}
+                                onShelve={shelveFeature}
+                                onMoveToFuture={moveToFutureVersion}
+                              />
                             ))}
                           </div>
                         )}
                       </div>
                     </section>
+
+                    {/* Shelved Features */}
+                    {shelvedFeatures.length > 0 && (
+                      <section>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <ArchiveBoxIcon className="h-5 w-5 text-yellow-600 mr-2" />
+                          Shelved Features ({shelvedFeatures.length})
+                        </h3>
+                        <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                          <div className="space-y-2">
+                            {shelvedFeatures.map((feature, index) => (
+                              <div key={feature.id || index} className="bg-white rounded-lg p-3 border border-yellow-200">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">{feature.title}</h4>
+                                    <p className="text-sm text-gray-600">{feature.summary}</p>
+                                    <p className="text-xs text-yellow-600 mt-1">
+                                      Shelved on {new Date(feature.shelvedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => restoreFromShelved(feature.id)}
+                                    className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm hover:bg-yellow-200 transition-colors"
+                                  >
+                                    Restore
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Future Version Features */}
+                    {futureVersionFeatures.length > 0 && (
+                      <section>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <ClockIcon className="h-5 w-5 text-blue-600 mr-2" />
+                          Future Version Features ({futureVersionFeatures.length})
+                        </h3>
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                          <div className="space-y-2">
+                            {futureVersionFeatures.map((feature, index) => (
+                              <div key={feature.id || index} className="bg-white rounded-lg p-3 border border-blue-200">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">{feature.title}</h4>
+                                    <p className="text-sm text-gray-600">{feature.summary}</p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Moved to future on {new Date(feature.movedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => restoreFromFuture(feature.id)}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md text-sm hover:bg-blue-200 transition-colors"
+                                  >
+                                    Restore
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </section>
+                    )}
 
                     {/* Success Metrics */}
                     <section>

@@ -121,7 +121,7 @@ Return only a JSON array of suggestions, no additional text.`;
         throw new Error('Empty response from OpenRouter');
       }
 
-      console.log('Raw OpenRouter suggestions response:', content);
+      // Process suggestions response (internal only)
 
       try {
         // Clean the content by removing markdown code blocks
@@ -133,11 +133,11 @@ Return only a JSON array of suggestions, no additional text.`;
         }
 
         const suggestions = JSON.parse(cleanContent);
-        console.log('Parsed suggestions:', suggestions);
+        // Suggestions parsed successfully
         return Array.isArray(suggestions) ? suggestions : [];
       } catch (parseError) {
         console.error('Failed to parse suggestions JSON:', parseError);
-        console.log('Content that failed to parse:', content);
+        // Content parsing failed - using fallback
         // Return mock suggestions if parsing fails
         return this.getMockSuggestions(category, prompt);
       }
@@ -162,7 +162,7 @@ Return only a JSON array of suggestions, no additional text.`;
         max_tokens: 1000 // Shorter responses for chat
       });
       const responseContent = data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response.';
-      console.log('OpenRouter response content:', responseContent.substring(0, 200) + '...');
+      // Response generated successfully
       return responseContent;
 
     } catch (error) {
@@ -310,13 +310,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { category, message, conversation_history, product_idea, used_suggestions = [], use_reasoning = false } = body;
 
-    console.log('Request data:', {
-      category,
-      message: message.substring(0, 100) + '...',
-      historyLength: conversation_history?.length || 0,
-      productIdea: product_idea?.substring(0, 50) + '...' || 'none',
-      usedSuggestionsCount: used_suggestions.length
-    });
+    // Processing brainstorm request
 
     if (!category || !message) {
       console.error('Missing required fields:', { category: !!category, message: !!message });
