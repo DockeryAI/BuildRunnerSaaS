@@ -1,12 +1,12 @@
 {
-  "projectId": "placeholder:will-be-uuid",
-  "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.6.0",
-  "updatedAt": "2025-10-30T23:30:00.000Z",
-  "phase": 6,
-  "step": "final",
+  "projectId": "project-1761872274299",
+  "title": "A scheduling agent for an",
+  "version": "0.4.0",
+  "updatedAt": "2025-10-31T00:57:54.299Z",
+  "phase": 4,
+  "step": "create",
   "sync": {
-    "lastLocalUpdate": "2025-10-30T23:30:00.000Z",
+    "lastLocalUpdate": "2025-10-31T00:57:54.328Z",
     "lastRemoteUpdate": null,
     "phase3_completed": true,
     "phase4_completed": true,
@@ -16,59 +16,37 @@
   "milestones": [
     {
       "id": "m1",
-      "title": "Setup Environment & Repo",
+      "title": "Project Setup & Planning",
       "steps": [
         {
           "id": "m1.s1",
-          "title": "Scaffold repository and CLI skeleton",
+          "title": "Initialize project structure",
           "microsteps": [
             {
               "id": "m1.s1.ms1",
-              "title": "Create base folder structure (/buildrunner/*, /src/*)",
+              "title": "Set up development environment",
               "status": "todo",
-              "criteria": ["Folders exist with correct paths and tracked by git"]
+              "criteria": [
+                "Development tools installed",
+                "Repository created",
+                "Initial commit made"
+              ],
+              "effort_points": 5,
+              "impact_score": 8,
+              "priority": "P1"
             },
             {
               "id": "m1.s1.ms2",
-              "title": "Initialize Node+TypeScript project",
+              "title": "Define project requirements",
               "status": "todo",
-              "criteria": ["package.json and tsconfig.json exist; tsc compiles without errors"]
-            },
-            {
-              "id": "m1.s1.ms3",
-              "title": "Install runtime and dev dependencies",
-              "status": "todo",
-              "criteria": ["lockfile present; scripts run successfully"]
-            },
-            {
-              "id": "m1.s1.ms4",
-              "title": "Create Build Spec TS interfaces",
-              "status": "todo",
-              "criteria": ["src/schema/buildSpec.ts exports BuildSpec, Milestone, Step, Microstep types; builds cleanly"]
-            },
-            {
-              "id": "m1.s1.ms5",
-              "title": "Stub CLI command router",
-              "status": "todo",
-              "criteria": ["src/index.ts compiles; 'node dist/index.js --help' shows commands: init, sync, status (stub handlers)"]
-            },
-            {
-              "id": "m1.s1.ms6",
-              "title": "Add runner_state.json seed and plan.json seed",
-              "status": "todo",
-              "criteria": ["runner_state.json mirrors plan skeleton with same milestone/step structure"]
-            },
-            {
-              "id": "m1.s1.ms7",
-              "title": "Create .env.example and verify-env script",
-              "status": "todo",
-              "criteria": [".env.example lists SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY; scripts: dev, build, test work"]
-            },
-            {
-              "id": "m1.s1.ms8",
-              "title": "Initial README with getting started",
-              "status": "todo",
-              "criteria": ["README shows install, dev, build commands and folder overview"]
+              "criteria": [
+                "Requirements documented",
+                "User stories created",
+                "Acceptance criteria defined"
+              ],
+              "effort_points": 8,
+              "impact_score": 9,
+              "priority": "P1"
             }
           ]
         }
@@ -76,335 +54,62 @@
     },
     {
       "id": "m2",
-      "title": "Spec Schema Expansion + Supabase Sync",
+      "title": "Core Development",
       "steps": [
         {
           "id": "m2.s1",
-          "title": "Expand Schema",
+          "title": "Implement core features",
           "microsteps": [
             {
               "id": "m2.s1.ms1",
-              "title": "Update TypeScript interfaces with new fields",
-              "status": "done",
-              "criteria": ["TypeScript compiles without errors"]
-            },
-            {
-              "id": "m2.s1.ms2",
-              "title": "Add Ajv JSON Schema with validators",
-              "status": "done",
-              "criteria": ["Schema validates valid sample and rejects invalid sample"]
-            },
-            {
-              "id": "m2.s1.ms3",
-              "title": "CLI lint command",
-              "status": "done",
-              "criteria": ["0 validation errors on existing plan; fails on bad sample"]
-            }
-          ]
-        },
-        {
-          "id": "m2.s2",
-          "title": "Supabase Schema + Migrations",
-          "microsteps": [
-            {
-              "id": "m2.s2.ms1",
-              "title": "Create SQL migration",
-              "status": "done",
-              "criteria": ["Migration file present and formatted"]
-            },
-            {
-              "id": "m2.s2.ms2",
-              "title": "Add spec-sync Edge Function",
-              "status": "done",
-              "criteria": ["Function compiles locally"]
-            },
-            {
-              "id": "m2.s2.ms3",
-              "title": "Add spec-diff Edge Function",
-              "status": "done",
-              "criteria": ["Function compiles locally"]
-            },
-            {
-              "id": "m2.s2.ms4",
-              "title": "Add npm scripts",
-              "status": "done",
-              "criteria": ["package.json updated with Supabase scripts"]
-            }
-          ]
-        },
-        {
-          "id": "m2.s3",
-          "title": "CLI + API Integration",
-          "microsteps": [
-            {
-              "id": "m2.s3.ms1",
-              "title": "Implement buildrunner sync",
-              "status": "done",
-              "criteria": ["Console prints sync results"]
-            },
-            {
-              "id": "m2.s3.ms2",
-              "title": "Implement buildrunner status",
-              "status": "done",
-              "criteria": ["Shows Supabase health status"]
+              "title": "Build main functionality",
+              "status": "todo",
+              "criteria": [
+                "Core features implemented",
+                "Basic UI created",
+                "Data models defined"
+              ],
+              "effort_points": 20,
+              "impact_score": 10,
+              "priority": "P1"
             }
           ]
         }
       ]
     },
     {
-      "id": "p3",
-      "title": "Supabase Provisioner & One-Click Backend",
+      "id": "m3",
+      "title": "Testing & Deployment",
       "steps": [
         {
-          "id": "p3.s1",
-          "title": "Provisioner service (server-side)",
+          "id": "m3.s1",
+          "title": "Quality assurance",
           "microsteps": [
             {
-              "id": "p3.s1.ms1",
-              "title": "OAuth/PAT intake routes + encrypted vault",
-              "status": "done",
-              "criteria": ["OAuth flow completes; token encrypted server-side; no secrets in client"]
+              "id": "m3.s1.ms1",
+              "title": "Comprehensive testing",
+              "status": "todo",
+              "criteria": [
+                "Unit tests written",
+                "Integration tests pass",
+                "User acceptance testing completed"
+              ],
+              "effort_points": 15,
+              "impact_score": 8,
+              "priority": "P2"
             },
             {
-              "id": "p3.s1.ms2",
-              "title": "Create project via Management API",
-              "status": "done",
-              "criteria": ["Management API creates project; project_ref recorded"]
-            },
-            {
-              "id": "p3.s1.ms3",
-              "title": "Fetch API keys to vault",
-              "status": "done",
-              "criteria": ["Keys fetched & stored in vault; client sees only masked publishable info"]
-            },
-            {
-              "id": "p3.s1.ms4",
-              "title": "Local developer convenience",
-              "status": "done",
-              "criteria": ["Local .env updated with URL+ANON; runner_state.json timestamps updated"]
-            }
-          ]
-        },
-        {
-          "id": "p3.s2",
-          "title": "Automated DB & Edge Functions",
-          "microsteps": [
-            {
-              "id": "p3.s2.ms1",
-              "title": "Baseline idempotent schema",
-              "status": "done",
-              "criteria": ["SQL lint OK; re-running is safe (idempotent)"]
-            },
-            {
-              "id": "p3.s2.ms2",
-              "title": "Programmatic migration apply",
-              "status": "done",
-              "criteria": ["Tables exist; runner_events action=migration_applied"]
-            },
-            {
-              "id": "p3.s2.ms3",
-              "title": "Deploy/verify Edge Functions",
-              "status": "done",
-              "criteria": ["Deploy returns success; health check 200; log runner_events action=functions_deployed"]
-            }
-          ]
-        },
-        {
-          "id": "p3.s3",
-          "title": "UI: One-Click Create Backend",
-          "microsteps": [
-            {
-              "id": "p3.s3.ms1",
-              "title": "Settings→Backend page",
-              "status": "done",
-              "criteria": ["UX shows deterministic step progression; errors are actionable"]
-            },
-            {
-              "id": "p3.s3.ms2",
-              "title": "Success + diagnostics",
-              "status": "done",
-              "criteria": ["All checks green, or clear error message with retry"]
-            },
-            {
-              "id": "p3.s3.ms3",
-              "title": "Plan/state completion & change history",
-              "status": "done",
-              "criteria": ["Lint passes; version bumped (0.3.0), updatedAt set; files committed"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "p4",
-      "title": "UI MVP (Create/Plan/Workbench/Reconcile/Tests/Settings)",
-      "steps": [
-        {
-          "id": "p4.s1",
-          "title": "App Shell, Auth, Navigation",
-          "microsteps": [
-            {
-              "id": "p4.s1.ms1",
-              "title": "Scaffold app shell",
-              "status": "done",
-              "criteria": ["Layout renders; routes load; Tailwind works"]
-            },
-            {
-              "id": "p4.s1.ms2",
-              "title": "Supabase Auth integration",
-              "status": "done",
-              "criteria": ["Unauthed users redirected to sign-in"]
-            },
-            {
-              "id": "p4.s1.ms3",
-              "title": "Project selector",
-              "status": "done",
-              "criteria": ["Current project reflected across pages"]
-            }
-          ]
-        },
-        {
-          "id": "p4.s2",
-          "title": "Create (Prompt → Plan)",
-          "microsteps": [
-            {
-              "id": "p4.s2.ms1",
-              "title": "Create page UI",
-              "status": "done",
-              "criteria": ["Validates non-empty prompt"]
-            },
-            {
-              "id": "p4.s2.ms2",
-              "title": "Prompt → Build Spec",
-              "status": "done",
-              "criteria": ["Plan appears in Plan Editor after save; diff view shows new Phase/Steps"]
-            },
-            {
-              "id": "p4.s2.ms3",
-              "title": "Version bump + history",
-              "status": "done",
-              "criteria": ["br lint passes; state timestamps updated"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "p5",
-      "title": "Flow Inspector + Timeline",
-      "steps": [
-        {
-          "id": "p5.s1",
-          "title": "Graph View (Flow Inspector)",
-          "microsteps": [
-            {
-              "id": "p5.s1.ms1",
-              "title": "Data API",
-              "status": "done",
-              "criteria": ["API returns structured JSON with UUIDs and status fields; validated by Zod"]
-            },
-            {
-              "id": "p5.s1.ms2",
-              "title": "Graph renderer",
-              "status": "done",
-              "criteria": ["Graph renders without errors; zoom/pan works"]
-            },
-            {
-              "id": "p5.s1.ms3",
-              "title": "Node interactions",
-              "status": "done",
-              "criteria": ["Drawer opens; links open PR/test URLs"]
-            },
-            {
-              "id": "p5.s1.ms4",
-              "title": "Drift indicators",
-              "status": "done",
-              "criteria": ["Visual flag appears when spec-diff reports mismatch"]
-            }
-          ]
-        },
-        {
-          "id": "p5.s2",
-          "title": "Timeline View & Progress Analytics",
-          "microsteps": [
-            {
-              "id": "p5.s2.ms1",
-              "title": "Timeline API",
-              "status": "done",
-              "criteria": ["JSON includes phase, step, microstep, actor, action, created_at"]
-            },
-            {
-              "id": "p5.s2.ms2",
-              "title": "Timeline UI",
-              "status": "done",
-              "criteria": ["Chart renders with legend and tooltip; data syncs to events table"]
-            },
-            {
-              "id": "p5.s2.ms3",
-              "title": "Progress badges",
-              "status": "done",
-              "criteria": ["% matches calculated from Supabase rows (status = done)"]
-            },
-            {
-              "id": "p5.s2.ms4",
-              "title": "Auto-refresh",
-              "status": "done",
-              "criteria": ["Graph & timeline update in place without reload"]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "p6",
-      "title": "Governance & Safety Layer",
-      "steps": [
-        {
-          "id": "p6.s1",
-          "title": "Audit Trail System",
-          "microsteps": [
-            {
-              "id": "p6.s1.ms1",
-              "title": "Comprehensive Event Logging",
-              "status": "done",
-              "criteria": ["All user actions, system events, and data changes logged with full context"]
-            }
-          ]
-        },
-        {
-          "id": "p6.s2",
-          "title": "Change Approval Workflow",
-          "microsteps": [
-            {
-              "id": "p6.s2.ms1",
-              "title": "Multi-step Approval Process",
-              "status": "done",
-              "criteria": ["Change requests require proper approval chain with rollback capability"]
-            }
-          ]
-        },
-        {
-          "id": "p6.s3",
-          "title": "Security Hardening",
-          "microsteps": [
-            {
-              "id": "p6.s3.ms1",
-              "title": "Input Validation & Rate Limiting",
-              "status": "done",
-              "criteria": ["All inputs validated, rate limiting active, CSRF protection enabled"]
-            }
-          ]
-        },
-        {
-          "id": "p6.s4",
-          "title": "Compliance Dashboard",
-          "microsteps": [
-            {
-              "id": "p6.s4.ms1",
-              "title": "Real-time Governance Metrics",
-              "status": "done",
-              "criteria": ["Dashboard shows compliance scores, violations, and security events"]
+              "id": "m3.s1.ms2",
+              "title": "Deploy to production",
+              "status": "todo",
+              "criteria": [
+                "Production environment configured",
+                "Application deployed",
+                "Monitoring set up"
+              ],
+              "effort_points": 10,
+              "impact_score": 9,
+              "priority": "P1"
             }
           ]
         }

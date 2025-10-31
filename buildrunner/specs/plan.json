@@ -352,49 +352,85 @@
       "steps": [
         {
           "id": "p6.s1",
-          "title": "Audit Trail System",
+          "title": "Policy DSL + Validation",
           "microsteps": [
             {
               "id": "p6.s1.ms1",
-              "title": "Comprehensive Event Logging",
+              "title": "Define policy files and schema",
               "status": "done",
-              "criteria": ["All user actions, system events, and data changes logged with full context"]
+              "criteria": ["Schema validates sample policy"]
+            },
+            {
+              "id": "p6.s1.ms2",
+              "title": "Server validation endpoint",
+              "status": "done",
+              "criteria": ["Returns 200 with validation details"]
+            },
+            {
+              "id": "p6.s1.ms3",
+              "title": "Persist policy",
+              "status": "done",
+              "criteria": ["Latest policy version retrievable; version + timestamp logged"]
             }
           ]
         },
         {
           "id": "p6.s2",
-          "title": "Change Approval Workflow",
+          "title": "Protected Paths & Approval Gates",
           "microsteps": [
             {
               "id": "p6.s2.ms1",
-              "title": "Multi-step Approval Process",
+              "title": "CODEOWNERS + PR template",
               "status": "done",
-              "criteria": ["Change requests require proper approval chain with rollback capability"]
+              "criteria": ["Template appears on PR; CODEOWNERS request reviews for touched protected paths"]
+            },
+            {
+              "id": "p6.s2.ms2",
+              "title": "GitHub Action — Protected paths + approvals",
+              "status": "done",
+              "criteria": ["Fails when approvals missing; passes when present"]
             }
           ]
         },
         {
           "id": "p6.s3",
-          "title": "Security Hardening",
+          "title": "Microstep ID Enforcement",
           "microsteps": [
             {
               "id": "p6.s3.ms1",
-              "title": "Input Validation & Rate Limiting",
+              "title": "GitHub Action — microstep_id check",
               "status": "done",
-              "criteria": ["All inputs validated, rate limiting active, CSRF protection enabled"]
+              "criteria": ["PR without microstep_id fails; PR with it passes"]
             }
           ]
         },
         {
           "id": "p6.s4",
-          "title": "Compliance Dashboard",
+          "title": "Secrets/PII Scan",
           "microsteps": [
             {
               "id": "p6.s4.ms1",
-              "title": "Real-time Governance Metrics",
+              "title": "CI secret scan",
               "status": "done",
-              "criteria": ["Dashboard shows compliance scores, violations, and security events"]
+              "criteria": ["Commits containing likely secrets fail with clear message"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s6",
+          "title": "Governance UI",
+          "microsteps": [
+            {
+              "id": "p6.s6.ms1",
+              "title": "Settings → Governance page",
+              "status": "done",
+              "criteria": ["Validation errors shown inline; save disabled until valid"]
+            },
+            {
+              "id": "p6.s6.ms2",
+              "title": "Status widgets",
+              "status": "done",
+              "criteria": ["Widgets reflect last CI run states with links"]
             }
           ]
         }
@@ -485,17 +521,21 @@
       "timestamp": "2025-10-30T23:30:00.000Z",
       "version": "0.6.0",
       "phase": 6,
-      "description": "Completed Phase 6 - Governance & Safety Layer. Implemented comprehensive audit trail system with event logging and real-time alerts, multi-step change approval workflow with rollback capability, security hardening with input validation and rate limiting, and compliance dashboard with real-time governance metrics. Added governance page with security event monitoring, policy violation tracking, and system status indicators.",
+      "description": "Completed Phase 6 - Governance & Safety Layer. Implemented Policy DSL with YAML configuration and JSON schema validation, protected paths enforcement with CODEOWNERS and GitHub Actions, microstep ID enforcement in PRs and commits, comprehensive secrets/PII scanning, governance UI with policy editor and status widgets, and complete audit trail with event logging. Added GitHub workflows for governance guard, PR templates, and CI integration.",
       "author": "Auggie",
-      "microsteps_completed": 4,
+      "microsteps_completed": 9,
       "files_added": [
+        "governance/policy.yml",
+        "governance/policy.schema.json",
+        "apps/web/app/api/governance/validate/route.ts",
+        ".github/CODEOWNERS",
+        ".github/workflows/governance-guard.yml",
+        "apps/web/components/governance/PolicyEditor.tsx",
+        "apps/web/components/governance/StatusWidgets.tsx",
+        "apps/web/app/(app)/settings/governance/page.tsx",
         "apps/web/lib/audit.ts",
         "apps/web/lib/approval.ts",
-        "apps/web/lib/security.ts",
-        "apps/web/components/governance/ComplianceDashboard.tsx",
-        "apps/web/app/(app)/governance/page.tsx",
-        "apps/web/app/api/audit/events/route.ts",
-        "apps/web/app/api/audit/alerts/route.ts"
+        "apps/web/lib/security.ts"
       ]
     }
   ]

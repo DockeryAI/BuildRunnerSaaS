@@ -1,1 +1,6 @@
-{}
+{
+  "/api/plans/generate/route": "app/api/plans/generate/route.js",
+  "/api/plans/local/route": "app/api/plans/local/route.js",
+  "/(app)/create/page": "app/(app)/create/page.js",
+  "/(app)/plan/page": "app/(app)/plan/page.js"
+}

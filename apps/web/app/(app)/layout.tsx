@@ -31,7 +31,7 @@ const navigation = [
   { name: 'Workbench', href: '/workbench', icon: Wrench },
   { name: 'Reconcile', href: '/reconcile', icon: GitMerge },
   { name: 'Tests', href: '/tests', icon: CheckSquare },
-  { name: 'Governance', href: '/governance', icon: Shield },
+  { name: 'Governance', href: '/settings/governance', icon: Shield },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
