@@ -217,7 +217,7 @@ export default function BrainstormPage() {
   useEffect(() => {
     const hasExistingSession = messages.length > 0 || state.suggestions.length > 0;
     const hasInitialIdea = localStorage.getItem('buildrunner_initial_idea');
-    
+
     if (hasExistingSession || hasInitialIdea) {
       setShowOnboarding(false);
       if (hasInitialIdea) {
@@ -225,6 +225,11 @@ export default function BrainstormPage() {
       }
     }
   }, [messages, state.suggestions]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const checkApiKeys = () => {
     const saved = localStorage.getItem('buildrunner_api_keys');
@@ -349,6 +354,7 @@ export default function BrainstormPage() {
           addSuggestion({
             ...suggestion,
             id: `suggestion_${Date.now()}_${Math.random()}`,
+            created_at: new Date(),
             timestamp: new Date(),
           });
         });
@@ -432,10 +438,165 @@ export default function BrainstormPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Main brainstorm interface would go here */}
-      <div className="p-8">
-        <h1>Brainstorm Interface</h1>
-        <p>This is where the main chat interface would be implemented.</p>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <LightBulbIcon className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">AI Brainstorming</h1>
+                <p className="text-gray-600">{initialIdea}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={exportConversation}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Export Session
+              </button>
+
+              <div className="flex items-center space-x-2 px-3 py-2 bg-green-50 rounded-lg">
+                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-green-700">AI Connected</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Chat Interface */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm border h-[600px] flex flex-col">
+              {/* Category Tabs */}
+              <div className="border-b border-gray-200 px-6 py-4">
+                <div className="flex space-x-1">
+                  {Object.entries(categoryIcons).map(([category, IconComponent]) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                        selectedCategory === category
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                      <span className="capitalize">{category}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                        message.role === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : message.role === 'system'
+                          ? 'bg-green-50 text-green-800 border border-green-200'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <div className="mt-2 text-xs opacity-70">
+                        {message.timestamp.toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 rounded-lg px-4 py-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-gray-600">AI is thinking...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <div className="border-t border-gray-200 p-4">
+                {error && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-800 text-sm">{error}</p>
+                  </div>
+                )}
+
+                <div className="flex space-x-3">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(inputValue)}
+                    placeholder={`Ask about ${selectedCategory}...`}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isLoading}
+                  />
+                  <button
+                    onClick={() => sendMessage(inputValue)}
+                    disabled={!inputValue.trim() || isLoading}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Suggestions Panel */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-sm border">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">AI Suggestions</h3>
+                  <span className="text-sm text-gray-500">
+                    {state.suggestions.length} suggestions
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[500px] overflow-y-auto">
+                {state.suggestions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">
+                      AI suggestions will appear here as you chat
+                    </p>
+                  </div>
+                ) : (
+                  state.suggestions.map((suggestion) => (
+                    <SuggestionCard
+                      key={suggestion.id}
+                      suggestion={suggestion}
+                      onDecision={(decision, reasoning) =>
+                        updateDecision(suggestion.id, decision, reasoning)
+                      }
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

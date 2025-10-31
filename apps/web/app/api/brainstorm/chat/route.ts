@@ -61,8 +61,18 @@ Return only a JSON array of suggestions, no additional text.`;
         throw new Error('Empty response from OpenRouter');
       }
 
-      const suggestions = JSON.parse(content);
-      return Array.isArray(suggestions) ? suggestions : [];
+      console.log('Raw OpenRouter suggestions response:', content);
+
+      try {
+        const suggestions = JSON.parse(content);
+        console.log('Parsed suggestions:', suggestions);
+        return Array.isArray(suggestions) ? suggestions : [];
+      } catch (parseError) {
+        console.error('Failed to parse suggestions JSON:', parseError);
+        console.log('Content that failed to parse:', content);
+        // Return mock suggestions if parsing fails
+        return this.getMockSuggestions(category, prompt);
+      }
 
     } catch (error) {
       console.error('OpenRouter suggestions error:', error);
@@ -100,7 +110,9 @@ Return only a JSON array of suggestions, no additional text.`;
       }
 
       const data = await response.json();
-      return data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response.';
+      const responseContent = data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response.';
+      console.log('OpenRouter response content:', responseContent.substring(0, 200) + '...');
+      return responseContent;
 
     } catch (error) {
       console.error('OpenRouter response error:', error);

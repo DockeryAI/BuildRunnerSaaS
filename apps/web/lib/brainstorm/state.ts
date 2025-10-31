@@ -72,7 +72,7 @@ const saveState = (state: BrainstormState) => {
       lastUpdated: state.lastUpdated.toISOString(),
       suggestions: state.suggestions.map(s => ({
         ...s,
-        created_at: s.created_at.toISOString(),
+        created_at: s.created_at ? s.created_at.toISOString() : new Date().toISOString(),
       })),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
