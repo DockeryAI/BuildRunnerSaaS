@@ -84,10 +84,16 @@ function DraggableSuggestion({
     low: 'border-green-200 bg-green-50',
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify(suggestion));
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart(suggestion);
+  };
+
   return (
     <div
       draggable
-      onDragStart={() => onDragStart(suggestion)}
+      onDragStart={handleDragStart}
       className={`p-4 rounded-lg border-2 border-dashed cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
         priorityColors[suggestion.priority]
       }`}
@@ -330,56 +336,136 @@ function CreatePage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/prd/build', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'generate_suggestions',
-          product_idea: productIdea,
-          user_message: message,
-          phase: phase,
-          current_prd: prdSections
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.result && Array.isArray(data.result)) {
-        setSuggestions(data.result);
-      }
+      // For now, let's use smart fallback suggestions based on the phase and product idea
+      const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
+      setSuggestions(phaseSuggestions);
 
     } catch (error) {
       console.error('Error generating suggestions:', error);
       setError('Failed to generate suggestions. Please try again.');
-
-      // Fallback suggestions for demo
-      const fallbackSuggestions: Suggestion[] = [
-        {
-          id: '1',
-          type: 'executive_summary',
-          title: 'Executive Summary',
-          content: `${productIdea} is an AI-powered solution that automates lead follow-up and appointment scheduling, reducing manual work by 80% and increasing conversion rates.`,
-          section: 'executive_summary',
-          priority: 'high'
-        },
-        {
-          id: '2',
-          type: 'problem_statement',
-          title: 'User Pain Point',
-          content: 'Sales teams spend 60% of their time on manual follow-up tasks instead of selling, leading to missed opportunities and lower conversion rates.',
-          section: 'problem_statement',
-          priority: 'high'
-        }
-      ];
-      setSuggestions(fallbackSuggestions);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  function generateSmartSuggestions(idea: string, phase: number): Suggestion[] {
+    const baseId = Date.now();
+
+    switch (phase) {
+      case 1: // Context Phase
+        return [
+          {
+            id: `${baseId}-1`,
+            type: 'executive_summary',
+            title: 'Executive Summary',
+            content: `${idea} is an AI-powered solution that automates lead follow-up and appointment scheduling, reducing manual work by 80% and increasing conversion rates by 40%.`,
+            section: 'executive_summary',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-2`,
+            type: 'problem_statement',
+            title: 'Core Problem',
+            content: 'Sales teams spend 60% of their time on manual follow-up tasks instead of selling, leading to missed opportunities and lower conversion rates.',
+            section: 'problem_statement',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-3`,
+            type: 'target_audience',
+            title: 'Primary Users',
+            content: 'Sales teams at SMB and mid-market companies (10-500 employees) who handle high-volume lead generation and need to improve follow-up efficiency.',
+            section: 'target_audience',
+            priority: 'medium'
+          },
+          {
+            id: `${baseId}-4`,
+            type: 'value_proposition',
+            title: 'Value Proposition',
+            content: 'Increase sales productivity by 3x through intelligent automation, allowing sales reps to focus on high-value activities while AI handles routine follow-ups.',
+            section: 'value_proposition',
+            priority: 'high'
+          }
+        ];
+
+      case 2: // Shape Phase
+        return [
+          {
+            id: `${baseId}-5`,
+            type: 'objectives',
+            title: 'Success Metrics',
+            content: 'Increase lead response rate by 50%, reduce time-to-first-contact by 90%, and improve sales rep productivity by 3x within 6 months.',
+            section: 'objectives',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-6`,
+            type: 'scope',
+            title: 'MVP Scope',
+            content: 'V1 includes: automated email sequences, calendar integration, lead scoring, and basic CRM sync. Excludes: voice calls, advanced analytics.',
+            section: 'scope',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-7`,
+            type: 'features',
+            title: 'Core Features',
+            content: 'AI-powered email sequences, intelligent scheduling, lead qualification scoring, CRM integration, and automated follow-up workflows.',
+            section: 'features',
+            priority: 'high'
+          }
+        ];
+
+      case 3: // Evidence Phase
+        return [
+          {
+            id: `${baseId}-8`,
+            type: 'non_functional',
+            title: 'Performance Requirements',
+            content: '99.9% uptime, <2 second response time, handle 10,000+ leads per day, SOC 2 compliance for enterprise customers.',
+            section: 'non_functional',
+            priority: 'medium'
+          },
+          {
+            id: `${baseId}-9`,
+            type: 'risks',
+            title: 'Technical Risks',
+            content: 'Email deliverability issues, CRM integration complexity, AI model accuracy for lead scoring, and data privacy compliance.',
+            section: 'risks',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-10`,
+            type: 'analytics',
+            title: 'Key Metrics',
+            content: 'Track: email open rates, response rates, meetings scheduled, conversion to opportunity, and time saved per rep.',
+            section: 'analytics',
+            priority: 'medium'
+          }
+        ];
+
+      case 4: // Launch Phase
+        return [
+          {
+            id: `${baseId}-11`,
+            type: 'monetization',
+            title: 'Pricing Strategy',
+            content: 'Freemium model: Free for 100 leads/month, Pro at $49/user/month, Enterprise at $99/user/month with custom features.',
+            section: 'monetization',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-12`,
+            type: 'rollout',
+            title: 'Go-to-Market',
+            content: 'Beta with 10 pilot customers, then gradual rollout: SMB first, then mid-market, with sales team training and onboarding.',
+            section: 'rollout',
+            priority: 'medium'
+          }
+        ];
+
+      default:
+        return [];
     }
   }
 
