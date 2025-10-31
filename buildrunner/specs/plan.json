@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.5.0",
-  "updatedAt": "2025-10-30T23:00:00.000Z",
+  "version": "0.6.0",
+  "updatedAt": "2025-10-30T23:30:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -345,6 +345,60 @@
           ]
         }
       ]
+    },
+    {
+      "id": "p6",
+      "title": "Governance & Safety Layer",
+      "steps": [
+        {
+          "id": "p6.s1",
+          "title": "Audit Trail System",
+          "microsteps": [
+            {
+              "id": "p6.s1.ms1",
+              "title": "Comprehensive Event Logging",
+              "status": "done",
+              "criteria": ["All user actions, system events, and data changes logged with full context"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s2",
+          "title": "Change Approval Workflow",
+          "microsteps": [
+            {
+              "id": "p6.s2.ms1",
+              "title": "Multi-step Approval Process",
+              "status": "done",
+              "criteria": ["Change requests require proper approval chain with rollback capability"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s3",
+          "title": "Security Hardening",
+          "microsteps": [
+            {
+              "id": "p6.s3.ms1",
+              "title": "Input Validation & Rate Limiting",
+              "status": "done",
+              "criteria": ["All inputs validated, rate limiting active, CSRF protection enabled"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s4",
+          "title": "Compliance Dashboard",
+          "microsteps": [
+            {
+              "id": "p6.s4.ms1",
+              "title": "Real-time Governance Metrics",
+              "status": "done",
+              "criteria": ["Dashboard shows compliance scores, violations, and security events"]
+            }
+          ]
+        }
+      ]
     }
   ],
   "changeHistory": [
@@ -425,6 +479,23 @@
         "apps/web/app/(app)/flow/page.tsx",
         "apps/web/app/(app)/timeline/page.tsx",
         "apps/web/app/api/spec-diff/route.ts"
+      ]
+    },
+    {
+      "timestamp": "2025-10-30T23:30:00.000Z",
+      "version": "0.6.0",
+      "phase": 6,
+      "description": "Completed Phase 6 - Governance & Safety Layer. Implemented comprehensive audit trail system with event logging and real-time alerts, multi-step change approval workflow with rollback capability, security hardening with input validation and rate limiting, and compliance dashboard with real-time governance metrics. Added governance page with security event monitoring, policy violation tracking, and system status indicators.",
+      "author": "Auggie",
+      "microsteps_completed": 4,
+      "files_added": [
+        "apps/web/lib/audit.ts",
+        "apps/web/lib/approval.ts",
+        "apps/web/lib/security.ts",
+        "apps/web/components/governance/ComplianceDashboard.tsx",
+        "apps/web/app/(app)/governance/page.tsx",
+        "apps/web/app/api/audit/events/route.ts",
+        "apps/web/app/api/audit/alerts/route.ts"
       ]
     }
   ]

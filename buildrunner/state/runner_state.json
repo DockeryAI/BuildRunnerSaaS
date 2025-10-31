@@ -1,16 +1,17 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.5.0",
-  "updatedAt": "2025-10-30T23:00:00.000Z",
-  "phase": 5,
+  "version": "0.6.0",
+  "updatedAt": "2025-10-30T23:30:00.000Z",
+  "phase": 6,
   "step": "final",
   "sync": {
-    "lastLocalUpdate": "2025-10-30T23:00:00.000Z",
+    "lastLocalUpdate": "2025-10-30T23:30:00.000Z",
     "lastRemoteUpdate": null,
     "phase3_completed": true,
     "phase4_completed": true,
-    "phase5_completed": true
+    "phase5_completed": true,
+    "phase6_completed": true
   },
   "milestones": [
     {
@@ -350,6 +351,60 @@
               "title": "Auto-refresh",
               "status": "done",
               "criteria": ["Graph & timeline update in place without reload"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p6",
+      "title": "Governance & Safety Layer",
+      "steps": [
+        {
+          "id": "p6.s1",
+          "title": "Audit Trail System",
+          "microsteps": [
+            {
+              "id": "p6.s1.ms1",
+              "title": "Comprehensive Event Logging",
+              "status": "done",
+              "criteria": ["All user actions, system events, and data changes logged with full context"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s2",
+          "title": "Change Approval Workflow",
+          "microsteps": [
+            {
+              "id": "p6.s2.ms1",
+              "title": "Multi-step Approval Process",
+              "status": "done",
+              "criteria": ["Change requests require proper approval chain with rollback capability"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s3",
+          "title": "Security Hardening",
+          "microsteps": [
+            {
+              "id": "p6.s3.ms1",
+              "title": "Input Validation & Rate Limiting",
+              "status": "done",
+              "criteria": ["All inputs validated, rate limiting active, CSRF protection enabled"]
+            }
+          ]
+        },
+        {
+          "id": "p6.s4",
+          "title": "Compliance Dashboard",
+          "microsteps": [
+            {
+              "id": "p6.s4.ms1",
+              "title": "Real-time Governance Metrics",
+              "status": "done",
+              "criteria": ["Dashboard shows compliance scores, violations, and security events"]
             }
           ]
         }
