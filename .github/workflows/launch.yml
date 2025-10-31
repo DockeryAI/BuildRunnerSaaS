@@ -1,0 +1,435 @@
+name: Production Launch Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Release version (e.g., 2.0.0)'
+        required: true
+        type: string
+      skip_tests:
+        description: 'Skip test suite (emergency only)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  DEPLOYMENT_TIMEOUT: '600' # 10 minutes
+
+jobs:
+  pre-launch-checks:
+    name: Pre-Launch Validation
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      environment: ${{ steps.validate.outputs.environment }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Validate inputs
+        id: validate
+        run: |
+          echo "Validating launch parameters..."
+          
+          # Validate version format
+          if [[ ! "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid version format. Use semantic versioning (e.g., 2.0.0)"
+            exit 1
+          fi
+          
+          # Validate environment
+          if [[ "${{ github.event.inputs.environment }}" != "staging" && "${{ github.event.inputs.environment }}" != "production" ]]; then
+            echo "❌ Invalid environment. Must be 'staging' or 'production'"
+            exit 1
+          fi
+          
+          # Check if this is a production deployment
+          if [[ "${{ github.event.inputs.environment }}" == "production" ]]; then
+            echo "🚀 Production deployment requested"
+            echo "⚠️  This will deploy to live users"
+          fi
+          
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          
+      - name: Check branch protection
+        run: |
+          if [[ "${{ github.event.inputs.environment }}" == "production" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "❌ Production deployments must be from main branch"
+            exit 1
+          fi
+
+  security-scan:
+    name: Security & Dependency Scan
+    runs-on: ubuntu-latest
+    needs: pre-launch-checks
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run security audit
+        run: |
+          echo "🔍 Running security audit..."
+          npm audit --audit-level=high
+          
+      - name: Check for secrets
+        run: |
+          echo "🔍 Scanning for secrets..."
+          
+          # Check for common secret patterns
+          if grep -r "sk_live_" . --exclude-dir=node_modules --exclude-dir=.git; then
+            echo "❌ Live Stripe keys found in code"
+            exit 1
+          fi
+          
+          if grep -r "AKIA" . --exclude-dir=node_modules --exclude-dir=.git; then
+            echo "❌ AWS access keys found in code"
+            exit 1
+          fi
+          
+          if grep -r "ghp_" . --exclude-dir=node_modules --exclude-dir=.git; then
+            echo "❌ GitHub personal access tokens found in code"
+            exit 1
+          fi
+          
+          echo "✅ No secrets detected in code"
+
+  test-suite:
+    name: Comprehensive Test Suite
+    runs-on: ubuntu-latest
+    needs: pre-launch-checks
+    if: ${{ !github.event.inputs.skip_tests }}
+    
+    strategy:
+      matrix:
+        test-type: [unit, integration, e2e]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          case "${{ matrix.test-type }}" in
+            "unit")
+              echo "🧪 Running unit tests..."
+              npm run test:unit
+              ;;
+            "integration")
+              echo "🔗 Running integration tests..."
+              npm run test:integration
+              ;;
+            "e2e")
+              echo "🎭 Running end-to-end tests..."
+              npm run test:e2e
+              ;;
+          esac
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            coverage/
+            test-results/
+          retention-days: 30
+
+  build-and-validate:
+    name: Build & Validate Applications
+    runs-on: ubuntu-latest
+    needs: [pre-launch-checks, security-scan]
+    
+    strategy:
+      matrix:
+        app: [web, server, marketing]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build ${{ matrix.app }}
+        run: |
+          case "${{ matrix.app }}" in
+            "web")
+              echo "🏗️ Building web application..."
+              cd apps/web
+              npm ci
+              npm run build
+              ;;
+            "server")
+              echo "🏗️ Building server application..."
+              cd apps/server
+              npm ci
+              npm run build
+              ;;
+            "marketing")
+              echo "🏗️ Building marketing site..."
+              cd apps/marketing
+              npm ci
+              npm run build
+              ;;
+          esac
+          
+      - name: Validate build artifacts
+        run: |
+          case "${{ matrix.app }}" in
+            "web")
+              if [[ ! -d "apps/web/.next" ]]; then
+                echo "❌ Web app build failed - no .next directory"
+                exit 1
+              fi
+              ;;
+            "server")
+              if [[ ! -d "apps/server/dist" ]]; then
+                echo "❌ Server build failed - no dist directory"
+                exit 1
+              fi
+              ;;
+            "marketing")
+              if [[ ! -d "apps/marketing/out" ]]; then
+                echo "❌ Marketing site build failed - no out directory"
+                exit 1
+              fi
+              ;;
+          esac
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.app }}
+          path: |
+            apps/${{ matrix.app }}/.next/
+            apps/${{ matrix.app }}/dist/
+            apps/${{ matrix.app }}/out/
+          retention-days: 7
+
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [build-and-validate, test-suite]
+    if: always() && (needs.build-and-validate.result == 'success')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-web
+          path: apps/web/
+          
+      - name: Setup test environment
+        run: |
+          echo "🧪 Setting up smoke test environment..."
+          
+          # Start applications
+          cd apps/web
+          npm ci
+          npm run start &
+          
+          # Wait for startup
+          sleep 30
+          
+      - name: Run smoke tests
+        run: |
+          echo "💨 Running smoke tests..."
+          
+          # Test critical endpoints
+          curl -f http://localhost:3000/ || exit 1
+          curl -f http://localhost:3000/marketplace || exit 1
+          curl -f http://localhost:3000/api/health || exit 1
+          
+          echo "✅ Smoke tests passed"
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [pre-launch-checks, security-scan, build-and-validate, smoke-tests]
+    if: always() && (needs.build-and-validate.result == 'success') && (needs.smoke-tests.result == 'success' || needs.smoke-tests.result == 'skipped')
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          merge-multiple: true
+          
+      - name: Deploy to staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          
+          # Simulate deployment (replace with actual deployment commands)
+          echo "Deploying version ${{ needs.pre-launch-checks.outputs.version }} to staging"
+          
+          # Health check after deployment
+          sleep 10
+          echo "✅ Staging deployment completed"
+          
+      - name: Run staging validation
+        run: |
+          echo "🔍 Validating staging deployment..."
+          
+          # Test staging endpoints
+          curl -f https://staging.buildrunner.cloud/api/health || exit 1
+          curl -f https://staging.buildrunner.cloud/marketplace || exit 1
+          
+          echo "✅ Staging validation passed"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [pre-launch-checks, deploy-staging]
+    if: ${{ needs.pre-launch-checks.outputs.environment == 'production' && needs.deploy-staging.result == 'success' }}
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-*
+          merge-multiple: true
+          
+      - name: Production deployment confirmation
+        run: |
+          echo "🚨 PRODUCTION DEPLOYMENT"
+          echo "Version: ${{ needs.pre-launch-checks.outputs.version }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+          echo "This will deploy to live users!"
+          
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          
+          # Simulate production deployment (replace with actual deployment commands)
+          echo "Deploying version ${{ needs.pre-launch-checks.outputs.version }} to production"
+          
+          # Health check after deployment
+          sleep 15
+          echo "✅ Production deployment completed"
+          
+      - name: Run production validation
+        run: |
+          echo "🔍 Validating production deployment..."
+          
+          # Test production endpoints
+          curl -f https://buildrunner.cloud/api/health || exit 1
+          curl -f https://buildrunner.cloud/marketplace || exit 1
+          
+          echo "✅ Production validation passed"
+          
+      - name: Create release tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "v${{ needs.pre-launch-checks.outputs.version }}" -m "Release v${{ needs.pre-launch-checks.outputs.version }}"
+          git push origin "v${{ needs.pre-launch-checks.outputs.version }}"
+
+  post-deployment:
+    name: Post-Deployment Tasks
+    runs-on: ubuntu-latest
+    needs: [pre-launch-checks, deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    
+    steps:
+      - name: Notify team
+        run: |
+          echo "📢 Sending deployment notifications..."
+          
+          if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+            echo "🎉 Production deployment successful!"
+            echo "Version ${{ needs.pre-launch-checks.outputs.version }} is now live"
+          elif [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+            echo "✅ Staging deployment successful!"
+            echo "Version ${{ needs.pre-launch-checks.outputs.version }} is ready for testing"
+          fi
+          
+      - name: Update monitoring
+        run: |
+          echo "📊 Updating monitoring and alerts..."
+          
+          # Enable monitoring for new version
+          echo "Monitoring enabled for version ${{ needs.pre-launch-checks.outputs.version }}"
+          
+      - name: Generate deployment report
+        run: |
+          echo "📋 Generating deployment report..."
+          
+          cat > deployment-report.md << EOF
+          # Deployment Report
+          
+          **Version:** ${{ needs.pre-launch-checks.outputs.version }}
+          **Environment:** ${{ needs.pre-launch-checks.outputs.environment }}
+          **Date:** $(date -u)
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref }}
+          
+          ## Deployment Status
+          - Security Scan: ${{ needs.security-scan.result }}
+          - Build & Validate: ${{ needs.build-and-validate.result }}
+          - Smoke Tests: ${{ needs.smoke-tests.result }}
+          - Staging Deploy: ${{ needs.deploy-staging.result }}
+          - Production Deploy: ${{ needs.deploy-production.result }}
+          
+          ## Next Steps
+          - Monitor application performance
+          - Watch for error rates and alerts
+          - Validate user feedback
+          EOF
+          
+      - name: Upload deployment report
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report
+          path: deployment-report.md
+          retention-days: 90

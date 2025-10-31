@@ -401,3 +401,133 @@ offline_resilience:
       - "server_error"
       - "timeout"
     schedule: "nightly"
+
+# Public Launch & Marketplace Governance
+public_launch:
+  # Public signup configuration
+  public_signup_enabled: true
+  signup_approval_required: false
+  email_verification_required: true
+
+  # Account limits for free tier
+  max_free_projects: 3
+  max_free_team_members: 5
+  max_free_storage_mb: 1000
+
+  # Onboarding requirements
+  onboarding_required: true
+  onboarding_steps:
+    - "welcome"
+    - "role_selection"
+    - "goals_setup"
+    - "template_selection"
+    - "first_project"
+    - "billing_setup"
+
+  # Marketplace moderation
+  marketplace:
+    enabled: true
+    auto_publish: false
+    moderation_required: true
+    verification_required_for_featured: true
+
+    # Content policies
+    content_policies:
+      max_title_length: 100
+      max_description_length: 1000
+      required_tags_min: 1
+      required_tags_max: 10
+      allowed_file_types: ["json", "ts", "tsx", "js", "jsx", "md", "yml", "yaml"]
+      max_file_size_mb: 10
+
+    # Review policies
+    review_policies:
+      min_rating: 1
+      max_rating: 5
+      require_comment_for_low_rating: true
+      max_reviews_per_user_per_item: 1
+
+    # Publishing requirements
+    publishing_requirements:
+      min_description_length: 50
+      require_readme: true
+      require_version: true
+      require_tags: true
+
+  # Growth and referrals
+  referrals:
+    enabled: true
+    credits_per_referral: 100
+    max_referrals_per_user: 50
+    referral_code_length: 8
+    referral_expiry_days: 365
+
+  # Feedback and support
+  feedback:
+    enabled: true
+    anonymous_feedback_allowed: true
+    categories:
+      - "bug_report"
+      - "feature_request"
+      - "user_experience"
+      - "performance"
+      - "documentation"
+      - "billing"
+      - "other"
+
+    # NPS surveys
+    nps_surveys:
+      enabled: true
+      frequency_days: 30
+      min_usage_days: 7
+
+  # Rate limiting for public endpoints
+  rate_limits:
+    signup_per_ip_per_hour: 5
+    feedback_per_user_per_hour: 10
+    marketplace_installs_per_user_per_hour: 50
+    api_requests_per_user_per_minute: 100
+
+  # Content moderation
+  moderation:
+    auto_flag_keywords:
+      - "spam"
+      - "scam"
+      - "malware"
+      - "virus"
+
+    review_queue_enabled: true
+    admin_approval_required_for:
+      - "featured_items"
+      - "verified_authors"
+      - "high_install_items"
+
+  # Launch metrics and telemetry
+  telemetry:
+    enabled: true
+    anonymous_usage_tracking: true
+    performance_monitoring: true
+    error_tracking: true
+
+    # Events to track
+    tracked_events:
+      - "user_signup"
+      - "onboarding_completed"
+      - "first_project_created"
+      - "marketplace_item_installed"
+      - "referral_used"
+      - "feedback_submitted"
+      - "subscription_started"
+
+  # SEO and marketing
+  seo:
+    sitemap_enabled: true
+    robots_txt_enabled: true
+    structured_data_enabled: true
+    open_graph_enabled: true
+
+    # Analytics
+    analytics:
+      provider: "plausible"  # or "google_analytics"
+      anonymous_tracking: true
+      respect_dnt: true
