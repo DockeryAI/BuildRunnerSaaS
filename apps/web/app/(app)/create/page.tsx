@@ -11,10 +11,6 @@ import {
   PlusIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
-  CogIcon,
-  LightBulbIcon,
-  ArrowRightIcon,
-  BeakerIcon,
   ArchiveBoxIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
@@ -44,12 +40,7 @@ interface ModelCategory {
   max_tokens: number;
 }
 
-const categoryIcons = {
-  product: DocumentTextIcon,
-  strategy: BeakerIcon,
-  competitor: ChartBarIcon,
-  monetization: CurrencyDollarIcon,
-};
+
 
 // OnboardingFlow Component - moved outside to prevent re-creation on every render
 interface OnboardingFlowProps {
@@ -225,7 +216,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
 export default function CreatePage() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
   const [selectedSection, setSelectedSection] = useState<string>('executive_summary');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -355,11 +345,9 @@ export default function CreatePage() {
     // Reset ALL component state to initial values
     setMessages([]);
     setInitialIdea('');
-    setSelectedCategory('product');
     setShowOnboarding(true);
     setError(null);
     setIsLoading(false);
-    setInputValue('');
 
     console.log('All session data cleared completely - fresh start guaranteed');
   };
@@ -418,45 +406,7 @@ export default function CreatePage() {
     }
   };
 
-  // Generate initial suggestions without showing in chat
-  const generateInitialSuggestions = async (idea: string) => {
-    try {
-      setIsLoading(true);
 
-      const response = await fetch('/api/brainstorm/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          category: 'product',
-          message: `Generate initial feature suggestions for: ${idea}`,
-          conversation_history: [],
-          product_idea: idea,
-          used_suggestions: usedSuggestions,
-          use_reasoning: useDeepThink,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.suggestions && Array.isArray(data.suggestions)) {
-        // Add each suggestion to the brainstorm state
-        data.suggestions.forEach((suggestion: any) => {
-          addSuggestion(suggestion);
-        });
-      }
-
-    } catch (error) {
-      console.error('Error generating initial suggestions:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Drag and drop handlers
   const handleDragStart = (suggestion: any) => {
@@ -496,120 +446,7 @@ export default function CreatePage() {
     }
   };
 
-  const sendMessage = async (content: string, category: string = selectedCategory) => {
-    if (!content.trim() || isLoading) return;
 
-    console.log('Sending message:', { content, category });
-
-    const userMessage: Message = {
-      id: `user_${Date.now()}`,
-      role: 'user',
-      content: content.trim(),
-      category,
-      timestamp: new Date(),
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    saveConversationHistory(newMessages);
-    setInputValue('');
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Get API keys from local storage
-      const savedKeys = localStorage.getItem('buildrunner_api_keys');
-      const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
-
-      console.log('API keys available:', Object.keys(apiKeys));
-
-      if (!apiKeys.openrouter) {
-        throw new Error('OpenRouter API key not configured. Please add it in Settings.');
-      }
-
-      // Send request to brainstorm API
-      console.log('Making API request to /api/brainstorm/chat...');
-      const response = await fetch('/api/brainstorm/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-keys': JSON.stringify(apiKeys),
-        },
-        body: JSON.stringify({
-          category,
-          message: content,
-          conversation_history: messages.slice(-5), // Last 5 messages for context
-          product_idea: initialIdea, // Include the product idea for context
-          used_suggestions: usedSuggestions, // Prevent re-suggesting used features
-          use_reasoning: useDeepThink, // Use DeepSeek R1 for deliberate reasoning
-        }),
-      });
-
-      console.log('API response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `API request failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Set product description if provided (first message)
-      if (data.productDescription && !productDescription) {
-        setProductDescription(data.productDescription);
-      }
-
-      // Handle initial features extraction (first message)
-      if (data.initialFeatures && data.initialFeatures.length > 0) {
-        console.log('Processing initial features:', data.initialFeatures);
-        // Add initial features directly to PRD features section
-        setPrdSections(prev => ({
-          ...prev,
-          features: data.initialFeatures.map((feature: any) => ({
-            ...feature,
-            id: `initial_feature_${Date.now()}_${Math.random()}`,
-            created_at: new Date(),
-            timestamp: new Date(),
-          }))
-        }));
-
-        // Track these as used suggestions
-        const featureTitles = data.initialFeatures.map((f: any) => f.title);
-        setUsedSuggestions(prev => [...prev, ...featureTitles]);
-      }
-
-      // Add AI response to messages
-      const aiMessage: Message = {
-        id: `ai_${Date.now()}`,
-        role: 'assistant',
-        content: data.response,
-        category,
-        timestamp: new Date(),
-      };
-
-      const updatedMessages = [...newMessages, aiMessage];
-      setMessages(updatedMessages);
-      saveConversationHistory(updatedMessages);
-
-      // Add suggestions to state (these will be filtered to exclude used ones)
-      if (data.suggestions && data.suggestions.length > 0) {
-        data.suggestions.forEach((suggestion: any) => {
-          addSuggestion({
-            ...suggestion,
-            id: `suggestion_${Date.now()}_${Math.random()}`,
-            created_at: new Date(),
-            timestamp: new Date(),
-          });
-        });
-      }
-
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setError(error.message || 'Failed to send message. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const exportConversation = async () => {
     try {
