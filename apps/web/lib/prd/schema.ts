@@ -308,36 +308,24 @@ export const PRD_PHASES = [
     id: 1,
     name: "Context",
     description: "Define the problem and opportunity",
-    fields: ["executive_summary", "problem", "value_prop", "audience"]
+    sections: ["metadata", "executive_summary", "problem_statement", "target_audience", "value_proposition"]
   },
   {
     id: 2,
     name: "Shape",
     description: "Outline features and scope",
-    fields: ["features", "scope", "objectives"]
+    sections: ["objectives", "scope", "features"]
   },
   {
     id: 3,
-    name: "Evidence & Metrics",
+    name: "Evidence",
     description: "Add success criteria and analytics",
-    fields: ["analytics", "objectives"]
+    sections: ["non_functional", "dependencies", "risks", "analytics"]
   },
   {
     id: 4,
-    name: "Delivery",
-    description: "Technical requirements and acceptance criteria",
-    fields: ["non_functional", "dependencies", "risks"]
-  },
-  {
-    id: 5,
-    name: "Commercialization",
-    description: "Pricing and business model",
-    fields: ["monetization"]
-  },
-  {
-    id: 6,
     name: "Launch",
-    description: "Rollout plan and go-to-market",
-    fields: ["rollout", "open_questions", "decisions"]
+    description: "Business model and go-to-market",
+    sections: ["monetization", "rollout", "open_questions"]
   }
 ];

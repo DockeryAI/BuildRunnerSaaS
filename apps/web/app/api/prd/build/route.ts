@@ -242,7 +242,7 @@ Define comprehensive analytics and evidence framework. Return only the JSON obje
 
     } catch (error) {
       console.error('Evidence building error:', error);
-      
+
       // Fallback evidence
       return {
         north_star: "User engagement and task completion rate",
@@ -258,11 +258,170 @@ Define comprehensive analytics and evidence framework. Return only the JSON obje
       };
     }
   }
+
+  // Generate phase-specific suggestions
+  async generatePhaseSuggestions(productIdea: string, userMessage: string, phase: number, currentPRD: any) {
+    try {
+      const phaseInfo = this.getPhaseInfo(phase);
+
+      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+        {
+          role: 'system',
+          content: `You are a product strategy expert. Generate specific, actionable suggestions for Phase ${phase}: ${phaseInfo.name}.
+
+Current Phase Focus: ${phaseInfo.description}
+Sections in this phase: ${phaseInfo.sections.join(', ')}
+
+Return a JSON array of suggestions with this exact schema:
+[
+  {
+    "id": "unique_id",
+    "type": "section_name",
+    "title": "Brief suggestion title",
+    "content": "Detailed suggestion content",
+    "reasoning": "Why this suggestion makes sense",
+    "priority": "high|medium|low",
+    "section": "which PRD section this applies to"
+  }
+]
+
+Generate 3-5 specific, actionable suggestions that align with the current phase and user's message.`
+        },
+        {
+          role: 'user',
+          content: `Product Idea: ${productIdea}
+
+User Message: ${userMessage}
+
+Current PRD State: ${JSON.stringify(currentPRD, null, 2)}
+
+Generate phase-specific suggestions for Phase ${phase}. Return only the JSON array.`
+        }
+      ], {
+        temperature: 0.4,
+        max_tokens: 2500
+      });
+
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in API response');
+      }
+
+      return JSON.parse(content);
+
+    } catch (error) {
+      console.error('Suggestion generation error:', error);
+      return [];
+    }
+  }
+
+  // Process user message and update PRD
+  async processUserMessage(productIdea: string, userMessage: string, phase: number, currentPRD: any) {
+    try {
+      const phaseInfo = this.getPhaseInfo(phase);
+
+      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+        {
+          role: 'system',
+          content: `You are a product manager. Process the user's message and suggest specific updates to the PRD.
+
+Current Phase: ${phase} - ${phaseInfo.name}
+Phase Description: ${phaseInfo.description}
+Sections: ${phaseInfo.sections.join(', ')}
+
+Return a JSON object with this exact schema:
+{
+  "updates": {
+    "section_name": {
+      "field": "new_value_or_addition"
+    }
+  },
+  "suggestions": [
+    {
+      "id": "unique_id",
+      "type": "section_name",
+      "title": "Suggestion title",
+      "content": "Detailed content",
+      "section": "PRD section"
+    }
+  ],
+  "next_steps": ["What the user should do next"]
+}
+
+Focus on the current phase sections and make specific, actionable recommendations.`
+        },
+        {
+          role: 'user',
+          content: `Product Idea: ${productIdea}
+
+User Message: ${userMessage}
+
+Current PRD: ${JSON.stringify(currentPRD, null, 2)}
+
+Process this message and suggest PRD updates. Return only the JSON object.`
+        }
+      ], {
+        temperature: 0.3,
+        max_tokens: 3000
+      });
+
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in API response');
+      }
+
+      return JSON.parse(content);
+
+    } catch (error) {
+      console.error('Message processing error:', error);
+      return {
+        updates: {},
+        suggestions: [],
+        next_steps: ["Continue building your PRD by filling out the current phase sections."]
+      };
+    }
+  }
+
+  private getPhaseInfo(phase: number) {
+    const phases = [
+      {
+        name: "Context",
+        description: "Define the problem and opportunity",
+        sections: ["metadata", "executive_summary", "problem_statement", "target_audience", "value_proposition"]
+      },
+      {
+        name: "Shape",
+        description: "Outline features and scope",
+        sections: ["objectives", "scope", "features"]
+      },
+      {
+        name: "Evidence",
+        description: "Add success criteria and analytics",
+        sections: ["non_functional", "dependencies", "risks", "analytics"]
+      },
+      {
+        name: "Launch",
+        description: "Business model and go-to-market",
+        sections: ["monetization", "rollout", "open_questions"]
+      }
+    ];
+
+    return phases[phase - 1] || phases[0];
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, product_idea, phase, existing_features = [], context_data, features } = await request.json();
+    const {
+      action,
+      product_idea,
+      phase,
+      existing_features = [],
+      context_data,
+      features,
+      user_message,
+      current_prd
+    } = await request.json();
 
     if (!process.env.OPENROUTER_API_KEY) {
       return NextResponse.json(
@@ -275,27 +434,45 @@ export async function POST(request: NextRequest) {
     const builder = new PRDBuilder(product_idea, "product@buildrunner.cloud");
 
     let result;
-    
+
     switch (action) {
       case 'build_context':
         result = await service.buildContext(product_idea, existing_features);
         builder.fillContext(result);
         break;
-        
+
       case 'build_shape':
         result = await service.buildShape(product_idea, context_data, existing_features);
         builder.fillShape(result);
         break;
-        
+
       case 'build_evidence':
         result = await service.buildEvidence(product_idea, features);
         builder.fillEvidence(result);
         break;
-        
+
+      case 'generate_suggestions':
+        result = await service.generatePhaseSuggestions(
+          product_idea,
+          user_message,
+          phase || 1,
+          current_prd
+        );
+        break;
+
+      case 'process_message':
+        result = await service.processUserMessage(
+          product_idea,
+          user_message,
+          phase || 1,
+          current_prd
+        );
+        break;
+
       case 'get_phases':
         result = builder.getAllPhases();
         break;
-        
+
       case 'export_prd':
         result = {
           json: builder.toJSON(),
@@ -303,10 +480,10 @@ export async function POST(request: NextRequest) {
           prd: builder.getPRD()
         };
         break;
-        
+
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use build_context, build_shape, build_evidence, get_phases, or export_prd' },
+          { error: 'Invalid action. Use build_context, build_shape, build_evidence, generate_suggestions, process_message, get_phases, or export_prd' },
           { status: 400 }
         );
     }
@@ -314,7 +491,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       result,
       action,
-      phase: builder.getCurrentPhase(),
+      phase: phase || builder.getCurrentPhase(),
       timestamp: new Date().toISOString(),
     });
 

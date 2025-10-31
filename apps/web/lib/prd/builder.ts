@@ -264,6 +264,57 @@ export class PRDBuilder {
     return false;
   }
 
+  // Get sections for current phase
+  getCurrentPhaseSections(): string[] {
+    const phaseInfo = PRD_PHASES.find(p => p.id === this.currentPhase);
+    return phaseInfo?.sections || [];
+  }
+
+  // Get completion status for current phase
+  getCurrentPhaseCompletion(): { completed: string[], total: string[] } {
+    const sections = this.getCurrentPhaseSections();
+    const completed = sections.filter(section => this.isSectionCompleted(section));
+    return { completed, total: sections };
+  }
+
+  // Check if a section is completed
+  private isSectionCompleted(sectionId: string): boolean {
+    switch (sectionId) {
+      case 'metadata':
+        return !!this.prd.meta.title;
+      case 'executive_summary':
+        return !!this.prd.executive_summary;
+      case 'problem_statement':
+        return !!this.prd.problem.user_pain;
+      case 'target_audience':
+        return this.prd.audience.personas.length > 0;
+      case 'value_proposition':
+        return !!this.prd.value_prop.statement;
+      case 'objectives':
+        return this.prd.objectives.length > 0;
+      case 'scope':
+        return this.prd.scope.in_scope.length > 0;
+      case 'features':
+        return this.prd.features.length > 0;
+      case 'non_functional':
+        return !!this.prd.non_functional.performance.slo;
+      case 'dependencies':
+        return this.prd.dependencies.internal.length > 0 || this.prd.dependencies.external.length > 0;
+      case 'risks':
+        return this.prd.risks.length > 0;
+      case 'analytics':
+        return !!this.prd.analytics.north_star;
+      case 'monetization':
+        return !!this.prd.monetization.pricing_model;
+      case 'rollout':
+        return this.prd.rollout.phases.length > 0;
+      case 'open_questions':
+        return true; // Optional section
+      default:
+        return false;
+    }
+  }
+
   // Update metadata
   updateMetadata(updates: Partial<PRDDocument['meta']>): void {
     this.prd.meta = { ...this.prd.meta, ...updates, updated_at: new Date().toISOString() };

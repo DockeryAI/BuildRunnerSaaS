@@ -230,6 +230,9 @@ export default function CreatePage() {
   const [completedSections, setCompletedSections] = useState<string[]>([]);
   const [currentPhase, setCurrentPhase] = useState<number>(1);
   const [prdBuilder, setPrdBuilder] = useState<PRDBuilder | null>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [modelCategories, setModelCategories] = useState<Record<string, ModelCategory>>({});
   const [predefinedPrompts, setPredefinedPrompts] = useState<Record<string, string>>({});
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -584,6 +587,100 @@ export default function CreatePage() {
     }
   };
 
+  // Process user message and generate suggestions
+  const processUserMessage = async (message: string) => {
+    if (!message.trim() || isLoading) return;
+
+    setIsLoading(true);
+    setIsGeneratingSuggestions(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/prd/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'process_message',
+          product_idea: initialIdea,
+          user_message: message,
+          phase: currentPhase,
+          current_prd: prdDocument
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.result) {
+        // Apply PRD updates
+        if (data.result.updates) {
+          applyPRDUpdates(data.result.updates);
+        }
+
+        // Set AI suggestions
+        if (data.result.suggestions) {
+          setAiSuggestions(data.result.suggestions);
+        }
+
+        // Add system message about what was processed
+        const systemMessage: Message = {
+          id: `system_${Date.now()}`,
+          role: 'system',
+          content: `I've processed your message and generated ${data.result.suggestions?.length || 0} suggestions for Phase ${currentPhase}. You can drag these suggestions to the PRD sections on the left.`,
+          category: 'prd',
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, systemMessage]);
+      }
+
+    } catch (error) {
+      console.error('Error processing message:', error);
+      setError('Failed to process your message. Please try again.');
+    } finally {
+      setIsLoading(false);
+      setIsGeneratingSuggestions(false);
+    }
+  };
+
+  // Apply PRD updates from AI
+  const applyPRDUpdates = (updates: any) => {
+    const updatedPRD = { ...prdDocument };
+
+    Object.keys(updates).forEach(sectionKey => {
+      const sectionUpdates = updates[sectionKey];
+
+      switch (sectionKey) {
+        case 'executive_summary':
+          if (sectionUpdates.content) {
+            updatedPRD.executive_summary = sectionUpdates.content;
+          }
+          break;
+        case 'problem':
+          if (sectionUpdates.user_pain) {
+            updatedPRD.problem.user_pain = sectionUpdates.user_pain;
+          }
+          if (sectionUpdates.root_causes) {
+            updatedPRD.problem.root_causes = sectionUpdates.root_causes;
+          }
+          break;
+        case 'features':
+          if (sectionUpdates.new_features) {
+            updatedPRD.features = [...updatedPRD.features, ...sectionUpdates.new_features];
+          }
+          break;
+        // Add more cases as needed
+      }
+    });
+
+    setPrdDocument(updatedPRD);
+  };
+
   // Update PRD section
   const updatePRDSection = (sectionId: string, data: any) => {
     if (!prdBuilder) return;
@@ -616,6 +713,42 @@ export default function CreatePage() {
     // Mark section as completed if it has content
     if (!completedSections.includes(sectionId)) {
       setCompletedSections(prev => [...prev, sectionId]);
+    }
+  };
+
+  // Handle phase change
+  const handlePhaseChange = async (newPhase: number) => {
+    setCurrentPhase(newPhase);
+
+    // Generate new suggestions for the new phase
+    if (initialIdea) {
+      setIsGeneratingSuggestions(true);
+      try {
+        const response = await fetch('/api/prd/build', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'generate_suggestions',
+            product_idea: initialIdea,
+            user_message: `Generate suggestions for Phase ${newPhase}`,
+            phase: newPhase,
+            current_prd: prdDocument
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.result) {
+            setAiSuggestions(data.result);
+          }
+        }
+      } catch (error) {
+        console.error('Error generating phase suggestions:', error);
+      } finally {
+        setIsGeneratingSuggestions(false);
+      }
     }
   };
 
