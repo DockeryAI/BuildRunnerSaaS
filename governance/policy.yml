@@ -1,0 +1,188 @@
+# BuildRunner Governance Policy
+# This file defines the governance rules and safety controls for the project
+
+version: "1.0.0"
+project_id: "buildrunner-saas"
+updated_at: "2025-10-30T23:30:00.000Z"
+updated_by: "system"
+
+# Protected paths that require special approval
+protected_paths:
+  - "/buildrunner/specs/plan.json"
+  - "/buildrunner/state/runner_state.json"
+  - "/supabase/migrations/"
+  - "/apps/server/lib/vault.ts"
+  - "/.github/workflows/"
+  - "/governance/policy.yml"
+  - "/package.json"
+  - "/package-lock.json"
+
+# Approval requirements
+approvals:
+  required:
+    - role: "admin"
+      count: 1
+    - role: "tech_lead" 
+      count: 1
+  protected_paths_override:
+    "/buildrunner/specs/plan.json":
+      - role: "product_owner"
+        count: 1
+      - role: "tech_lead"
+        count: 1
+    "/supabase/migrations/":
+      - role: "database_admin"
+        count: 1
+      - role: "tech_lead"
+        count: 1
+
+# Pull Request requirements
+pr_requirements:
+  microstep_id: true
+  microstep_id_pattern: "^p\\d+\\.s\\d+\\.ms\\d+:"
+  checklists:
+    - "AC checklist present"
+    - "Testing completed"
+    - "Documentation updated"
+  title_pattern: "^(p\\d+\\.s\\d+\\.ms\\d+:|feat|fix|docs|refactor|test):"
+  description_min_length: 50
+
+# Secret scanning configuration
+secret_scan:
+  enabled: true
+  block_on_detection: true
+  deny_patterns:
+    - "(?i)api[_-]?key\\s*[=:]\\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
+    - "(?i)secret[_-]?key\\s*[=:]\\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
+    - "(?i)password\\s*[=:]\\s*['\"]?[a-zA-Z0-9]{8,}['\"]?"
+    - "AKIA[0-9A-Z]{16}"  # AWS Access Key
+    - "sk-[a-zA-Z0-9]{48}"  # OpenAI API Key
+    - "xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}"  # Slack Bot Token
+    - "ghp_[a-zA-Z0-9]{36}"  # GitHub Personal Access Token
+    - "gho_[a-zA-Z0-9]{36}"  # GitHub OAuth Token
+    - "postgres://[^\\s]+"  # Database URLs
+    - "mongodb://[^\\s]+"
+    - "redis://[^\\s]+"
+  allowed_patterns:
+    - "example_api_key"
+    - "your_api_key_here"
+    - "placeholder_secret"
+    - "\\[REDACTED\\]"
+    - "\\*\\*\\*\\*\\*"
+  exclude_files:
+    - "*.md"
+    - "*.example"
+    - "*.template"
+    - "governance/policy.yml"
+
+# Risk management
+risk:
+  require_rollback: true
+  require_post_check: true
+  risk_levels:
+    low:
+      require_rollback: false
+      require_post_check: false
+      auto_merge_allowed: true
+    medium:
+      require_rollback: true
+      require_post_check: false
+      auto_merge_allowed: false
+    high:
+      require_rollback: true
+      require_post_check: true
+      auto_merge_allowed: false
+      additional_approvals: 1
+    critical:
+      require_rollback: true
+      require_post_check: true
+      auto_merge_allowed: false
+      additional_approvals: 2
+      require_staging_test: true
+
+# Microstep enforcement
+microsteps:
+  enforce_in_commits: true
+  enforce_in_pr_title: true
+  enforce_in_pr_description: true
+  require_acceptance_criteria: true
+  require_testing_evidence: true
+  blocked_statuses:
+    - "blocked"
+    - "on_hold"
+  allowed_transitions:
+    "todo": ["doing", "blocked"]
+    "doing": ["done", "blocked", "todo"]
+    "blocked": ["todo", "doing"]
+    "done": []  # Final state
+
+# Branch protection
+branches:
+  main:
+    require_pr: true
+    require_reviews: 2
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+    require_status_checks: true
+    required_status_checks:
+      - "BuildRunner QA"
+      - "Governance: Protected Paths"
+      - "Governance: Secrets Scan"
+      - "Governance: Microstep ID"
+    restrict_pushes: true
+    allowed_push_users: []
+  develop:
+    require_pr: true
+    require_reviews: 1
+    require_status_checks: true
+    required_status_checks:
+      - "BuildRunner QA"
+      - "Governance: Secrets Scan"
+
+# Notifications
+notifications:
+  slack:
+    enabled: false
+    webhook_url: ""
+    channels:
+      governance_alerts: "#governance"
+      security_alerts: "#security"
+  email:
+    enabled: true
+    recipients:
+      - "admin@dockeryai.com"
+  github:
+    enabled: true
+    create_issues: true
+    assign_to_author: true
+
+# Audit settings
+audit:
+  log_all_actions: true
+  retention_days: 365
+  export_format: "json"
+  include_sensitive_data: false
+  
+# Emergency procedures
+emergency:
+  bypass_enabled: true
+  bypass_roles:
+    - "admin"
+    - "emergency_contact"
+  bypass_requires_justification: true
+  bypass_requires_post_review: true
+  bypass_notification_required: true
+
+# Integration settings
+integrations:
+  github:
+    enabled: true
+    check_runs: true
+    commit_status: true
+    pr_comments: true
+  supabase:
+    enabled: true
+    log_to_runner_events: true
+  monitoring:
+    enabled: true
+    alert_on_violations: true

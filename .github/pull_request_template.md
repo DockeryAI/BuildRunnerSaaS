@@ -12,10 +12,29 @@ Brief description of changes made.
 ## Microstep Details
 - [ ] **Microstep ID**: [ID from plan.json]
 - [ ] **Title**: [Microstep title]
-- [ ] **Acceptance Criteria**: 
+- [ ] **Acceptance Criteria**:
   - [ ] [Criterion 1]
   - [ ] [Criterion 2]
   - [ ] [Criterion 3]
+
+## Risk Assessment
+**Risk Level:** <!-- Select one: low | medium | high | critical -->
+
+### Rollback Plan (Required for medium/high/critical risk)
+<!-- Describe how to rollback these changes if issues arise -->
+```
+1.
+2.
+3.
+```
+
+### Post-Check Verification (Required for high/critical risk)
+<!-- Describe verification steps to confirm the change works correctly in production -->
+- [ ] Health check endpoint responds correctly
+- [ ] Key user workflows function as expected
+- [ ] Database migrations applied successfully
+- [ ] No error spikes in monitoring
+- [ ] Performance metrics within acceptable range
 
 ## Changes Made
 - [ ] Files added/modified

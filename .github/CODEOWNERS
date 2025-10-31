@@ -1,0 +1,60 @@
+# BuildRunner SaaS Code Owners
+# This file defines who must review changes to specific files and directories
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners (fallback for any file not specifically covered)
+* @DockeryAI/buildrunner-admins
+
+# Core BuildRunner specifications and state
+/buildrunner/specs/plan.json @DockeryAI/product-owners @DockeryAI/tech-leads
+/buildrunner/state/runner_state.json @DockeryAI/tech-leads @DockeryAI/buildrunner-admins
+
+# Database migrations and schema changes
+/supabase/migrations/ @DockeryAI/database-admins @DockeryAI/tech-leads
+/supabase/config.toml @DockeryAI/database-admins
+/supabase/seed.sql @DockeryAI/database-admins
+
+# CI/CD and workflow configurations
+/.github/workflows/ @DockeryAI/devops-leads @DockeryAI/tech-leads
+/.github/CODEOWNERS @DockeryAI/buildrunner-admins
+/.github/pull_request_template.md @DockeryAI/buildrunner-admins
+
+# Governance and security policies
+/governance/ @DockeryAI/security-leads @DockeryAI/buildrunner-admins
+/governance/policy.yml @DockeryAI/security-leads @DockeryAI/tech-leads @DockeryAI/product-owners
+
+# Security-sensitive files
+/apps/server/lib/vault.ts @DockeryAI/security-leads @DockeryAI/tech-leads
+/apps/web/lib/security.ts @DockeryAI/security-leads @DockeryAI/tech-leads
+/apps/web/lib/audit.ts @DockeryAI/security-leads @DockeryAI/tech-leads
+
+# Package management and dependencies
+/package.json @DockeryAI/tech-leads @DockeryAI/security-leads
+/package-lock.json @DockeryAI/tech-leads
+/apps/web/package.json @DockeryAI/tech-leads
+/apps/server/package.json @DockeryAI/tech-leads
+
+# Infrastructure and deployment
+/docker-compose.yml @DockeryAI/devops-leads @DockeryAI/tech-leads
+/Dockerfile @DockeryAI/devops-leads
+/.env.example @DockeryAI/devops-leads @DockeryAI/security-leads
+
+# QA and testing configurations
+/qa/ @DockeryAI/qa-leads @DockeryAI/tech-leads
+/qa-runner.ts @DockeryAI/qa-leads @DockeryAI/tech-leads
+/.github/workflows/qa-run.yml @DockeryAI/qa-leads @DockeryAI/devops-leads
+
+# Documentation that affects governance
+/README.md @DockeryAI/tech-leads @DockeryAI/product-owners
+/CONTRIBUTING.md @DockeryAI/buildrunner-admins
+/SECURITY.md @DockeryAI/security-leads @DockeryAI/buildrunner-admins
+
+# API routes that handle sensitive operations
+/apps/web/app/api/governance/ @DockeryAI/security-leads @DockeryAI/tech-leads
+/apps/web/app/api/audit/ @DockeryAI/security-leads @DockeryAI/tech-leads
+/apps/web/app/api/plans/ @DockeryAI/product-owners @DockeryAI/tech-leads
+
+# Core business logic
+/apps/web/lib/flow.ts @DockeryAI/product-owners @DockeryAI/tech-leads
+/apps/web/lib/timeline.ts @DockeryAI/product-owners @DockeryAI/tech-leads
+/apps/web/lib/approval.ts @DockeryAI/product-owners @DockeryAI/security-leads

@@ -1,0 +1,476 @@
+name: Governance Guard
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  governance-checks:
+    name: Governance Checks
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Load governance policy
+        id: load_policy
+        run: |
+          if [ -f "governance/policy.yml" ]; then
+            echo "policy_exists=true" >> $GITHUB_OUTPUT
+            echo "Policy file found"
+          else
+            echo "policy_exists=false" >> $GITHUB_OUTPUT
+            echo "No governance policy found, using defaults"
+          fi
+
+  microstep-id-check:
+    name: "Governance: Microstep ID"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PR title for microstep ID
+        id: check_pr_title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          MICROSTEP_PATTERN="^p[0-9]+\.s[0-9]+\.ms[0-9]+:"
+          
+          if [[ $PR_TITLE =~ $MICROSTEP_PATTERN ]]; then
+            echo "pr_title_valid=true" >> $GITHUB_OUTPUT
+            echo "✅ PR title contains valid microstep ID"
+          else
+            echo "pr_title_valid=false" >> $GITHUB_OUTPUT
+            echo "❌ PR title missing microstep ID pattern: p[X].s[Y].ms[Z]:"
+          fi
+
+      - name: Check commit messages for microstep IDs
+        id: check_commits
+        run: |
+          echo "Checking commit messages for microstep IDs..."
+          
+          MICROSTEP_PATTERN="^p[0-9]+\.s[0-9]+\.ms[0-9]+:"
+          INVALID_COMMITS=""
+          COMMIT_COUNT=0
+          VALID_COMMITS=0
+          
+          # Get commits in this PR
+          git log --oneline origin/${{ github.base_ref }}..HEAD | while read commit; do
+            COMMIT_COUNT=$((COMMIT_COUNT + 1))
+            COMMIT_MSG=$(echo "$commit" | cut -d' ' -f2-)
+            
+            if [[ $COMMIT_MSG =~ $MICROSTEP_PATTERN ]]; then
+              VALID_COMMITS=$((VALID_COMMITS + 1))
+              echo "✅ Valid: $COMMIT_MSG"
+            else
+              echo "❌ Invalid: $COMMIT_MSG"
+              INVALID_COMMITS="$INVALID_COMMITS\n- $COMMIT_MSG"
+            fi
+          done
+          
+          if [ $COMMIT_COUNT -eq $VALID_COMMITS ]; then
+            echo "commits_valid=true" >> $GITHUB_OUTPUT
+            echo "All $COMMIT_COUNT commits have valid microstep IDs"
+          else
+            echo "commits_valid=false" >> $GITHUB_OUTPUT
+            echo "invalid_commits<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$INVALID_COMMITS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check PR description for microstep ID
+        id: check_pr_description
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          
+          if [[ $PR_BODY == *"Microstep ID"* ]] && [[ $PR_BODY =~ p[0-9]+\.s[0-9]+\.ms[0-9]+ ]]; then
+            echo "pr_description_valid=true" >> $GITHUB_OUTPUT
+            echo "✅ PR description contains microstep ID"
+          else
+            echo "pr_description_valid=false" >> $GITHUB_OUTPUT
+            echo "❌ PR description missing microstep ID"
+          fi
+
+      - name: Update commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prTitleValid = '${{ steps.check_pr_title.outputs.pr_title_valid }}' === 'true';
+            const commitsValid = '${{ steps.check_commits.outputs.commits_valid }}' === 'true';
+            const prDescValid = '${{ steps.check_pr_description.outputs.pr_description_valid }}' === 'true';
+            
+            const allValid = prTitleValid && commitsValid && prDescValid;
+            const state = allValid ? 'success' : 'failure';
+            
+            let description = 'Microstep ID validation: ';
+            if (allValid) {
+              description += 'All checks passed';
+            } else {
+              const issues = [];
+              if (!prTitleValid) issues.push('PR title');
+              if (!commitsValid) issues.push('commit messages');
+              if (!prDescValid) issues.push('PR description');
+              description += `Issues: ${issues.join(', ')}`;
+            }
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: state,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: description,
+              context: 'Governance: Microstep ID'
+            });
+
+      - name: Comment on PR if validation fails
+        if: steps.check_pr_title.outputs.pr_title_valid != 'true' || steps.check_commits.outputs.commits_valid != 'true' || steps.check_pr_description.outputs.pr_description_valid != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prTitleValid = '${{ steps.check_pr_title.outputs.pr_title_valid }}' === 'true';
+            const commitsValid = '${{ steps.check_commits.outputs.commits_valid }}' === 'true';
+            const prDescValid = '${{ steps.check_pr_description.outputs.pr_description_valid }}' === 'true';
+            
+            let comment = '## ❌ Governance: Microstep ID Validation Failed\n\n';
+            comment += 'This PR does not meet BuildRunner governance requirements:\n\n';
+            
+            if (!prTitleValid) {
+              comment += '### PR Title Issue\n';
+              comment += '- ❌ PR title must start with microstep ID pattern: `p[X].s[Y].ms[Z]:`\n';
+              comment += '- Example: `p6.s2.ms1: Add CODEOWNERS file for protected paths`\n\n';
+            }
+            
+            if (!commitsValid) {
+              comment += '### Commit Message Issues\n';
+              comment += '- ❌ All commit messages must start with microstep ID pattern: `p[X].s[Y].ms[Z]:`\n';
+              comment += '- Invalid commits:\n';
+              comment += '${{ steps.check_commits.outputs.invalid_commits }}\n\n';
+            }
+            
+            if (!prDescValid) {
+              comment += '### PR Description Issue\n';
+              comment += '- ❌ PR description must include microstep ID in the template\n';
+              comment += '- Use the PR template and fill in the microstep ID field\n\n';
+            }
+            
+            comment += '### How to Fix\n';
+            comment += '1. Update PR title to start with microstep ID (e.g., `p6.s2.ms1: Your change description`)\n';
+            comment += '2. Rewrite commit messages to include microstep ID using `git rebase -i`\n';
+            comment += '3. Update PR description using the template\n';
+            comment += '4. Ensure microstep ID exists in `/buildrunner/specs/plan.json`\n\n';
+            comment += '**This PR cannot be merged until all governance checks pass.**';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail job if validation fails
+        if: steps.check_pr_title.outputs.pr_title_valid != 'true' || steps.check_commits.outputs.commits_valid != 'true' || steps.check_pr_description.outputs.pr_description_valid != 'true'
+        run: |
+          echo "❌ Microstep ID validation failed"
+          exit 1
+
+  secrets-scan:
+    name: "Governance: Secrets Scan"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run secrets scan
+        id: secrets_scan
+        run: |
+          echo "Running secrets scan on changed files..."
+          
+          # Get changed files in this PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}..HEAD)
+          
+          # Secret patterns from governance policy
+          PATTERNS=(
+            "(?i)api[_-]?key\\s*[=:]\\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
+            "(?i)secret[_-]?key\\s*[=:]\\s*['\"]?[a-zA-Z0-9]{20,}['\"]?"
+            "(?i)password\\s*[=:]\\s*['\"]?[a-zA-Z0-9]{8,}['\"]?"
+            "AKIA[0-9A-Z]{16}"
+            "sk-[a-zA-Z0-9]{48}"
+            "xoxb-[0-9]{11}-[0-9]{11}-[a-zA-Z0-9]{24}"
+            "ghp_[a-zA-Z0-9]{36}"
+            "gho_[a-zA-Z0-9]{36}"
+            "postgres://[^\\s]+"
+            "mongodb://[^\\s]+"
+            "redis://[^\\s]+"
+          )
+          
+          VIOLATIONS=""
+          VIOLATION_COUNT=0
+          
+          for file in $CHANGED_FILES; do
+            if [[ -f "$file" && ! "$file" =~ \.(md|example|template)$ && "$file" != "governance/policy.yml" ]]; then
+              echo "Scanning $file..."
+              
+              for pattern in "${PATTERNS[@]}"; do
+                matches=$(grep -nE "$pattern" "$file" || true)
+                if [ ! -z "$matches" ]; then
+                  # Check if it's an allowed pattern
+                  if ! echo "$matches" | grep -qE "(example_api_key|your_api_key_here|placeholder_secret|\\[REDACTED\\]|\\*\\*\\*\\*\\*)"; then
+                    VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+                    VIOLATIONS="$VIOLATIONS\n- $file: $matches"
+                  fi
+                fi
+              done
+            fi
+          done
+          
+          if [ $VIOLATION_COUNT -eq 0 ]; then
+            echo "secrets_found=false" >> $GITHUB_OUTPUT
+            echo "✅ No secrets detected in changed files"
+          else
+            echo "secrets_found=true" >> $GITHUB_OUTPUT
+            echo "violations<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$VIOLATIONS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "❌ Found $VIOLATION_COUNT potential secrets"
+          fi
+
+      - name: Update commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const secretsFound = '${{ steps.secrets_scan.outputs.secrets_found }}' === 'true';
+            const state = secretsFound ? 'failure' : 'success';
+            const description = secretsFound ? 'Potential secrets detected' : 'No secrets detected';
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: state,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: description,
+              context: 'Governance: Secrets Scan'
+            });
+
+      - name: Comment on PR if secrets found
+        if: steps.secrets_scan.outputs.secrets_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 🚨 Governance: Secrets Detected
+
+**SECURITY ALERT**: Potential secrets or sensitive data detected in this PR.
+
+### Violations Found:
+${{ steps.secrets_scan.outputs.violations }}
+
+### Required Actions:
+1. **Remove all secrets** from the code immediately
+2. **Use environment variables** or secure secret management
+3. **Rotate any exposed credentials** if they are real
+4. **Update .env.example** with placeholder values if needed
+
+### How to Fix:
+- Replace hardcoded secrets with environment variables
+- Use \`process.env.SECRET_NAME\` in code
+- Add real values to CI/CD secret stores
+- Use placeholders like \`your_api_key_here\` in examples
+
+**This PR is blocked until all secrets are removed.**`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail job if secrets found
+        if: steps.secrets_scan.outputs.secrets_found == 'true'
+        run: |
+          echo "❌ Secrets scan failed - potential secrets detected"
+          exit 1
+
+  protected-paths:
+    name: "Governance: Protected Paths"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check protected paths
+        id: check_protected_paths
+        run: |
+          echo "Checking for changes to protected paths..."
+          
+          # Protected paths from governance policy
+          PROTECTED_PATHS=(
+            "/buildrunner/specs/plan.json"
+            "/buildrunner/state/runner_state.json"
+            "/supabase/migrations/"
+            "/.github/workflows/"
+            "/governance/policy.yml"
+            "/package.json"
+            "/package-lock.json"
+          )
+          
+          # Get changed files in this PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}..HEAD)
+          
+          PROTECTED_CHANGES=""
+          PROTECTED_COUNT=0
+          
+          for file in $CHANGED_FILES; do
+            for protected_path in "${PROTECTED_PATHS[@]}"; do
+              if [[ "$file" == *"$protected_path"* ]] || [[ "$file" == "$protected_path" ]]; then
+                PROTECTED_COUNT=$((PROTECTED_COUNT + 1))
+                PROTECTED_CHANGES="$PROTECTED_CHANGES\n- $file"
+                echo "Protected file changed: $file"
+              fi
+            done
+          done
+          
+          if [ $PROTECTED_COUNT -eq 0 ]; then
+            echo "protected_changes=false" >> $GITHUB_OUTPUT
+            echo "✅ No protected paths modified"
+          else
+            echo "protected_changes=true" >> $GITHUB_OUTPUT
+            echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$PROTECTED_CHANGES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "⚠️ Found $PROTECTED_COUNT protected path changes"
+          fi
+
+      - name: Check CODEOWNERS approvals
+        if: steps.check_protected_paths.outputs.protected_changes == 'true'
+        id: check_approvals
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            
+            const approvals = reviews.filter(review => review.state === 'APPROVED');
+            const approvalCount = approvals.length;
+            
+            // In a real implementation, this would check specific CODEOWNERS requirements
+            // For now, we'll require at least 1 approval for protected paths
+            const requiredApprovals = 1;
+            const hasEnoughApprovals = approvalCount >= requiredApprovals;
+            
+            core.setOutput('approvals_sufficient', hasEnoughApprovals);
+            core.setOutput('approval_count', approvalCount);
+            core.setOutput('required_approvals', requiredApprovals);
+            
+            if (hasEnoughApprovals) {
+              console.log(`✅ Sufficient approvals: ${approvalCount}/${requiredApprovals}`);
+            } else {
+              console.log(`❌ Insufficient approvals: ${approvalCount}/${requiredApprovals}`);
+            }
+
+      - name: Update commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const protectedChanges = '${{ steps.check_protected_paths.outputs.protected_changes }}' === 'true';
+            const approvalsSufficient = '${{ steps.check_approvals.outputs.approvals_sufficient }}' === 'true';
+            
+            let state, description;
+            
+            if (!protectedChanges) {
+              state = 'success';
+              description = 'No protected paths modified';
+            } else if (approvalsSufficient) {
+              state = 'success';
+              description = `Protected paths: approvals sufficient (${${{ steps.check_approvals.outputs.approval_count || 0 }}}/${${{ steps.check_approvals.outputs.required_approvals || 1 }}})`;
+            } else {
+              state = 'failure';
+              description = `Protected paths: need approvals (${${{ steps.check_approvals.outputs.approval_count || 0 }}}/${${{ steps.check_approvals.outputs.required_approvals || 1 }}})`;
+            }
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state: state,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: description,
+              context: 'Governance: Protected Paths'
+            });
+
+      - name: Comment on PR if approvals needed
+        if: steps.check_protected_paths.outputs.protected_changes == 'true' && steps.check_approvals.outputs.approvals_sufficient != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## ⚠️ Governance: Protected Paths Modified
+
+This PR modifies protected paths that require additional approvals:
+
+### Protected Files Changed:
+${{ steps.check_protected_paths.outputs.changed_files }}
+
+### Approval Status:
+- **Current approvals**: ${{ steps.check_approvals.outputs.approval_count || 0 }}
+- **Required approvals**: ${{ steps.check_approvals.outputs.required_approvals || 1 }}
+
+### Required Actions:
+1. Request reviews from appropriate CODEOWNERS
+2. Ensure all required approvals are obtained
+3. Verify changes follow governance policies
+
+**This PR cannot be merged until sufficient approvals are obtained.**`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail job if approvals insufficient
+        if: steps.check_protected_paths.outputs.protected_changes == 'true' && steps.check_approvals.outputs.approvals_sufficient != 'true'
+        run: |
+          echo "❌ Protected paths modified but insufficient approvals"
+          exit 1

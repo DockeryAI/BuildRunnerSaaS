@@ -1,0 +1,422 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BuildRunner Governance Policy Schema",
+  "description": "JSON Schema for validating BuildRunner governance policy files",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the policy"
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the project"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when policy was last updated"
+    },
+    "updated_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User who last updated the policy"
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "File paths that require special approval"
+    },
+    "approvals": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": ["admin", "tech_lead", "product_owner", "database_admin", "security_lead", "qa_lead"]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": ["role", "count"],
+            "additionalProperties": false
+          }
+        },
+        "protected_paths_override": {
+          "type": "object",
+          "patternProperties": {
+            "^/.*": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": ["role", "count"],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      },
+      "required": ["required"],
+      "additionalProperties": false
+    },
+    "pr_requirements": {
+      "type": "object",
+      "properties": {
+        "microstep_id": {
+          "type": "boolean",
+          "description": "Whether microstep ID is required in PR"
+        },
+        "microstep_id_pattern": {
+          "type": "string",
+          "description": "Regex pattern for microstep ID validation"
+        },
+        "checklists": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required checklist items in PR description"
+        },
+        "title_pattern": {
+          "type": "string",
+          "description": "Regex pattern for PR title validation"
+        },
+        "description_min_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum length for PR description"
+        }
+      },
+      "additionalProperties": false
+    },
+    "secret_scan": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "block_on_detection": {
+          "type": "boolean"
+        },
+        "deny_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    },
+    "risk": {
+      "type": "object",
+      "properties": {
+        "require_rollback": {
+          "type": "boolean"
+        },
+        "require_post_check": {
+          "type": "boolean"
+        },
+        "risk_levels": {
+          "type": "object",
+          "patternProperties": {
+            "^(low|medium|high|critical)$": {
+              "type": "object",
+              "properties": {
+                "require_rollback": {
+                  "type": "boolean"
+                },
+                "require_post_check": {
+                  "type": "boolean"
+                },
+                "auto_merge_allowed": {
+                  "type": "boolean"
+                },
+                "additional_approvals": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "require_staging_test": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "microsteps": {
+      "type": "object",
+      "properties": {
+        "enforce_in_commits": {
+          "type": "boolean"
+        },
+        "enforce_in_pr_title": {
+          "type": "boolean"
+        },
+        "enforce_in_pr_description": {
+          "type": "boolean"
+        },
+        "require_acceptance_criteria": {
+          "type": "boolean"
+        },
+        "require_testing_evidence": {
+          "type": "boolean"
+        },
+        "blocked_statuses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allowed_transitions": {
+          "type": "object",
+          "patternProperties": {
+            "^(todo|doing|blocked|done)$": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["todo", "doing", "blocked", "done"]
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "branches": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "type": "object",
+          "properties": {
+            "require_pr": {
+              "type": "boolean"
+            },
+            "require_reviews": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dismiss_stale_reviews": {
+              "type": "boolean"
+            },
+            "require_code_owner_reviews": {
+              "type": "boolean"
+            },
+            "require_status_checks": {
+              "type": "boolean"
+            },
+            "required_status_checks": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "restrict_pushes": {
+              "type": "boolean"
+            },
+            "allowed_push_users": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "slack": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "webhook_url": {
+              "type": "string"
+            },
+            "channels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "email": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "recipients": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "email"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "github": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "create_issues": {
+              "type": "boolean"
+            },
+            "assign_to_author": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "log_all_actions": {
+          "type": "boolean"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "export_format": {
+          "type": "string",
+          "enum": ["json", "csv", "xml"]
+        },
+        "include_sensitive_data": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "emergency": {
+      "type": "object",
+      "properties": {
+        "bypass_enabled": {
+          "type": "boolean"
+        },
+        "bypass_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bypass_requires_justification": {
+          "type": "boolean"
+        },
+        "bypass_requires_post_review": {
+          "type": "boolean"
+        },
+        "bypass_notification_required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "integrations": {
+      "type": "object",
+      "properties": {
+        "github": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "check_runs": {
+              "type": "boolean"
+            },
+            "commit_status": {
+              "type": "boolean"
+            },
+            "pr_comments": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "supabase": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "log_to_runner_events": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "monitoring": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "alert_on_violations": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "project_id",
+    "updated_at",
+    "updated_by",
+    "protected_paths",
+    "approvals",
+    "pr_requirements",
+    "secret_scan"
+  ],
+  "additionalProperties": false
+}
