@@ -554,6 +554,195 @@ Internet Gateway
 - **Monitoring**: Real-time security event monitoring
 - **Backup**: Automated encrypted backups with cross-region replication
 
+## Phase 13 — Integrations (Jira / Linear / Preview Environments) ✅
+
+Deep external system integrations for project tracking and deployment automation.
+
+### Features
+- **Issue Tracker Integration**: Bidirectional sync with Jira and Linear
+- **Preview Environments**: Auto-deploy with Vercel, Render, Netlify
+- **Webhook Support**: Real-time updates with HMAC validation
+- **Governance Integration**: Policy enforcement for external systems
+- **Analytics Integration**: Cost and usage tracking per integration
+
+### Issue Tracker Integrations
+- **Jira Integration**: OAuth/API key authentication with project-specific configuration
+- **Linear Integration**: GraphQL API integration with team-based access
+- **Bidirectional Sync**: Issues sync to microsteps and status updates flow both ways
+- **Smart Matching**: Automatic linking based on title similarity and keywords
+- **Manual Linking**: UI for explicit issue-to-microstep associations
+
+### Preview Environments
+- **Auto-Deploy**: Triggered on PR creation or branch push
+- **Multi-Provider**: Support for Vercel, Render, Netlify, and custom providers
+- **Status Tracking**: Real-time build and deployment status updates
+- **Governance Enforcement**: Required previews for QA and Beta phases
+- **Cleanup**: Automatic expiration and resource management
+
+### Integration Framework
+- **Provider Registry**: Extensible system for adding new integrations
+- **Encrypted Storage**: Secure credential management with vault encryption
+- **Rate Limiting**: Built-in rate limiting and retry logic
+- **Audit Logging**: All integration activities logged for compliance
+- **Health Monitoring**: Connection testing and status monitoring
+
+### Usage
+```bash
+# Configure Jira integration
+curl -X POST /api/integrations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "jira",
+    "name": "Company Jira",
+    "config": {
+      "baseUrl": "https://company.atlassian.net",
+      "email": "user@company.com",
+      "projectKey": "PROJ"
+    },
+    "credentials": {
+      "apiToken": "your-api-token"
+    }
+  }'
+
+# Sync issues manually
+curl -X POST /api/integrations/sync/issues?integration_id=123
+
+# Configure preview environment
+curl -X POST /api/integrations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "vercel",
+    "name": "Production Vercel",
+    "config": {
+      "projectName": "buildrunner-app"
+    },
+    "credentials": {
+      "token": "your-vercel-token"
+    }
+  }'
+```
+
+### Integration Configuration
+```yaml
+# governance/policy.yml
+integrations:
+  integrations_allowed:
+    - jira
+    - linear
+    - vercel
+    - render
+    - netlify
+  external_sync_required: true
+  require_preview_for_phase:
+    - QA
+    - Beta
+  max_integrations_per_project: 10
+
+  preview_environments:
+    required_for_phases:
+      - QA
+      - Beta
+    providers_allowed:
+      - vercel
+      - render
+      - netlify
+    auto_deploy_branches:
+      - main
+      - develop
+      - "feature/*"
+    retention_days: 7
+```
+
+### Webhook Integration
+```javascript
+// Jira webhook payload
+{
+  "webhookEvent": "jira:issue_updated",
+  "issue": {
+    "id": "10001",
+    "key": "PROJ-123",
+    "fields": {
+      "summary": "Implement user authentication",
+      "status": { "name": "In Progress" },
+      "assignee": { "displayName": "John Doe" }
+    }
+  }
+}
+
+// Linear webhook payload
+{
+  "action": "update",
+  "data": {
+    "id": "linear-issue-id",
+    "identifier": "BR-45",
+    "title": "Setup webhook endpoints",
+    "state": { "name": "In Progress" }
+  }
+}
+```
+
+### Database Schema
+```sql
+-- External integrations configuration
+CREATE TABLE external_integrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID,
+  provider TEXT CHECK (provider IN ('jira','linear','vercel','render','netlify')),
+  name TEXT NOT NULL,
+  config JSONB NOT NULL DEFAULT '{}',
+  credentials_encrypted TEXT,
+  active BOOLEAN DEFAULT true,
+  sync_status TEXT CHECK (sync_status IN ('pending','success','failed','disabled')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Issue links between external systems and microsteps
+CREATE TABLE issue_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  integration_id UUID REFERENCES external_integrations(id),
+  provider TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  external_key TEXT,
+  microstep_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  url TEXT NOT NULL,
+  last_synced_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Preview environments for branches and PRs
+CREATE TABLE preview_envs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  integration_id UUID REFERENCES external_integrations(id),
+  branch TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  url TEXT,
+  status TEXT CHECK (status IN ('pending','building','ready','error','cancelled')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Integration Management UI
+- **Settings → Integrations**: Central hub for all external integrations
+- **Provider Cards**: Visual status and configuration for each integration type
+- **Test Connections**: One-click validation of integration health
+- **Issue Panel**: Inline view of linked external issues within Plan Editor
+- **Preview Status**: Real-time deployment status in Workbench
+
+### Governance & Compliance
+- **Policy Enforcement**: Required previews block QA/Beta phase progression
+- **Audit Trail**: All integration activities logged to runner_events
+- **Rate Limiting**: Automatic throttling to respect external API limits
+- **Secure Storage**: Encrypted credential storage with vault encryption
+- **Access Control**: Role-based permissions for integration management
+
+### Analytics Integration
+- **Cost Tracking**: API call costs and deployment minutes per integration
+- **Usage Metrics**: Sync frequency, success rates, and error patterns
+- **Performance Monitoring**: Response times and availability tracking
+- **Trend Analysis**: Historical usage patterns and optimization opportunities
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -568,3 +757,4 @@ Internet Gateway
 - **Phase 10**: Collaboration & Comments Integration with realtime presence ✅
 - **Phase 11**: Explainability & Multi-Model with AI narratives and model router ✅
 - **Phase 12**: Enterprise & Compliance with VPC deployment, SSO, and audit ✅
+- **Phase 13**: Integrations with Jira, Linear, and Preview Environments ✅

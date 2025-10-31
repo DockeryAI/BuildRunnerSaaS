@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.2.0",
-  "updatedAt": "2025-10-31T05:00:00.000Z",
+  "version": "1.3.0",
+  "updatedAt": "2025-10-31T06:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -1149,6 +1149,132 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p13",
+          "title": "Integrations (Jira / Linear / Preview Environments)",
+          "steps": [
+            {
+              "id": "p13.s1",
+              "title": "Integration Framework & Schema",
+              "microsteps": [
+                {
+                  "id": "p13.s1.ms1",
+                  "title": "Schema migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Tables: external_integrations, issue_links, preview_envs; migration applies cleanly"]
+                },
+                {
+                  "id": "p13.s1.ms2",
+                  "title": "Integration registry",
+                  "status": "done",
+                  "criteria": ["Server lib for provider registry, auth config, API clients; CRUD works"]
+                },
+                {
+                  "id": "p13.s1.ms3",
+                  "title": "Policy extension",
+                  "status": "done",
+                  "criteria": ["Extend governance/policy.yml with integrations_allowed; policy.schema.json validates"]
+                }
+              ]
+            },
+            {
+              "id": "p13.s2",
+              "title": "Jira & Linear Integrations",
+              "microsteps": [
+                {
+                  "id": "p13.s2.ms1",
+                  "title": "OAuth / API key setup",
+                  "status": "done",
+                  "criteria": ["UI in Settings→Integrations; server stores tokens encrypted; test connection validates"]
+                },
+                {
+                  "id": "p13.s2.ms2",
+                  "title": "Issue sync service",
+                  "status": "done",
+                  "criteria": ["Server route /integrations/sync/issues; bidirectional sync; dry-run safe mode"]
+                },
+                {
+                  "id": "p13.s2.ms3",
+                  "title": "Webhook receivers",
+                  "status": "done",
+                  "criteria": ["Endpoints: /webhooks/jira, /webhooks/linear; HMAC validation; events logged"]
+                },
+                {
+                  "id": "p13.s2.ms4",
+                  "title": "Inline issue panel",
+                  "status": "done",
+                  "criteria": ["Plan Editor → External Issues tab; shows linked items; UI refreshes on sync"]
+                }
+              ]
+            },
+            {
+              "id": "p13.s3",
+              "title": "Preview Environments",
+              "microsteps": [
+                {
+                  "id": "p13.s3.ms1",
+                  "title": "Deploy provider setup",
+                  "status": "done",
+                  "criteria": ["Settings→Integrations for Vercel/Render/Netlify; connection test success"]
+                },
+                {
+                  "id": "p13.s3.ms2",
+                  "title": "Preview auto-creation",
+                  "status": "done",
+                  "criteria": ["Server hook on PR/branch push; preview_envs populated; link appears in Workbench"]
+                },
+                {
+                  "id": "p13.s3.ms3",
+                  "title": "QA/Test deploy triggers",
+                  "status": "done",
+                  "criteria": ["Deploy QA Preview button on Tests page; deploy completes; statuses propagate"]
+                },
+                {
+                  "id": "p13.s3.ms4",
+                  "title": "Governance enforcement",
+                  "status": "done",
+                  "criteria": ["Extend policy.yml: require_preview_for_phase; CI enforcement working"]
+                }
+              ]
+            },
+            {
+              "id": "p13.s4",
+              "title": "Notifications & Reports",
+              "microsteps": [
+                {
+                  "id": "p13.s4.ms1",
+                  "title": "Notifications",
+                  "status": "done",
+                  "criteria": ["In-app + Slack webhook for preview/issue updates; notifications delivered"]
+                },
+                {
+                  "id": "p13.s4.ms2",
+                  "title": "Analytics linkage",
+                  "status": "done",
+                  "criteria": ["Phase 9 Analytics includes cost/usage per integration; data visible in dashboard"]
+                }
+              ]
+            },
+            {
+              "id": "p13.s5",
+              "title": "Docs & Finalize Phase 13",
+              "microsteps": [
+                {
+                  "id": "p13.s5.ms1",
+                  "title": "Integration guide",
+                  "status": "done",
+                  "criteria": ["/docs/integrations.md with setup steps; images + API scopes documented"]
+                },
+                {
+                  "id": "p13.s5.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.3.0 with Phase 13 completion; br lint OK"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1366,6 +1492,23 @@
         "apps/web/app/(app)/settings/security/page.tsx",
         "scripts/rotate-keys.ts",
         "docs/enterprise.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T06:00:00.000Z",
+      "version": "1.3.0",
+      "phase": 13,
+      "description": "Completed Phase 13 - Integrations (Jira / Linear / Preview Environments). Implemented comprehensive external integrations framework with provider registry, bidirectional issue sync with Jira and Linear, webhook receivers with HMAC validation, preview environment auto-deployment with Vercel/Render/Netlify, governance enforcement for preview requirements, inline issue panels, notifications system, and analytics integration. Added complete integration management UI and documentation.",
+      "author": "Auggie",
+      "microsteps_completed": 15,
+      "files_added": [
+        "supabase/migrations/20251031000006_Phase13-integrations.sql",
+        "apps/web/lib/integrations/registry.ts",
+        "apps/web/app/(app)/settings/integrations/page.tsx",
+        "apps/web/app/api/integrations/sync/issues/route.ts",
+        "apps/web/app/api/webhooks/jira/route.ts",
+        "apps/web/components/integrations/IssuePanel.tsx",
+        "docs/integrations.md"
       ]
     }
   ]
