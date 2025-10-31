@@ -372,6 +372,7 @@ export default function CreatePage() {
           category,
           message: content,
           conversation_history: messages.slice(-5), // Last 5 messages for context
+          product_idea: initialIdea, // Include the product idea for context
         }),
       });
 

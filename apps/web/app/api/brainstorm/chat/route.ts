@@ -8,13 +8,15 @@ class OpenRouterService {
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
-  async generateSuggestions(category: string, prompt: string) {
+  async generateSuggestions(category: string, prompt: string, productIdea?: string) {
     const modelConfig = this.getModelConfig(category);
-    const systemPrompt = this.getSystemPrompt(category);
+    const systemPrompt = this.getSystemPrompt(category, productIdea);
 
-    const enhancedPrompt = `${prompt}
+    const productContext = productIdea ? `\n\nPRODUCT CONTEXT: The user is developing "${productIdea}". All suggestions must be specifically tailored to this product.` : '';
 
-Please provide 3-5 actionable suggestions in JSON format. Each suggestion should follow this exact schema:
+    const enhancedPrompt = `${prompt}${productContext}
+
+Please provide 3-5 actionable suggestions in JSON format specifically for this product. Each suggestion should follow this exact schema:
 {
   "title": "Brief descriptive title (max 100 chars)",
   "summary": "Concise explanation (max 300 chars)",
@@ -89,9 +91,9 @@ Return only a JSON array of suggestions, no additional text.`;
     }
   }
 
-  async generateResponse(category: string, messages: any[]) {
+  async generateResponse(category: string, messages: any[], productIdea?: string) {
     const modelConfig = this.getModelConfig(category);
-    const systemPrompt = this.getSystemPrompt(category);
+    const systemPrompt = this.getSystemPrompt(category, productIdea);
 
     try {
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -161,13 +163,15 @@ Return only a JSON array of suggestions, no additional text.`;
     return configs[category as keyof typeof configs] || configs.strategy;
   }
 
-  getSystemPrompt(category: string) {
+  getSystemPrompt(category: string, productIdea?: string) {
+    const productContext = productIdea ? `\n\nCONTEXT: The user is developing "${productIdea}". All your responses should be specifically tailored to this product idea. Reference it directly and provide concrete, actionable advice for this specific product.` : '';
+
     const prompts = {
-      strategy: 'You are StrategyGPT, an expert business strategist specializing in SaaS product strategy, market positioning, and competitive analysis. Provide structured, actionable insights with clear reasoning and data-driven recommendations.',
-      product: 'You are ProductGPT, a senior product manager with expertise in feature prioritization, user experience design, and product roadmap planning. Focus on user value, technical feasibility, and business impact.',
-      monetization: 'You are MonetizationGPT, a revenue strategy expert specializing in SaaS pricing models, subscription tiers, and revenue optimization. Provide data-driven pricing recommendations with market analysis.',
-      gtm: 'You are GTMGPT, a go-to-market specialist with expertise in customer acquisition, marketing channels, sales strategies, and market entry tactics for B2B SaaS products.',
-      competitor: 'You are CompetitorGPT, a competitive intelligence analyst specializing in market research, feature comparison, and differentiation strategy. Provide objective analysis with actionable competitive insights.',
+      strategy: `You are StrategyGPT, an expert business strategist specializing in SaaS product strategy, market positioning, and competitive analysis. Provide structured, actionable insights with clear reasoning and data-driven recommendations.${productContext}`,
+      product: `You are ProductGPT, a senior product manager with expertise in feature prioritization, user experience design, and product roadmap planning. Focus on user value, technical feasibility, and business impact. Provide specific feature recommendations, user stories, and technical considerations.${productContext}`,
+      monetization: `You are MonetizationGPT, a revenue strategy expert specializing in SaaS pricing models, subscription tiers, and revenue optimization. Provide data-driven pricing recommendations with market analysis and specific revenue strategies.${productContext}`,
+      gtm: `You are GTMGPT, a go-to-market specialist with expertise in customer acquisition, marketing channels, sales strategies, and market entry tactics for B2B SaaS products.${productContext}`,
+      competitor: `You are CompetitorGPT, a competitive intelligence analyst specializing in market research, feature comparison, and differentiation strategy. Provide objective analysis with actionable competitive insights and specific competitor comparisons.${productContext}`,
     };
 
     return prompts[category as keyof typeof prompts] || prompts.strategy;
@@ -209,9 +213,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { category, message, conversation_history } = body;
+    const { category, message, conversation_history, product_idea } = body;
 
-    console.log('Request data:', { category, message: message.substring(0, 100) + '...', historyLength: conversation_history?.length || 0 });
+    console.log('Request data:', { category, message: message.substring(0, 100) + '...', historyLength: conversation_history?.length || 0, productIdea: product_idea?.substring(0, 50) + '...' || 'none' });
 
     if (!category || !message) {
       console.error('Missing required fields:', { category: !!category, message: !!message });
@@ -255,8 +259,8 @@ export async function POST(request: NextRequest) {
 
     // Generate response and suggestions
     const [response, suggestions] = await Promise.all([
-      service.generateResponse(category, conversation_history || []),
-      service.generateSuggestions(category, message)
+      service.generateResponse(category, conversation_history || [], product_idea),
+      service.generateSuggestions(category, message, product_idea)
     ]);
 
     console.log('AI response generated successfully:', {
