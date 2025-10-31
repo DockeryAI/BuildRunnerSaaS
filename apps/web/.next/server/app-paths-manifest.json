@@ -1,6 +1,7 @@
 {
   "/not-found": "app/not-found.js",
-  "/(app)/create/page": "app/(app)/create/page.js",
+  "/api/brainstorm/config/route": "app/api/brainstorm/config/route.js",
   "/(app)/plan/page": "app/(app)/plan/page.js",
+  "/(app)/create/page": "app/(app)/create/page.js",
   "/(app)/brainstorm/page": "app/(app)/brainstorm/page.js"
 }

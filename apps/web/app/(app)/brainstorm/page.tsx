@@ -14,7 +14,7 @@ import {
   CogIcon,
   LightBulbIcon,
   ArrowRightIcon,
-  BullseyeIcon
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import { SuggestionCard } from '../../../components/brainstorm/Card';
 import { BrainstormState, useBrainstormState } from '../../../lib/brainstorm/state';
@@ -36,7 +36,7 @@ interface ModelCategory {
 }
 
 const categoryIcons = {
-  strategy: TargetIcon,
+  strategy: BeakerIcon,
   product: DocumentTextIcon,
   monetization: CurrencyDollarIcon,
   gtm: RocketLaunchIcon,
@@ -414,7 +414,7 @@ export default function BrainstormPage() {
             <p className="text-sm font-medium text-gray-700 mb-4">What you'll get:</p>
             <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
-                <BullseyeIcon className="h-4 w-4 text-blue-500" />
+                <BeakerIcon className="h-4 w-4 text-blue-500" />
                 <span>Strategic planning</span>
               </div>
               <div className="flex items-center space-x-2">
