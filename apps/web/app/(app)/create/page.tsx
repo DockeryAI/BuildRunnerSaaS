@@ -12,7 +12,13 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
   ArchiveBoxIcon,
-  ClockIcon
+  ClockIcon,
+  LightBulbIcon,
+  CogIcon,
+  ArrowRightIcon,
+  BeakerIcon,
+  DocumentTextIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import { SuggestionCard } from '../../../components/brainstorm/Card';
 import { DraggableSuggestion } from '../../../components/brainstorm/DraggableSuggestion';
