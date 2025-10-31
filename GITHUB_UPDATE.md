@@ -7,16 +7,22 @@ We've completely transformed BuildRunner SaaS into an innovative AI-powered prod
 ## ✨ Key Features
 
 ### 🤖 AI-Powered Brainstorming System
+- **Latest AI Technology**: Upgraded to GPT-4o for superior reasoning and contextual understanding
 - **4 Specialized AI Agents**: ProductGPT, StrategyGPT, CompetitorGPT, MonetizationGPT
-- **OpenRouter Integration**: Leverages Claude 3.5 Sonnet and GPT-4 Turbo
+- **OpenRouter Integration**: Leverages cutting-edge AI models with enhanced performance
 - **Contextual Responses**: AI provides specific advice tailored to your exact product
-- **Smart Suggestions**: Impact-scored recommendations with implementation details
+- **Smart Suggestions**: Impact-scored recommendations with comprehensive implementation details
+- **Initial Feature Extraction**: AI automatically parses product ideas to extract mentioned features
+- **Intelligent Filtering**: Prevents re-suggesting features already added to PRD
 
 ### 📋 Interactive PRD Builder
+- **Intelligent Feature Extraction**: AI automatically extracts and populates features from initial product description
 - **Drag-and-Drop Interface**: Move AI suggestions directly into PRD sections
-- **Live Document Generation**: PRD auto-populates as you brainstorm
-- **Professional Output**: Export-ready markdown documents
+- **Live Document Generation**: PRD auto-populates as you brainstorm with immediate feature population
+- **Smart Suggestion Management**: Tracks used suggestions to prevent duplication
+- **Professional Output**: Export-ready markdown documents with comprehensive feature details
 - **Structured Sections**: Product Overview, Key Features, Success Metrics, Monetization
+- **No Blank Start**: PRD begins with extracted features from user's initial idea
 
 ### 🎨 Beautiful User Experience
 - **Modern Design**: Gradient backgrounds, shadows, professional styling
@@ -25,11 +31,17 @@ We've completely transformed BuildRunner SaaS into an innovative AI-powered prod
 - **Visual Feedback**: Hover effects, drag states, smooth transitions
 
 ### 💡 Smart Suggestion Cards
+- **Enhanced Detail Schema**: Comprehensive information including how features work, user interaction flows, technical implementation, and business value
 - **Ultra-Compact Design**: One-line titles for maximum vertical space efficiency
-- **Click-to-Expand**: Down arrow reveals comprehensive feature details, value propositions, and implementation guidance
+- **Click-to-Expand**: Down arrow reveals detailed information:
+  - How It Works: Technical and functional explanation
+  - How Users Will Use It: Step-by-step user interaction flow
+  - Technical Approach: Implementation considerations and architecture
+  - Business Value: Clear value proposition and impact explanation
 - **Impact Scoring**: AI-generated business impact (1-10) with confidence ratings and effort estimates (low/medium/high)
+- **Smart Filtering**: Automatically excludes suggestions already added to PRD
 - **Visual Drag Handles**: Clear grab indicators with category-specific color coding
-- **Comprehensive Details**: Dependencies, success metrics, risk assessments, and usage scenarios
+- **Removal on Use**: Suggestions disappear from chat when dragged to PRD to prevent duplication
 - **Smooth Interactions**: Hover effects, drag states, and visual feedback throughout
 
 ## 🛠️ Technical Implementation
@@ -90,6 +102,32 @@ We've completely transformed BuildRunner SaaS into an innovative AI-powered prod
 - Export completed PRD as markdown
 - Continue brainstorming for additional ideas
 - Session persistence across refreshes
+
+## 🚀 Latest AI Improvements
+
+### GPT-4o Integration
+- **Cutting-Edge AI**: Upgraded from GPT-4 Turbo to GPT-4o for superior reasoning capabilities
+- **Enhanced Understanding**: Better contextual awareness and product-specific responses
+- **Improved Accuracy**: More precise feature extraction and suggestion generation
+- **Faster Processing**: Optimized response times with latest model architecture
+
+### Intelligent Feature Extraction
+- **Automatic Parsing**: AI analyzes initial product ideas to extract specific mentioned features
+- **Immediate Population**: Features appear in PRD instantly upon session start
+- **Comprehensive Analysis**: Extracts not just features but user flows, technical approaches, and business value
+- **No Blank Slate**: Users see their ideas professionally structured from the beginning
+
+### Smart Suggestion Management
+- **Duplication Prevention**: System tracks which suggestions have been used to avoid repetition
+- **Context-Aware Filtering**: AI knows what's already in PRD and suggests complementary features
+- **Dynamic Removal**: Suggestions disappear from interface when dragged to PRD
+- **Intelligent Progression**: Recommendations evolve as PRD becomes more complete
+
+### Enhanced Detail Schema
+- **Comprehensive Information**: Each suggestion includes detailed descriptions, user interaction flows, technical implementation, and business value
+- **Professional Quality**: Information suitable for technical documentation and stakeholder presentation
+- **Implementation Guidance**: Clear technical approaches and architecture considerations
+- **User Experience Focus**: Step-by-step user interaction flows for each feature
 
 ## 🎨 Latest UX Improvements
 

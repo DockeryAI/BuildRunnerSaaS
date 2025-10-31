@@ -41,11 +41,13 @@ This document outlines the complete user journey through the BuildRunner SaaS pl
 
 ### Step 4: Session Initialization
 - **Automatic Actions**:
-  - AI generates professional product description (not copy-paste of user input)
+  - AI generates professional product description using GPT-4o (not copy-paste of user input)
+  - **AI extracts initial features** from product idea and populates PRD Features section immediately
   - Creates contextual welcome message acknowledging specific product
-  - Initializes PRD document with auto-generated product overview
+  - Initializes PRD document with auto-generated product overview and extracted features
   - Sets category to "Product" for first discussion
   - Clears all previous session data for fresh start
+  - **No blank PRD**: Document starts with meaningful content from user's idea
 
 ### Step 5: Interactive Chat Interface
 - **Layout**: 2-column design
@@ -114,8 +116,10 @@ This document outlines the complete user journey through the BuildRunner SaaS pl
   - Implementation effort indicator (low/medium/high) with color coding
   - Visual drag handle (bars icon) for grab-and-drop functionality
 - **Expanded View** (Click down arrow):
-  - **Description**: Full feature description and technical details
-  - **Value & Usage**: Value proposition, usage scenarios, and business benefits
+  - **How It Works**: Comprehensive technical and functional explanation of the feature
+  - **How Users Will Use It**: Step-by-step description of user interaction and workflow
+  - **Technical Approach**: High-level implementation considerations and architecture details
+  - **Business Value**: Clear explanation of business impact and value proposition
   - **Dependencies**: Required resources, integrations, and technical requirements
   - **Success Metrics**: Measurable outcomes, KPIs, and performance indicators
   - **Risk Assessment**: Implementation challenges, potential issues, and mitigation strategies
@@ -138,11 +142,18 @@ This document outlines the complete user journey through the BuildRunner SaaS pl
   - Monetization strategy (from dragged revenue model suggestions)
   - Organized presentation with suggestion details and implementation effort
 
-### Step 12: Session Management
-- **Persistence**: All data saved to localStorage
-- **Fresh Start**: "New Product" button clears session
-- **Export**: Download PRD as markdown file
-- **Continuation**: Resume session after browser refresh
+### Step 12: Smart Suggestion Management
+- **Duplication Prevention**: System tracks which suggestions have been dragged to PRD
+- **Dynamic Filtering**: AI receives list of used suggestions and avoids re-suggesting them
+- **Suggestion Removal**: When a suggestion is dragged to PRD, it disappears from chat interface
+- **Context-Aware Recommendations**: AI focuses on new, complementary features based on current PRD state
+- **Intelligent Progression**: Suggestions evolve as PRD becomes more complete
+
+### Step 13: Session Management
+- **Persistence**: All data saved to localStorage including used suggestions tracking
+- **Fresh Start**: "New Product" button clears session and resets suggestion tracking
+- **Export**: Download PRD as markdown file with all dragged suggestions
+- **Continuation**: Resume session after browser refresh with full suggestion state
 
 ## Phase 5: Completion & Export
 

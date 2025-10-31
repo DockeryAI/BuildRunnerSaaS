@@ -7,30 +7,42 @@ BuildRunner SaaS is an innovative AI-powered platform that transforms product de
 ## Core Features
 
 ### 1. AI-Powered Brainstorming System
+- **Latest AI Models**: Upgraded to GPT-4o for superior reasoning and contextual understanding
 - **Contextual AI Agents**: Specialized AI agents for different aspects of product development
   - ProductGPT: Feature prioritization and UX design
   - StrategyGPT: Business strategy and market positioning
   - CompetitorGPT: Competitive analysis and differentiation
   - MonetizationGPT: Revenue models and pricing strategies
-- **OpenRouter Integration**: Leverages multiple AI models (Claude 3.5 Sonnet, GPT-4 Turbo)
+- **OpenRouter Integration**: Leverages cutting-edge AI models with enhanced performance
 - **Product-Specific Responses**: AI provides contextual advice tailored to your specific product idea
+- **Initial Feature Extraction**: AI automatically parses product ideas to extract mentioned features
+- **Smart Suggestion Filtering**: Prevents re-suggesting features already added to PRD
 
 ### 2. Interactive PRD Builder
+- **Intelligent Feature Extraction**: AI automatically extracts and populates features from initial product description
 - **Drag-and-Drop Interface**: Move AI suggestions directly into PRD sections
-- **Live Document Generation**: PRD auto-populates as you brainstorm
+- **Live Document Generation**: PRD auto-populates as you brainstorm with immediate feature population
+- **Smart Suggestion Management**: Tracks used suggestions to prevent duplication
 - **Structured Sections**:
-  - Product Overview (auto-generated description)
-  - Key Features (draggable product suggestions)
+  - Product Overview (AI-generated professional description)
+  - Key Features (auto-extracted + draggable product suggestions)
   - Success Metrics (draggable strategy suggestions)
   - Monetization Strategy (draggable revenue suggestions)
+- **No Blank Start**: PRD begins with extracted features from user's initial idea
 
 ### 3. Smart Suggestion System
-- **Compact Expandable Cards**: One-line titles for efficient vertical space usage
-- **Click-to-Expand**: Down arrow reveals full feature descriptions, value propositions, and implementation details
+- **Enhanced Detail Schema**: Comprehensive suggestion format with detailed descriptions, user interaction flows, technical implementation, and business value
+- **Compact Expandable Cards**: One-line titles for maximum vertical space efficiency
+- **Click-to-Expand**: Down arrow reveals detailed information including:
+  - How It Works: Technical and functional explanation
+  - How Users Will Use It: Step-by-step user interaction flow
+  - Technical Approach: Implementation considerations and architecture
+  - Business Value: Clear value proposition and impact explanation
 - **Impact Scoring**: AI-generated impact scores (1-10) and effort estimates (low/medium/high)
 - **Category-Specific**: Suggestions tailored to current focus area with color-coded icons
-- **Comprehensive Details**: Full descriptions, usage scenarios, dependencies, metrics, and risk assessments
+- **Smart Filtering**: Automatically excludes suggestions already added to PRD
 - **Drag Handles**: Visual grab indicators for moving suggestions to PRD sections
+- **Removal on Use**: Suggestions disappear from chat when dragged to PRD to prevent duplication
 
 ### 4. Beautiful User Experience
 - **Clean 2-Column Layout**: PRD document + AI chat interface
@@ -47,9 +59,11 @@ BuildRunner SaaS is an innovative AI-powered platform that transforms product de
 - **State Management**: React hooks with localStorage persistence
 
 ### Backend (API Routes)
-- **OpenRouter Integration**: Multi-model AI service integration
-- **Specialized Prompts**: Context-aware system prompts for each AI agent
-- **JSON Response Parsing**: Structured suggestion generation
+- **OpenRouter Integration**: Multi-model AI service integration with GPT-4o
+- **Feature Extraction Engine**: AI-powered parsing of product ideas to extract specific features
+- **Specialized Prompts**: Context-aware system prompts for each AI agent with enhanced detail schemas
+- **Smart Filtering**: Used suggestion tracking to prevent duplication
+- **JSON Response Parsing**: Structured suggestion generation with comprehensive detail fields
 - **Error Handling**: Graceful fallbacks and user feedback
 
 ### Key Components
@@ -113,10 +127,22 @@ BuildRunner SaaS is an innovative AI-powered platform that transforms product de
 - **Expandable Format**: Compact one-line display with full details on expansion
 
 ### Product Description Generation
-- **AI-Generated Summaries**: Professional descriptions created from user ideas
+- **AI-Generated Summaries**: Professional descriptions created from user ideas using GPT-4o
 - **PRD-Quality Content**: Suitable for stakeholder presentation and documentation
 - **Context-Aware**: Tailored to product type, target users, and value proposition
 - **Auto-Population**: Automatically fills PRD overview section on first interaction
+
+### Initial Feature Extraction
+- **Intelligent Parsing**: AI analyzes user's product idea to extract specific mentioned features
+- **Immediate Population**: Features appear in PRD immediately upon session start
+- **No Blank Slate**: Users see their ideas structured professionally from the beginning
+- **Comprehensive Analysis**: Extracts features, user interactions, technical approaches, and business value
+
+### Smart Suggestion Management
+- **Duplication Prevention**: Tracks used suggestions to avoid re-suggesting implemented features
+- **Context-Aware Filtering**: AI knows what's already in the PRD and suggests complementary features
+- **Dynamic Removal**: Suggestions disappear from chat interface when dragged to PRD
+- **Intelligent Recommendations**: Focuses on new, relevant suggestions based on current PRD state
 
 ## Design System
 
