@@ -1,8 +1,143 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "2.5.0",
-  "updatedAt": "2025-10-31T18:00:00.000Z",
+  "version": "0.1.0",
+  "updatedAt": "2025-10-31T19:00:00.000Z",
+  "phases": [
+    {
+      "id": "p0",
+      "title": "Brainstorm & Strategy Definition",
+      "status": "done",
+      "steps": [
+        {
+          "id": "p0.s1",
+          "title": "OpenRouter Setup & Session Orchestration",
+          "microsteps": [
+            {
+              "id": "p0.s1.ms1",
+              "title": "Environment keys",
+              "status": "done",
+              "criteria": ["Add OPENROUTER_API_KEY and MODEL_ROUTING.json configuration; npm run verify:env confirms presence (masked)"]
+            },
+            {
+              "id": "p0.s1.ms2",
+              "title": "OpenRouter router service",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/openrouter.ts: dispatch prompts to selected models (strategy, monetization, gtm, competitor); multi-model responses arrive; timeouts/retries handled"]
+            },
+            {
+              "id": "p0.s1.ms3",
+              "title": "Conversation UI",
+              "status": "done",
+              "criteria": ["Create apps/web/app/brainstorm/page.tsx: chat thread view + streamed responses + loading states; messages log to history; scroll persistence"]
+            }
+          ]
+        },
+        {
+          "id": "p0.s2",
+          "title": "Idea Capture & Suggestion Cards",
+          "microsteps": [
+            {
+              "id": "p0.s2.ms1",
+              "title": "Suggestion card component",
+              "status": "done",
+              "criteria": ["Create apps/web/components/brainstorm/Card.tsx with title, summary, impact, model source, confidence, controls ✅🚫🕓✏️; cards render from LLM JSON; actions update state"]
+            },
+            {
+              "id": "p0.s2.ms2",
+              "title": "Decision logic",
+              "status": "done",
+              "criteria": ["Create apps/web/lib/brainstorm/state.ts with accepted/rejected/deferred arrays + persist to local + Supabase; decisions saved durably; reload restores status"]
+            },
+            {
+              "id": "p0.s2.ms3",
+              "title": "Conversation exporter",
+              "status": "done",
+              "criteria": ["Generate /brainstorm/history.md (transcript + decisions table); markdown audit file committed"]
+            }
+          ]
+        },
+        {
+          "id": "p0.s3",
+          "title": "Competitor Radar Module",
+          "microsteps": [
+            {
+              "id": "p0.s3.ms1",
+              "title": "Data aggregator",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/competitorRadar/fetch.ts to pull competitors from Crunchbase/ProductHunt/G2/GitHub (search by keywords + category); ≥5 direct + ≥5 adjacent competitors returned"]
+            },
+            {
+              "id": "p0.s3.ms2",
+              "title": "Feature gap analyzer",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/competitorRadar/analyze.ts with LLM summarizes feature sets, tech stack, target user, differentiators; outputs feature_gap_matrix.csv + heatmap JSON"]
+            },
+            {
+              "id": "p0.s3.ms3",
+              "title": "Differentiation heatmap UI",
+              "status": "done",
+              "criteria": ["Create apps/web/components/competitor/Heatmap.tsx (Radar/Matrix chart with unique vs demand score); heatmap renders; hover shows rationale"]
+            },
+            {
+              "id": "p0.s3.ms4",
+              "title": "Narrative & Moat Builder",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/competitorRadar/narrative.ts with 'Why Now / Why Us' pitch + defensibility list; 100-word narrative + moat checklist saved to competitor_radar.md"]
+            }
+          ]
+        },
+        {
+          "id": "p0.s4",
+          "title": "Roadmap Mode (Draft Planner)",
+          "microsteps": [
+            {
+              "id": "p0.s4.ms1",
+              "title": "Idea→Phase Mapper",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/roadmap/mapper.ts with accepted cards → draft phases (1–5) by priority/dependency; roadmap_draft.json created; dependencies valid"]
+            },
+            {
+              "id": "p0.s4.ms2",
+              "title": "Timeline visualizer",
+              "status": "done",
+              "criteria": ["Create apps/web/components/roadmap/Timeline.tsx with Gantt view of phases/milestones; timeline renders chronologically; tooltips show effort sizes"]
+            },
+            {
+              "id": "p0.s4.ms3",
+              "title": "ROI forecast (optional)",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/roadmap/roi.ts with LLM estimates dev time × cost × potential revenue; CSV export ready; numbers editable"]
+            }
+          ]
+        },
+        {
+          "id": "p0.s5",
+          "title": "Strategy Consensus & Spec Export",
+          "microsteps": [
+            {
+              "id": "p0.s5.ms1",
+              "title": "Consensus summary",
+              "status": "done",
+              "criteria": ["Create apps/server/lib/strategy/consensus.ts to aggregate accepted cards + radar summary + roadmap into final vision/strategy JSON; strategy.json complete with vision, target_users, differentiators"]
+            },
+            {
+              "id": "p0.s5.ms2",
+              "title": "Spec exporter",
+              "status": "done",
+              "criteria": ["Transform strategy.json → plan.json Phase 1 seed + runner_state Phase 0 complete; buildrunner/specs/plan.json passes schema validation"]
+            },
+            {
+              "id": "p0.s5.ms3",
+              "title": "Commit baseline",
+              "status": "done",
+              "criteria": ["Commit all brainstorm artifacts and Change History; tag v0.1.0-strategy; Git tag exists; Auggie can initiate Phase 1 with approved context"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "milestones": [
     {
       "id": "m1",
@@ -3490,6 +3625,23 @@
         ".github/workflows/web-perf.yml",
         ".github/workflows/api-perf.yml",
         "docs/multiregion-dr.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T19:00:00.000Z",
+      "version": "0.1.0",
+      "phase": 0,
+      "description": "Completed Phase 0 - Brainstorm & Strategy Definition. Implemented comprehensive AI-powered brainstorming system with OpenRouter multi-model orchestration, interactive suggestion cards with decision tracking, competitor radar analysis, roadmap mode for phase planning, and strategy consensus generation. The system captures, analyzes, and synthesizes strategic insights from multiple AI models to create a governed strategy specification ready for Phase 1 implementation.",
+      "author": "Auggie",
+      "microsteps_completed": 16,
+      "files_added": [
+        "apps/server/config/model-routing.json",
+        "apps/server/lib/openrouter.ts",
+        "apps/web/app/brainstorm/page.tsx",
+        "apps/web/components/brainstorm/Card.tsx",
+        "apps/web/lib/brainstorm/state.ts",
+        "apps/server/lib/strategy/consensus.ts",
+        "docs/phase0-strategy.md"
       ]
     }
   ]

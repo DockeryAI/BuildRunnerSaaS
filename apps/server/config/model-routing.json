@@ -1,0 +1,97 @@
+{
+  "models": {
+    "strategy": {
+      "primary": "anthropic/claude-3.5-sonnet",
+      "fallback": "openai/gpt-4-turbo-preview",
+      "temperature": 0.7,
+      "max_tokens": 2000,
+      "system_prompt": "You are StrategyGPT, an expert business strategist specializing in SaaS product strategy, market positioning, and competitive analysis. Provide structured, actionable insights with clear reasoning and data-driven recommendations."
+    },
+    "product": {
+      "primary": "openai/gpt-4-turbo-preview",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "temperature": 0.6,
+      "max_tokens": 1500,
+      "system_prompt": "You are ProductGPT, a senior product manager with expertise in feature prioritization, user experience design, and product roadmap planning. Focus on user value, technical feasibility, and business impact."
+    },
+    "monetization": {
+      "primary": "anthropic/claude-3.5-sonnet",
+      "fallback": "openai/gpt-4-turbo-preview",
+      "temperature": 0.5,
+      "max_tokens": 1500,
+      "system_prompt": "You are MonetizationGPT, a revenue strategy expert specializing in SaaS pricing models, subscription tiers, and revenue optimization. Provide data-driven pricing recommendations with market analysis."
+    },
+    "gtm": {
+      "primary": "openai/gpt-4-turbo-preview",
+      "fallback": "anthropic/claude-3.5-sonnet",
+      "temperature": 0.6,
+      "max_tokens": 1500,
+      "system_prompt": "You are GTMGPT, a go-to-market specialist with expertise in customer acquisition, marketing channels, sales strategies, and market entry tactics for B2B SaaS products."
+    },
+    "competitor": {
+      "primary": "anthropic/claude-3.5-sonnet",
+      "fallback": "openai/gpt-4-turbo-preview",
+      "temperature": 0.4,
+      "max_tokens": 2000,
+      "system_prompt": "You are CompetitorGPT, a competitive intelligence analyst specializing in market research, feature comparison, and differentiation strategy. Provide objective analysis with actionable competitive insights."
+    }
+  },
+  "routing": {
+    "timeout_ms": 30000,
+    "retry_attempts": 3,
+    "retry_delay_ms": 1000,
+    "fallback_enabled": true,
+    "rate_limit": {
+      "requests_per_minute": 60,
+      "requests_per_hour": 1000
+    }
+  },
+  "response_format": {
+    "suggestion_card": {
+      "title": "string (max 100 chars)",
+      "summary": "string (max 300 chars)",
+      "category": "strategy|product|monetization|gtm|competitor",
+      "impact_score": "number (1-10)",
+      "confidence": "number (0-1)",
+      "reasoning": "string (max 500 chars)",
+      "implementation_effort": "low|medium|high",
+      "dependencies": "array of strings",
+      "metrics": "array of success metrics",
+      "risks": "array of potential risks"
+    }
+  },
+  "prompts": {
+    "brainstorm_vision": "Help me brainstorm and refine the vision for BuildRunnerSaaS. Consider the current market landscape, user needs, and potential for disruption. Provide 3-5 concrete vision statements with reasoning.",
+    "analyze_features": "Analyze the proposed features for BuildRunnerSaaS. Evaluate each feature's user value, technical complexity, and business impact. Suggest prioritization and improvements.",
+    "monetization_strategy": "Design a comprehensive monetization strategy for BuildRunnerSaaS. Consider pricing tiers, value propositions, customer segments, and revenue optimization opportunities.",
+    "gtm_planning": "Develop a go-to-market strategy for BuildRunnerSaaS. Include target customer identification, marketing channels, sales approach, and launch tactics.",
+    "competitive_analysis": "Conduct a thorough competitive analysis for BuildRunnerSaaS. Identify direct and indirect competitors, analyze their strengths/weaknesses, and suggest differentiation strategies."
+  },
+  "categories": {
+    "strategy": {
+      "color": "#3B82F6",
+      "icon": "target",
+      "description": "Vision, positioning, and strategic direction"
+    },
+    "product": {
+      "color": "#10B981",
+      "icon": "cube",
+      "description": "Features, functionality, and user experience"
+    },
+    "monetization": {
+      "color": "#F59E0B",
+      "icon": "currency-dollar",
+      "description": "Pricing, revenue models, and financial strategy"
+    },
+    "gtm": {
+      "color": "#EF4444",
+      "icon": "rocket-launch",
+      "description": "Marketing, sales, and customer acquisition"
+    },
+    "competitor": {
+      "color": "#8B5CF6",
+      "icon": "chart-bar",
+      "description": "Competitive intelligence and differentiation"
+    }
+  }
+}
