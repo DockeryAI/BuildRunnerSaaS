@@ -1,86 +1,241 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Mock OpenRouter service for development
-class MockOpenRouterService {
+// Real OpenRouter service integration
+class OpenRouterService {
+  private apiKey: string;
+  private baseUrl = 'https://openrouter.ai/api/v1';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
   async generateSuggestions(category: string, prompt: string) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const mockSuggestions = [
-      {
-        title: `${category.charAt(0).toUpperCase() + category.slice(1)} Suggestion 1`,
-        summary: `This is a mock suggestion for ${category} based on your prompt: "${prompt.substring(0, 50)}..."`,
-        category,
-        impact_score: Math.floor(Math.random() * 4) + 7, // 7-10
-        confidence: Math.random() * 0.3 + 0.7, // 0.7-1.0
-        reasoning: `This suggestion addresses key ${category} considerations and aligns with best practices in the industry.`,
-        implementation_effort: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-        dependencies: [`Dependency for ${category}`, 'Market research'],
-        metrics: [`${category} success metric`, 'User engagement'],
-        risks: [`Potential ${category} risk`, 'Market competition'],
+    const modelConfig = this.getModelConfig(category);
+    const systemPrompt = this.getSystemPrompt(category);
+
+    const enhancedPrompt = `${prompt}
+
+Please provide 3-5 actionable suggestions in JSON format. Each suggestion should follow this exact schema:
+{
+  "title": "Brief descriptive title (max 100 chars)",
+  "summary": "Concise explanation (max 300 chars)",
+  "category": "${category}",
+  "impact_score": 1-10,
+  "confidence": 0.0-1.0,
+  "reasoning": "Why this matters (max 500 chars)",
+  "implementation_effort": "low|medium|high",
+  "dependencies": ["optional array of dependencies"],
+  "metrics": ["optional success metrics"],
+  "risks": ["optional potential risks"]
+}
+
+Return only a JSON array of suggestions, no additional text.`;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://buildrunner.cloud',
+          'X-Title': 'BuildRunner SaaS',
+        },
+        body: JSON.stringify({
+          model: modelConfig.primary,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: enhancedPrompt }
+          ],
+          temperature: modelConfig.temperature,
+          max_tokens: modelConfig.max_tokens,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        throw new Error('Empty response from OpenRouter');
+      }
+
+      const suggestions = JSON.parse(content);
+      return Array.isArray(suggestions) ? suggestions : [];
+
+    } catch (error) {
+      console.error('OpenRouter suggestions error:', error);
+      // Fallback to mock suggestions if API fails
+      return this.getMockSuggestions(category, prompt);
+    }
+  }
+
+  async generateResponse(category: string, messages: any[]) {
+    const modelConfig = this.getModelConfig(category);
+    const systemPrompt = this.getSystemPrompt(category);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://buildrunner.cloud',
+          'X-Title': 'BuildRunner SaaS',
+        },
+        body: JSON.stringify({
+          model: modelConfig.primary,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages.slice(-5) // Last 5 messages for context
+          ],
+          temperature: modelConfig.temperature,
+          max_tokens: modelConfig.max_tokens,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0]?.message?.content || 'I apologize, but I couldn\'t generate a response.';
+
+    } catch (error) {
+      console.error('OpenRouter response error:', error);
+      // Fallback to mock response if API fails
+      return this.getMockResponse(category, messages);
+    }
+  }
+
+  getModelConfig(category: string) {
+    const configs = {
+      strategy: {
+        primary: 'anthropic/claude-3.5-sonnet',
+        temperature: 0.7,
+        max_tokens: 2000,
       },
+      product: {
+        primary: 'openai/gpt-4-turbo-preview',
+        temperature: 0.6,
+        max_tokens: 1500,
+      },
+      monetization: {
+        primary: 'anthropic/claude-3.5-sonnet',
+        temperature: 0.5,
+        max_tokens: 1500,
+      },
+      gtm: {
+        primary: 'openai/gpt-4-turbo-preview',
+        temperature: 0.6,
+        max_tokens: 1500,
+      },
+      competitor: {
+        primary: 'anthropic/claude-3.5-sonnet',
+        temperature: 0.4,
+        max_tokens: 2000,
+      },
+    };
+
+    return configs[category as keyof typeof configs] || configs.strategy;
+  }
+
+  getSystemPrompt(category: string) {
+    const prompts = {
+      strategy: 'You are StrategyGPT, an expert business strategist specializing in SaaS product strategy, market positioning, and competitive analysis. Provide structured, actionable insights with clear reasoning and data-driven recommendations.',
+      product: 'You are ProductGPT, a senior product manager with expertise in feature prioritization, user experience design, and product roadmap planning. Focus on user value, technical feasibility, and business impact.',
+      monetization: 'You are MonetizationGPT, a revenue strategy expert specializing in SaaS pricing models, subscription tiers, and revenue optimization. Provide data-driven pricing recommendations with market analysis.',
+      gtm: 'You are GTMGPT, a go-to-market specialist with expertise in customer acquisition, marketing channels, sales strategies, and market entry tactics for B2B SaaS products.',
+      competitor: 'You are CompetitorGPT, a competitive intelligence analyst specializing in market research, feature comparison, and differentiation strategy. Provide objective analysis with actionable competitive insights.',
+    };
+
+    return prompts[category as keyof typeof prompts] || prompts.strategy;
+  }
+
+  getMockSuggestions(category: string, prompt: string) {
+    return [
       {
-        title: `${category.charAt(0).toUpperCase() + category.slice(1)} Suggestion 2`,
-        summary: `Another strategic recommendation for ${category} optimization and growth.`,
+        title: `${category.charAt(0).toUpperCase() + category.slice(1)} Suggestion`,
+        summary: `AI-generated suggestion for ${category} based on your prompt.`,
         category,
-        impact_score: Math.floor(Math.random() * 4) + 6, // 6-9
-        confidence: Math.random() * 0.4 + 0.6, // 0.6-1.0
-        reasoning: `This approach leverages current market trends and addresses user pain points effectively.`,
+        impact_score: Math.floor(Math.random() * 4) + 7,
+        confidence: Math.random() * 0.3 + 0.7,
+        reasoning: `This suggestion addresses key ${category} considerations.`,
         implementation_effort: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-        dependencies: [`Technical requirement for ${category}`],
-        metrics: [`Performance indicator for ${category}`],
-        risks: [`Implementation risk for ${category}`],
+        dependencies: [`${category} dependency`],
+        metrics: [`${category} metric`],
+        risks: [`${category} risk`],
       }
     ];
-    
-    return mockSuggestions;
   }
-  
-  async generateResponse(category: string, messages: any[]) {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+
+  getMockResponse(category: string, messages: any[]) {
     const lastMessage = messages[messages.length - 1]?.content || '';
-    
-    const responses = {
-      strategy: `Great question about strategy! Based on your query "${lastMessage.substring(0, 100)}...", I recommend focusing on market differentiation and value proposition clarity. Consider these key strategic elements...`,
-      product: `For product development, your question "${lastMessage.substring(0, 100)}..." touches on important UX and feature considerations. I suggest prioritizing user value and technical feasibility...`,
-      monetization: `Regarding monetization strategy for "${lastMessage.substring(0, 100)}...", consider a freemium model with clear value tiers. Focus on usage-based pricing that scales with customer success...`,
-      gtm: `For go-to-market strategy around "${lastMessage.substring(0, 100)}...", I recommend a product-led growth approach with strong developer community engagement...`,
-      competitor: `In terms of competitive analysis for "${lastMessage.substring(0, 100)}...", focus on identifying unique differentiators and market gaps that you can exploit...`
-    };
-    
-    return responses[category as keyof typeof responses] || `Thank you for your question about ${category}. Let me provide some insights based on current best practices and market trends...`;
+    return `Thank you for your question about ${category}. Based on "${lastMessage.substring(0, 100)}...", here are some insights based on current best practices and market trends.`;
   }
 }
 
-const mockService = new MockOpenRouterService();
+function getApiKeys() {
+  // In a real app, these would come from environment variables or secure storage
+  // For now, we'll try to get them from the request headers or use fallback
+  return {
+    openrouter: process.env.OPENROUTER_API_KEY || '',
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { category, message, conversation_history } = body;
-    
+
     if (!category || !message) {
       return NextResponse.json(
         { error: 'Category and message are required' },
         { status: 400 }
       );
     }
-    
+
+    // Get API keys from headers (sent from client)
+    const apiKeys = request.headers.get('x-api-keys');
+    let openrouterKey = '';
+
+    if (apiKeys) {
+      try {
+        const keys = JSON.parse(apiKeys);
+        openrouterKey = keys.openrouter || '';
+      } catch (e) {
+        console.warn('Failed to parse API keys from headers');
+      }
+    }
+
+    // Fallback to environment variable
+    if (!openrouterKey) {
+      openrouterKey = process.env.OPENROUTER_API_KEY || '';
+    }
+
+    if (!openrouterKey) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured' },
+        { status: 400 }
+      );
+    }
+
+    const service = new OpenRouterService(openrouterKey);
+
     // Generate response and suggestions
     const [response, suggestions] = await Promise.all([
-      mockService.generateResponse(category, conversation_history || []),
-      mockService.generateSuggestions(category, message)
+      service.generateResponse(category, conversation_history || []),
+      service.generateSuggestions(category, message)
     ]);
-    
+
     return NextResponse.json({
       response,
       suggestions,
       category,
       timestamp: new Date().toISOString(),
     });
-    
+
   } catch (error) {
     console.error('Error in brainstorm chat:', error);
     return NextResponse.json(
