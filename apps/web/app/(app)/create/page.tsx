@@ -410,6 +410,46 @@ export default function CreatePage() {
     }
   };
 
+  // Generate initial suggestions without showing in chat
+  const generateInitialSuggestions = async (idea: string) => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch('/api/brainstorm/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category: 'product',
+          message: `Generate initial feature suggestions for: ${idea}`,
+          conversation_history: [],
+          product_idea: idea,
+          used_suggestions: usedSuggestions,
+          use_reasoning: useDeepThink,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.suggestions && Array.isArray(data.suggestions)) {
+        // Add each suggestion to the brainstorm state
+        data.suggestions.forEach((suggestion: any) => {
+          addSuggestion(suggestion);
+        });
+      }
+
+    } catch (error) {
+      console.error('Error generating initial suggestions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Drag and drop handlers
   const handleDragStart = (suggestion: any) => {
     setDraggedSuggestion(suggestion);
@@ -614,9 +654,9 @@ Let's start with product development. What are the core features and user experi
       saveConversationHistory([systemMessage]);
       setSelectedCategory('product'); // Start with product category
 
-      // Automatically generate initial product development suggestions
-      console.log('Sending initial product development message...');
-      await sendMessage(`Help me develop the product features and user experience for: ${idea}`, 'product');
+      // Automatically generate initial product development suggestions (internal call)
+      console.log('Generating initial suggestions...');
+      await generateInitialSuggestions(idea);
 
     } catch (error) {
       console.error('Error starting brainstorming:', error);

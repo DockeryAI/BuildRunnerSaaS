@@ -1,0 +1,328 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PRDBuilder } from '../../../../lib/prd/builder';
+
+// PRD Building Service using advanced LLM strategy
+class PRDBuildingService {
+  private baseUrl = 'https://openrouter.ai/api/v1';
+  private apiKey: string;
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  private async makeAPICall(model: string, messages: any[], options: any = {}) {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://buildrunner.cloud',
+        'X-Title': 'BuildRunner SaaS - PRD Builder',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature: options.temperature || 0.3,
+        max_tokens: options.max_tokens || 3000,
+        ...options
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.status} - ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  // Phase 1: Context - Fill executive summary, problem, value prop, personas
+  async buildContext(productIdea: string, existingFeatures: any[] = []) {
+    try {
+      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+        {
+          role: 'system',
+          content: `You are a product strategy expert. Analyze the product idea and create comprehensive context for a PRD.
+
+Return a JSON object with this exact schema:
+{
+  "executive_summary": "One tight paragraph: what we're building, why now, expected outcome",
+  "user_pain": "Specific user pain points with qualitative details",
+  "value_proposition": "Clear benefit statement and value prop",
+  "personas": [
+    {
+      "name": "Primary User Type",
+      "jtbd": "Jobs to be Done - what they're trying to accomplish",
+      "environments": ["web", "mobile"],
+      "segments": ["SMB", "Enterprise"]
+    }
+  ],
+  "root_causes": ["Root cause 1", "Root cause 2"],
+  "current_workaround": "How users currently solve this problem"
+}
+
+Focus on being specific and actionable. Use the existing features to inform your analysis.`
+        },
+        {
+          role: 'user',
+          content: `Product Idea: ${productIdea}
+
+Existing Features: ${existingFeatures.map(f => `- ${f.title}: ${f.summary}`).join('\n')}
+
+Analyze this product idea and provide comprehensive context for a PRD. Return only the JSON object.`
+        }
+      ], {
+        temperature: 0.3,
+        max_tokens: 2000
+      });
+
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in API response');
+      }
+
+      return JSON.parse(content);
+
+    } catch (error) {
+      console.error('Context building error:', error);
+      
+      // Fallback context
+      return {
+        executive_summary: `This PRD outlines the development of an AI-powered solution for ${productIdea.toLowerCase()}.`,
+        user_pain: `Users currently struggle with manual processes and inefficiencies related to ${productIdea.toLowerCase()}.`,
+        value_proposition: `Automate and streamline ${productIdea.toLowerCase()} to save time and improve efficiency.`,
+        personas: [{
+          name: "Primary User",
+          jtbd: "Accomplish tasks more efficiently",
+          environments: ["web"],
+          segments: ["SMB"]
+        }],
+        root_causes: ["Manual processes", "Lack of automation"],
+        current_workaround: "Manual processes and existing tools"
+      };
+    }
+  }
+
+  // Phase 2: Shape - Propose features and scope
+  async buildShape(productIdea: string, contextData: any, existingFeatures: any[] = []) {
+    try {
+      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+        {
+          role: 'system',
+          content: `You are a product manager expert. Based on the product context, define features and scope for the PRD.
+
+Return a JSON object with this exact schema:
+{
+  "features": [
+    {
+      "id": "F-001",
+      "name": "Feature Name",
+      "description": "Detailed description of what this feature does",
+      "user_story": "As a [persona], I want [capability] so that [outcome]",
+      "acceptance_criteria": ["Given... When... Then...", "Another criteria"],
+      "plan_gate": "free|pro|enterprise"
+    }
+  ],
+  "in_scope": ["What's included in this version"],
+  "out_of_scope": ["What's explicitly excluded to prevent scope creep"],
+  "objectives": [
+    {
+      "objective": "Clear objective statement",
+      "kpi": "Measurable KPI",
+      "target": "Specific target value",
+      "source": "Where we'll measure this"
+    }
+  ]
+}
+
+Create 3-5 core features that directly address the user pain points. Be specific and actionable.`
+        },
+        {
+          role: 'user',
+          content: `Product Idea: ${productIdea}
+
+Context:
+- User Pain: ${contextData.user_pain}
+- Value Prop: ${contextData.value_proposition}
+- Personas: ${contextData.personas.map((p: any) => `${p.name} (${p.jtbd})`).join(', ')}
+
+Existing Features: ${existingFeatures.map(f => `- ${f.title}: ${f.summary}`).join('\n')}
+
+Define the features and scope for this product. Return only the JSON object.`
+        }
+      ], {
+        temperature: 0.3,
+        max_tokens: 3000
+      });
+
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in API response');
+      }
+
+      return JSON.parse(content);
+
+    } catch (error) {
+      console.error('Shape building error:', error);
+      
+      // Fallback shape
+      return {
+        features: [
+          {
+            id: "F-001",
+            name: "Core Functionality",
+            description: "Primary feature that addresses the main user need",
+            user_story: "As a user, I want core functionality so that I can accomplish my goals",
+            acceptance_criteria: ["Feature works as expected", "User can complete primary workflow"],
+            plan_gate: "free"
+          }
+        ],
+        in_scope: ["Core functionality", "Basic user interface"],
+        out_of_scope: ["Advanced features", "Enterprise integrations"],
+        objectives: [
+          {
+            objective: "Improve user efficiency",
+            kpi: "Time to complete task",
+            target: "50% reduction",
+            source: "User analytics"
+          }
+        ]
+      };
+    }
+  }
+
+  // Phase 3: Evidence & Metrics
+  async buildEvidence(productIdea: string, features: any[]) {
+    try {
+      const data = await this.makeAPICall('deepseek/deepseek-r1', [
+        {
+          role: 'system',
+          content: `You are an analytics expert. Define comprehensive metrics and evidence framework for this product.
+
+Return a JSON object with this exact schema:
+{
+  "north_star": "Primary success metric that drives everything",
+  "events": [
+    {
+      "name": "event_name",
+      "properties": ["user_id", "project_id", "feature_used", "timestamp"]
+    }
+  ],
+  "experiments": [
+    {
+      "name": "Experiment name",
+      "variant_allocation": {"A": 0.5, "B": 0.5},
+      "success_metric": "What we're measuring"
+    }
+  ],
+  "qualitative_evidence": ["User interview insights", "Support ticket themes"],
+  "quantitative_evidence": ["Usage statistics", "Performance metrics"]
+}
+
+Think carefully about what metrics will truly indicate success for this product.`
+        },
+        {
+          role: 'user',
+          content: `Product Idea: ${productIdea}
+
+Features: ${features.map(f => `- ${f.name}: ${f.description}`).join('\n')}
+
+Define comprehensive analytics and evidence framework. Return only the JSON object.`
+        }
+      ], {
+        temperature: 0.3,
+        max_tokens: 2000
+      });
+
+      const content = data.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in API response');
+      }
+
+      return JSON.parse(content);
+
+    } catch (error) {
+      console.error('Evidence building error:', error);
+      
+      // Fallback evidence
+      return {
+        north_star: "User engagement and task completion rate",
+        events: [
+          {
+            name: "feature_used",
+            properties: ["user_id", "project_id", "feature_name", "timestamp"]
+          }
+        ],
+        experiments: [],
+        qualitative_evidence: ["User feedback", "Support requests"],
+        quantitative_evidence: ["Usage metrics", "Performance data"]
+      };
+    }
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { action, product_idea, phase, existing_features = [], context_data, features } = await request.json();
+
+    if (!process.env.OPENROUTER_API_KEY) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured' },
+        { status: 500 }
+      );
+    }
+
+    const service = new PRDBuildingService(process.env.OPENROUTER_API_KEY);
+    const builder = new PRDBuilder(product_idea, "product@buildrunner.cloud");
+
+    let result;
+    
+    switch (action) {
+      case 'build_context':
+        result = await service.buildContext(product_idea, existing_features);
+        builder.fillContext(result);
+        break;
+        
+      case 'build_shape':
+        result = await service.buildShape(product_idea, context_data, existing_features);
+        builder.fillShape(result);
+        break;
+        
+      case 'build_evidence':
+        result = await service.buildEvidence(product_idea, features);
+        builder.fillEvidence(result);
+        break;
+        
+      case 'get_phases':
+        result = builder.getAllPhases();
+        break;
+        
+      case 'export_prd':
+        result = {
+          json: builder.toJSON(),
+          markdown: builder.toMarkdown(),
+          prd: builder.getPRD()
+        };
+        break;
+        
+      default:
+        return NextResponse.json(
+          { error: 'Invalid action. Use build_context, build_shape, build_evidence, get_phases, or export_prd' },
+          { status: 400 }
+        );
+    }
+
+    return NextResponse.json({
+      result,
+      action,
+      phase: builder.getCurrentPhase(),
+      timestamp: new Date().toISOString(),
+    });
+
+  } catch (error) {
+    console.error('Error in PRD building API:', error);
+    return NextResponse.json(
+      { error: 'Failed to process PRD building request' },
+      { status: 500 }
+    );
+  }
+}
