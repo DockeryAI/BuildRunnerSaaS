@@ -38,7 +38,7 @@ type FlakyTest = z.infer<typeof FlakyTestSchema>;
 /**
  * Flaky Test Analyzer
  */
-export class FlakyTestAnalyzer {
+class FlakyTestAnalyzer {
   private config: AnalysisConfig;
 
   constructor(config: Partial<AnalysisConfig> = {}) {
@@ -461,7 +461,7 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 

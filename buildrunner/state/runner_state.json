@@ -1,17 +1,18 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.6.0",
-  "updatedAt": "2025-10-30T23:30:00.000Z",
-  "phase": 6,
+  "version": "0.7.0",
+  "updatedAt": "2025-10-31T00:00:00.000Z",
+  "phase": 7,
   "step": "final",
   "sync": {
-    "lastLocalUpdate": "2025-10-30T23:30:00.000Z",
+    "lastLocalUpdate": "2025-10-31T00:00:00.000Z",
     "lastRemoteUpdate": null,
     "phase3_completed": true,
     "phase4_completed": true,
     "phase5_completed": true,
-    "phase6_completed": true
+    "phase6_completed": true,
+    "phase7_completed": true
   },
   "milestones": [
     {
@@ -405,6 +406,60 @@
               "title": "Real-time Governance Metrics",
               "status": "done",
               "criteria": ["Dashboard shows compliance scores, violations, and security events"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p7",
+      "title": "QA & Acceptance Automation",
+      "steps": [
+        {
+          "id": "p7.s1",
+          "title": "Acceptance Criteria Templates",
+          "microsteps": [
+            {
+              "id": "p7.s1.ms1",
+              "title": "Template Schema & Storage",
+              "status": "done",
+              "criteria": ["Schema validates samples; table exists (idempotent migration SQL included)"]
+            },
+            {
+              "id": "p7.s1.ms2",
+              "title": "Template CRUD UI",
+              "status": "done",
+              "criteria": ["CRUD operations work via Supabase API; runner_events log actions"]
+            }
+          ]
+        },
+        {
+          "id": "p7.s2",
+          "title": "QA Run Engine & CI Integration",
+          "microsteps": [
+            {
+              "id": "p7.s2.ms1",
+              "title": "qa-runner.ts",
+              "status": "done",
+              "criteria": ["qa-runner executes locally and returns JSON summary"]
+            },
+            {
+              "id": "p7.s2.ms2",
+              "title": "CI Workflow",
+              "status": "done",
+              "criteria": ["Workflow runs successfully; status posted back to PR"]
+            }
+          ]
+        },
+        {
+          "id": "p7.s3",
+          "title": "Flaky Test Detection & Triage",
+          "microsteps": [
+            {
+              "id": "p7.s3.ms1",
+              "title": "Analysis Script",
+              "status": "done",
+              "criteria": ["Outputs list to console and qa_flaky_tests table; runner_event action=flaky_detected"]
             }
           ]
         }

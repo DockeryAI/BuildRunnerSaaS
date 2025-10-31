@@ -57,7 +57,7 @@ type QAResult = z.infer<typeof QAResultSchema>;
 /**
  * QA Runner Engine
  */
-export class QARunner {
+class QARunner {
   private config: QAConfig;
   private runId: string;
   private results: QAResult[] = [];
@@ -412,7 +412,7 @@ async function main() {
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
 
