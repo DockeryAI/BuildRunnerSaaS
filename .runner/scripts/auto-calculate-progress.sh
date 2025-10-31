@@ -30,61 +30,57 @@ count_completed_tasks() {
     ' "$SPEC_FILE"
 }
 
-# Function to count unique dates (phases)
+# Function to count phases from Change History
 count_phases() {
     if [[ ! -f "$SPEC_FILE" ]]; then
         echo "1"
         return
     fi
-    
-    # Count unique dates in Change History (each date = 1 phase)
+
+    # Extract the highest phase number from Change History
     awk '
-        BEGIN{inCH=0}
+        BEGIN{inCH=0; max_phase=1}
         /^##[[:space:]]*Change History/{inCH=1; next}
         /^##[[:space:]]+/{if(inCH){inCH=0}}
         {
-            if(inCH && /^###[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}/) {
-                if(match($0, /[0-9]{4}-[0-9]{2}-[0-9]{2}/)) {
-                    date = substr($0, RSTART, RLENGTH)
-                    dates[date] = 1
+            if(inCH && /Phase [0-9]+ of [0-9]+/) {
+                if(match($0, /Phase [0-9]+/)) {
+                    phase_str = substr($0, RSTART, RLENGTH)
+                    if(match(phase_str, /[0-9]+/)) {
+                        phase = substr(phase_str, RSTART, RLENGTH)
+                        if(phase > max_phase) max_phase = phase
+                    }
                 }
             }
         }
-        END{if(length(dates) > 0) print length(dates); else print 1}
+        END{print max_phase}
     ' "$SPEC_FILE"
 }
 
-# Function to get current step within current phase
+# Function to get current step (highest step number found)
 get_current_step() {
     if [[ ! -f "$SPEC_FILE" ]]; then
         echo "1"
         return
     fi
-    
-    # Get the most recent date and count steps for that date
+
+    # Extract the highest step number from Change History
     awk '
-        BEGIN{inCH=0; latest_date=""; step_count=0; in_latest=0}
+        BEGIN{inCH=0; max_step=1}
         /^##[[:space:]]*Change History/{inCH=1; next}
         /^##[[:space:]]+/{if(inCH){inCH=0}}
         {
-            if(inCH && /^###[[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}/) {
-                if(match($0, /[0-9]{4}-[0-9]{2}-[0-9]{2}/)) {
-                    date = substr($0, RSTART, RLENGTH)
-                    if(latest_date == "" || date >= latest_date) {
-                        if(date > latest_date) {
-                            latest_date = date
-                            step_count = 0
-                        }
-                        in_latest = 1
-                    } else {
-                        in_latest = 0
+            if(inCH && /Step [0-9]+ of [0-9]+/) {
+                if(match($0, /Step [0-9]+/)) {
+                    step_str = substr($0, RSTART, RLENGTH)
+                    if(match(step_str, /[0-9]+/)) {
+                        step = substr(step_str, RSTART, RLENGTH)
+                        if(step > max_step) max_step = step
                     }
                 }
-            } else if(inCH && in_latest && /^[[:space:]]*-[[:space:]]*✅/) {
-                step_count++
             }
         }
-        END{if(step_count > 0) print step_count; else print 1}
+        END{print max_step}
     ' "$SPEC_FILE"
 }
 
