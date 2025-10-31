@@ -1,3 +1,4 @@
 {
+  "/api/brainstorm/config/route": "app/api/brainstorm/config/route.js",
   "/(app)/create/page": "app/(app)/create/page.js"
 }

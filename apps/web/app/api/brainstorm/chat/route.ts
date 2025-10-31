@@ -131,6 +131,46 @@ Return only a JSON array of suggestions, no additional text.`;
     }
   }
 
+  async generateProductDescription(productIdea: string) {
+    try {
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://buildrunner.cloud',
+          'X-Title': 'BuildRunner SaaS',
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-4-turbo-preview',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a product description expert. Create concise, professional product descriptions for PRD documents. Focus on the core value proposition and target users. Keep it under 100 words.'
+            },
+            {
+              role: 'user',
+              content: `Create a professional product description for this idea: "${productIdea}". Make it suitable for a Product Requirements Document. Focus on what the product does, who it's for, and the key value it provides.`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0]?.message?.content || productIdea;
+
+    } catch (error) {
+      console.error('OpenRouter product description error:', error);
+      return productIdea; // Fallback to original idea
+    }
+  }
+
   getModelConfig(category: string) {
     const configs = {
       strategy: {
@@ -165,17 +205,17 @@ Return only a JSON array of suggestions, no additional text.`;
 
   getSystemPrompt(category: string, productIdea?: string) {
     const productContext = productIdea ? `\n\nIMPORTANT: The user is developing "${productIdea}". You must:
-1. Reference this specific product directly in your response
-2. Provide concrete, actionable advice tailored to this exact product
-3. Avoid generic responses - be specific to their product idea
-4. Start your response by acknowledging their specific product concept` : '';
+1. Keep your response very brief - just say "Here are some ideas for your [product type]:" and stop
+2. Do NOT provide long explanations or detailed advice in the main response
+3. The detailed suggestions will be provided separately as draggable cards
+4. Be concise and direct - maximum 1-2 sentences` : '';
 
     const prompts = {
-      strategy: `You are StrategyGPT, an expert business strategist specializing in SaaS product strategy, market positioning, and competitive analysis. Provide structured, actionable insights with clear reasoning and data-driven recommendations.${productContext}`,
-      product: `You are ProductGPT, a senior product manager with expertise in feature prioritization, user experience design, and product roadmap planning. Focus on user value, technical feasibility, and business impact. Provide specific feature recommendations, user stories, and technical considerations.${productContext}`,
-      monetization: `You are MonetizationGPT, a revenue strategy expert specializing in SaaS pricing models, subscription tiers, and revenue optimization. Provide data-driven pricing recommendations with market analysis and specific revenue strategies.${productContext}`,
-      gtm: `You are GTMGPT, a go-to-market specialist with expertise in customer acquisition, marketing channels, sales strategies, and market entry tactics for B2B SaaS products.${productContext}`,
-      competitor: `You are CompetitorGPT, a competitive intelligence analyst specializing in market research, feature comparison, and differentiation strategy. Provide objective analysis with actionable competitive insights and specific competitor comparisons.${productContext}`,
+      strategy: `You are StrategyGPT, an expert business strategist. Provide very brief responses introducing strategy suggestions.${productContext}`,
+      product: `You are ProductGPT, a senior product manager. Provide very brief responses introducing product feature suggestions.${productContext}`,
+      monetization: `You are MonetizationGPT, a revenue strategy expert. Provide very brief responses introducing monetization suggestions.${productContext}`,
+      gtm: `You are GTMGPT, a go-to-market specialist. Provide very brief responses introducing go-to-market suggestions.${productContext}`,
+      competitor: `You are CompetitorGPT, a competitive intelligence analyst. Provide very brief responses introducing competitive analysis suggestions.${productContext}`,
     };
 
     return prompts[category as keyof typeof prompts] || prompts.strategy;
@@ -261,20 +301,24 @@ export async function POST(request: NextRequest) {
 
     console.log('Generating AI response and suggestions...');
 
-    // Generate response and suggestions
-    const [response, suggestions] = await Promise.all([
+    // Generate response, suggestions, and product description (if first message)
+    const isFirstMessage = !conversation_history || conversation_history.length === 0;
+    const [response, suggestions, productDescription] = await Promise.all([
       service.generateResponse(category, conversation_history || [], product_idea),
-      service.generateSuggestions(category, message, product_idea)
+      service.generateSuggestions(category, message, product_idea),
+      isFirstMessage && product_idea ? service.generateProductDescription(product_idea) : Promise.resolve(null)
     ]);
 
     console.log('AI response generated successfully:', {
       responseLength: response?.length || 0,
-      suggestionsCount: suggestions?.length || 0
+      suggestionsCount: suggestions?.length || 0,
+      hasProductDescription: !!productDescription
     });
 
     return NextResponse.json({
       response,
       suggestions,
+      productDescription,
       category,
       timestamp: new Date().toISOString(),
     });

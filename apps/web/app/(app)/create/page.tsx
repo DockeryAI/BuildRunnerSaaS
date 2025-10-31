@@ -234,6 +234,7 @@ export default function CreatePage() {
     strategy: [] as any[],
   });
   const [draggedSuggestion, setDraggedSuggestion] = useState<any>(null);
+  const [productDescription, setProductDescription] = useState<string>('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { state, addSuggestion, updateDecision, exportHistory } = useBrainstormState();
@@ -425,6 +426,11 @@ export default function CreatePage() {
 
       const data = await response.json();
 
+      // Set product description if provided (first message)
+      if (data.productDescription && !productDescription) {
+        setProductDescription(data.productDescription);
+      }
+
       // Add AI response to messages
       const aiMessage: Message = {
         id: `ai_${Date.now()}`,
@@ -606,7 +612,9 @@ Let's start with product development. What are the core features and user experi
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <div className="text-gray-700 text-sm">{initialIdea}</div>
+                            <div className="text-gray-700 text-sm">
+                              {productDescription || initialIdea}
+                            </div>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Target Users</label>
