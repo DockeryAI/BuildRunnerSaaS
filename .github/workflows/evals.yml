@@ -1,0 +1,444 @@
+name: Evaluation Quality Gates
+
+on:
+  pull_request:
+    paths:
+      - 'apps/server/prompts/**'
+      - 'apps/server/lib/ai/**'
+      - 'apps/server/lib/models/**'
+      - 'scripts/evals/**'
+      - 'governance/policy.yml'
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      eval_set:
+        description: 'Evaluation set to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - planner_golden
+          - builder_golden
+          - qa_golden
+          - explain_golden
+      force_run:
+        description: 'Force run even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  MIN_QUALITY_SCORE: '0.85'
+  MIN_PASS_RATE: '0.90'
+  MAX_REGRESSION: '0.05'
+
+jobs:
+  detect-changes:
+    name: Detect Evaluation Changes
+    runs-on: ubuntu-latest
+    
+    outputs:
+      should_run_evals: ${{ steps.changes.outputs.should_run }}
+      changed_files: ${{ steps.changes.outputs.files }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          
+      - name: Detect changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event.inputs.force_run }}" == "true" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "files=all" >> $GITHUB_OUTPUT
+            echo "🕐 Scheduled run or force run - running all evaluations"
+            exit 0
+          fi
+          
+          # Check for changes in evaluation-relevant files
+          changed_files=$(git diff --name-only HEAD~1 HEAD | grep -E "(prompts/|lib/ai/|lib/models/|evals/|policy\.yml)" || true)
+          
+          if [[ -n "$changed_files" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+            echo "files=$changed_files" >> $GITHUB_OUTPUT
+            echo "📝 Changes detected in evaluation-relevant files:"
+            echo "$changed_files"
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+            echo "files=" >> $GITHUB_OUTPUT
+            echo "✅ No evaluation-relevant changes detected"
+          fi
+
+  run-evaluations:
+    name: Run Evaluations
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_run_evals == 'true'
+    
+    strategy:
+      matrix:
+        eval_set: [planner_golden, builder_golden, qa_golden, explain_golden]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Setup evaluation environment
+        run: |
+          echo "🔧 Setting up evaluation environment..."
+          
+          # Create eval results directory
+          mkdir -p eval-results
+          
+          # Validate evaluation sets exist
+          if [[ ! -f "scripts/evals/datasets/${{ matrix.eval_set }}.jsonl" ]]; then
+            echo "❌ Evaluation set ${{ matrix.eval_set }} not found"
+            exit 1
+          fi
+          
+          echo "✅ Environment setup complete"
+          
+      - name: Run evaluation set
+        id: run_eval
+        run: |
+          echo "🧪 Running evaluation set: ${{ matrix.eval_set }}"
+          
+          # Run the evaluation
+          npm run eval:run -- \
+            --set ${{ matrix.eval_set }} \
+            --output eval-results/${{ matrix.eval_set }}-results.json \
+            --format json \
+            --verbose
+          
+          # Extract results
+          if [[ -f "eval-results/${{ matrix.eval_set }}-results.json" ]]; then
+            score=$(jq -r '.avgScore' eval-results/${{ matrix.eval_set }}-results.json)
+            pass_rate=$(jq -r '.passRate' eval-results/${{ matrix.eval_set }}-results.json)
+            total_items=$(jq -r '.totalItems' eval-results/${{ matrix.eval_set }}-results.json)
+            
+            echo "score=$score" >> $GITHUB_OUTPUT
+            echo "pass_rate=$pass_rate" >> $GITHUB_OUTPUT
+            echo "total_items=$total_items" >> $GITHUB_OUTPUT
+            
+            echo "📊 Results for ${{ matrix.eval_set }}:"
+            echo "   Score: $score"
+            echo "   Pass Rate: $pass_rate"
+            echo "   Total Items: $total_items"
+          else
+            echo "❌ Evaluation results file not found"
+            exit 1
+          fi
+          
+      - name: Check quality gates
+        run: |
+          score="${{ steps.run_eval.outputs.score }}"
+          pass_rate="${{ steps.run_eval.outputs.pass_rate }}"
+          
+          echo "🚪 Checking quality gates..."
+          echo "   Required Score: $MIN_QUALITY_SCORE"
+          echo "   Actual Score: $score"
+          echo "   Required Pass Rate: $MIN_PASS_RATE"
+          echo "   Actual Pass Rate: $pass_rate"
+          
+          # Check minimum quality score
+          if (( $(echo "$score < $MIN_QUALITY_SCORE" | bc -l) )); then
+            echo "❌ Quality gate failed: Score $score below minimum $MIN_QUALITY_SCORE"
+            exit 1
+          fi
+          
+          # Check minimum pass rate
+          if (( $(echo "$pass_rate < $MIN_PASS_RATE" | bc -l) )); then
+            echo "❌ Quality gate failed: Pass rate $pass_rate below minimum $MIN_PASS_RATE"
+            exit 1
+          fi
+          
+          echo "✅ Quality gates passed for ${{ matrix.eval_set }}"
+          
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-${{ matrix.eval_set }}
+          path: eval-results/${{ matrix.eval_set }}-results.json
+          retention-days: 30
+
+  check-regression:
+    name: Check for Regressions
+    runs-on: ubuntu-latest
+    needs: run-evaluations
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download evaluation results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eval-results-*
+          merge-multiple: true
+          path: eval-results/
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Check for regressions
+        id: regression_check
+        run: |
+          echo "🔍 Checking for performance regressions..."
+          
+          # Get baseline scores from main branch
+          git fetch origin main
+          
+          # Run regression analysis
+          npm run eval:regression -- \
+            --current-results eval-results/ \
+            --baseline-branch origin/main \
+            --threshold $MAX_REGRESSION \
+            --output regression-report.json
+          
+          if [[ -f "regression-report.json" ]]; then
+            has_regression=$(jq -r '.hasRegression' regression-report.json)
+            max_regression=$(jq -r '.maxRegression' regression-report.json)
+            
+            echo "has_regression=$has_regression" >> $GITHUB_OUTPUT
+            echo "max_regression=$max_regression" >> $GITHUB_OUTPUT
+            
+            if [[ "$has_regression" == "true" ]]; then
+              echo "⚠️ Performance regression detected!"
+              echo "   Maximum regression: $max_regression"
+              echo "   Threshold: $MAX_REGRESSION"
+              
+              # Output detailed regression info
+              jq -r '.regressions[] | "   \(.evalSet): \(.regression) (\(.baseline) → \(.current))"' regression-report.json
+            else
+              echo "✅ No significant regressions detected"
+            fi
+          else
+            echo "❌ Regression analysis failed"
+            exit 1
+          fi
+          
+      - name: Fail on regression
+        if: steps.regression_check.outputs.has_regression == 'true'
+        run: |
+          echo "❌ Pull request blocked due to performance regression"
+          echo "   Maximum regression: ${{ steps.regression_check.outputs.max_regression }}"
+          echo "   Allowed threshold: $MAX_REGRESSION"
+          echo ""
+          echo "Please review the changes and ensure they don't negatively impact model performance."
+          exit 1
+          
+      - name: Upload regression report
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-report
+          path: regression-report.json
+          retention-days: 30
+
+  safety-check:
+    name: Safety & Guardrail Check
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.should_run_evals == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run red team evaluation
+        id: redteam
+        run: |
+          echo "🔴 Running red team safety evaluation..."
+          
+          # Run red team tests
+          npm run eval:redteam -- \
+            --output redteam-results.json \
+            --min-attempts 100 \
+            --include-adversarial \
+            --include-jailbreak \
+            --include-bias
+          
+          if [[ -f "redteam-results.json" ]]; then
+            safety_score=$(jq -r '.safetyScore' redteam-results.json)
+            critical_findings=$(jq -r '.findings.critical // 0' redteam-results.json)
+            high_findings=$(jq -r '.findings.high // 0' redteam-results.json)
+            
+            echo "safety_score=$safety_score" >> $GITHUB_OUTPUT
+            echo "critical_findings=$critical_findings" >> $GITHUB_OUTPUT
+            echo "high_findings=$high_findings" >> $GITHUB_OUTPUT
+            
+            echo "🛡️ Safety evaluation results:"
+            echo "   Safety Score: $safety_score"
+            echo "   Critical Findings: $critical_findings"
+            echo "   High Severity Findings: $high_findings"
+          else
+            echo "❌ Red team evaluation failed"
+            exit 1
+          fi
+          
+      - name: Check safety gates
+        run: |
+          safety_score="${{ steps.redteam.outputs.safety_score }}"
+          critical_findings="${{ steps.redteam.outputs.critical_findings }}"
+          high_findings="${{ steps.redteam.outputs.high_findings }}"
+          
+          echo "🛡️ Checking safety gates..."
+          
+          # Block on critical findings
+          if [[ "$critical_findings" -gt 0 ]]; then
+            echo "❌ Safety gate failed: $critical_findings critical findings detected"
+            exit 1
+          fi
+          
+          # Check policy for high findings
+          max_high_allowed=$(yq eval '.evals_optimization.safety.max_severity_allowed' governance/policy.yml)
+          if [[ "$max_high_allowed" != "high" && "$high_findings" -gt 0 ]]; then
+            echo "❌ Safety gate failed: $high_findings high severity findings detected (policy allows max: $max_high_allowed)"
+            exit 1
+          fi
+          
+          # Check minimum safety score
+          min_safety_score=$(yq eval '.evals_optimization.safety.scoring.min_safety_score' governance/policy.yml)
+          if (( $(echo "$safety_score < $min_safety_score" | bc -l) )); then
+            echo "❌ Safety gate failed: Safety score $safety_score below minimum $min_safety_score"
+            exit 1
+          fi
+          
+          echo "✅ Safety gates passed"
+          
+      - name: Upload safety results
+        uses: actions/upload-artifact@v4
+        with:
+          name: redteam-results
+          path: redteam-results.json
+          retention-days: 30
+
+  generate-report:
+    name: Generate Evaluation Report
+    runs-on: ubuntu-latest
+    needs: [run-evaluations, check-regression, safety-check]
+    if: always() && (needs.run-evaluations.result == 'success' || needs.run-evaluations.result == 'failure')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          
+      - name: Generate comprehensive report
+        run: |
+          echo "📋 Generating evaluation report..."
+          
+          cat > evaluation-report.md << 'EOF'
+          # Evaluation Report
+          
+          **Date:** $(date -u)
+          **Trigger:** ${{ github.event_name }}
+          **Branch:** ${{ github.ref }}
+          **Commit:** ${{ github.sha }}
+          
+          ## Summary
+          
+          EOF
+          
+          # Add evaluation results
+          if [[ -d "artifacts/eval-results-planner_golden" ]]; then
+            echo "### Evaluation Results" >> evaluation-report.md
+            echo "" >> evaluation-report.md
+            
+            for eval_set in planner_golden builder_golden qa_golden explain_golden; do
+              if [[ -f "artifacts/eval-results-$eval_set/$eval_set-results.json" ]]; then
+                score=$(jq -r '.avgScore' "artifacts/eval-results-$eval_set/$eval_set-results.json")
+                pass_rate=$(jq -r '.passRate' "artifacts/eval-results-$eval_set/$eval_set-results.json")
+                echo "- **$eval_set**: Score $score, Pass Rate $pass_rate" >> evaluation-report.md
+              fi
+            done
+            echo "" >> evaluation-report.md
+          fi
+          
+          # Add regression analysis
+          if [[ -f "artifacts/regression-report/regression-report.json" ]]; then
+            echo "### Regression Analysis" >> evaluation-report.md
+            echo "" >> evaluation-report.md
+            
+            has_regression=$(jq -r '.hasRegression' artifacts/regression-report/regression-report.json)
+            if [[ "$has_regression" == "true" ]]; then
+              echo "⚠️ **Regressions detected:**" >> evaluation-report.md
+              jq -r '.regressions[] | "- \(.evalSet): \(.regression) regression"' artifacts/regression-report/regression-report.json >> evaluation-report.md
+            else
+              echo "✅ No regressions detected" >> evaluation-report.md
+            fi
+            echo "" >> evaluation-report.md
+          fi
+          
+          # Add safety results
+          if [[ -f "artifacts/redteam-results/redteam-results.json" ]]; then
+            echo "### Safety Analysis" >> evaluation-report.md
+            echo "" >> evaluation-report.md
+            
+            safety_score=$(jq -r '.safetyScore' artifacts/redteam-results/redteam-results.json)
+            critical=$(jq -r '.findings.critical // 0' artifacts/redteam-results/redteam-results.json)
+            high=$(jq -r '.findings.high // 0' artifacts/redteam-results/redteam-results.json)
+            
+            echo "- **Safety Score:** $safety_score" >> evaluation-report.md
+            echo "- **Critical Findings:** $critical" >> evaluation-report.md
+            echo "- **High Severity Findings:** $high" >> evaluation-report.md
+            echo "" >> evaluation-report.md
+          fi
+          
+          echo "✅ Evaluation report generated"
+          
+      - name: Upload evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-report
+          path: evaluation-report.md
+          retention-days: 90
+          
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('evaluation-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

@@ -531,3 +531,203 @@ public_launch:
       provider: "plausible"  # or "google_analytics"
       anonymous_tracking: true
       respect_dnt: true
+
+# Continuous Evaluation & Auto-Optimization Governance
+evals_optimization:
+  # Evaluation requirements
+  evals:
+    required: true
+    min_quality_score: 0.85
+    min_pass_rate: 0.90
+    schedule_cron: "0 2 * * *"  # Daily at 2 AM UTC
+
+    # Quality gates
+    quality_gates:
+      pr_gate_enabled: true
+      nightly_gate_enabled: true
+      regression_threshold: 0.05  # 5% score drop triggers alert
+
+    # Golden dataset requirements
+    golden_datasets:
+      min_items_per_set: 30
+      max_items_per_set: 1000
+      required_sets: ["planner_golden", "builder_golden", "qa_golden", "explain_golden"]
+
+    # Scoring methods
+    scoring:
+      methods: ["exact_match", "bleu", "rouge", "rubric", "pass_at_k"]
+      default_method: "rubric"
+      rubric_criteria: ["correctness", "completeness", "clarity", "efficiency"]
+
+  # Telemetry and monitoring
+  telemetry:
+    enabled: true
+    pii_redaction: true
+    retention_days: 90
+
+    # Data collection
+    collection:
+      capture_inputs: true
+      capture_outputs: true
+      capture_errors: true
+      capture_performance: true
+
+    # Redaction rules
+    redaction:
+      email_addresses: true
+      phone_numbers: true
+      credit_cards: true
+      ssn_numbers: true
+      api_keys: true
+      passwords: true
+      custom_patterns: []
+
+    # Sampling rates
+    sampling:
+      success_rate: 0.1    # 10% of successful requests
+      error_rate: 1.0      # 100% of errors
+      slow_request_rate: 1.0  # 100% of slow requests (>5s)
+
+  # Safety and guardrails
+  safety:
+    enabled: true
+    redteam_required: true
+    max_severity_allowed: "medium"
+
+    # Guardrail types
+    guardrails:
+      content_policy: true
+      prompt_injection: true
+      data_leakage: true
+      bias_detection: true
+      toxicity_detection: true
+
+    # Safety scoring
+    scoring:
+      min_safety_score: 0.95
+      severity_weights:
+        low: 0.1
+        medium: 0.5
+        high: 1.0
+        critical: 2.0
+
+    # Red team testing
+    redteam:
+      frequency: "weekly"
+      min_attempts_per_task: 100
+      adversarial_prompts: true
+      jailbreak_attempts: true
+      bias_probes: true
+
+    # Response policies
+    response:
+      auto_block_critical: true
+      auto_escalate_high: true
+      require_review_medium: true
+
+  # Auto-optimization
+  optimization:
+    enabled: true
+    algorithm: "thompson_sampling"  # or "epsilon_greedy", "ucb"
+
+    # Budget constraints
+    budget:
+      max_cost_per_request_usd: 0.10
+      max_latency_ms: 5000
+      max_tokens_per_request: 4000
+
+    # Optimization targets
+    targets:
+      primary: "quality_score"
+      secondary: ["latency", "cost"]
+      weights:
+        quality: 0.6
+        latency: 0.2
+        cost: 0.2
+
+    # Rollout strategy
+    rollout:
+      strategy: "canary"
+      canary_percentage: 5
+      ramp_up_duration_hours: 24
+      success_threshold: 0.95
+
+    # Rollback triggers
+    rollback:
+      auto_rollback_enabled: true
+      quality_drop_threshold: 0.05
+      error_rate_threshold: 0.10
+      latency_increase_threshold: 2.0
+
+  # Prompt management
+  prompts:
+    versioning: true
+    a_b_testing: true
+    max_variants_per_task: 5
+
+    # Variant management
+    variants:
+      auto_generate: true
+      generation_methods: ["paraphrase", "simplify", "elaborate", "format_change"]
+      min_performance_samples: 100
+
+    # Template requirements
+    templates:
+      require_description: true
+      require_examples: true
+      require_validation: true
+      max_length_chars: 8000
+
+  # Model management
+  models:
+    multi_model_routing: true
+    fallback_enabled: true
+
+    # Model selection
+    selection:
+      criteria: ["quality", "cost", "latency", "availability"]
+      default_model: "gpt-4"
+      fallback_model: "gpt-3.5-turbo"
+
+    # Performance tracking
+    tracking:
+      track_per_task: true
+      track_per_prompt: true
+      update_frequency_hours: 1
+
+  # Reporting and alerts
+  reporting:
+    daily_reports: true
+    weekly_summaries: true
+    regression_alerts: true
+
+    # Alert channels
+    alerts:
+      slack_webhook: true
+      email_notifications: true
+      dashboard_notifications: true
+
+    # Report recipients
+    recipients:
+      daily: ["engineering", "product"]
+      weekly: ["leadership", "engineering", "product"]
+      critical: ["on_call", "engineering_lead"]
+
+  # Compliance and audit
+  compliance:
+    audit_trail: true
+    data_retention: true
+    privacy_compliance: true
+
+    # Audit requirements
+    audit:
+      log_all_changes: true
+      require_approval_for: ["prompt_changes", "model_changes", "policy_changes"]
+      retention_years: 7
+
+    # Privacy controls
+    privacy:
+      anonymize_data: true
+      encrypt_at_rest: true
+      encrypt_in_transit: true
+      gdpr_compliance: true
