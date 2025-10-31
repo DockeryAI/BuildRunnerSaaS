@@ -1,0 +1,245 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2025-10-31T08:00:00.000Z",
+  "description": "Mapping between Figma components and React components",
+  "mappings": {
+    "button-primary": {
+      "figmaComponentId": "1:123",
+      "figmaComponentKey": "button-primary",
+      "reactComponent": "components/ui/button.tsx",
+      "exportName": "Button",
+      "variants": {
+        "variant": ["default", "destructive", "outline", "secondary", "ghost", "link"],
+        "size": ["default", "sm", "lg", "icon"]
+      },
+      "props": {
+        "variant": "string",
+        "size": "string",
+        "disabled": "boolean",
+        "asChild": "boolean"
+      },
+      "description": "Primary button component with multiple variants"
+    },
+    "input-text": {
+      "figmaComponentId": "1:124",
+      "figmaComponentKey": "input-text",
+      "reactComponent": "components/ui/input.tsx",
+      "exportName": "Input",
+      "variants": {},
+      "props": {
+        "type": "string",
+        "placeholder": "string",
+        "disabled": "boolean",
+        "value": "string",
+        "onChange": "function"
+      },
+      "description": "Text input component"
+    },
+    "card": {
+      "figmaComponentId": "1:125",
+      "figmaComponentKey": "card",
+      "reactComponent": "components/ui/card.tsx",
+      "exportName": "Card",
+      "variants": {},
+      "props": {
+        "className": "string"
+      },
+      "description": "Card container component",
+      "subComponents": {
+        "CardHeader": {
+          "figmaComponentId": "1:126",
+          "exportName": "CardHeader"
+        },
+        "CardTitle": {
+          "figmaComponentId": "1:127",
+          "exportName": "CardTitle"
+        },
+        "CardContent": {
+          "figmaComponentId": "1:128",
+          "exportName": "CardContent"
+        },
+        "CardFooter": {
+          "figmaComponentId": "1:129",
+          "exportName": "CardFooter"
+        }
+      }
+    },
+    "badge": {
+      "figmaComponentId": "1:130",
+      "figmaComponentKey": "badge",
+      "reactComponent": "components/ui/badge.tsx",
+      "exportName": "Badge",
+      "variants": {
+        "variant": ["default", "secondary", "destructive", "outline"]
+      },
+      "props": {
+        "variant": "string",
+        "className": "string"
+      },
+      "description": "Badge component for status indicators"
+    },
+    "avatar": {
+      "figmaComponentId": "1:131",
+      "figmaComponentKey": "avatar",
+      "reactComponent": "components/ui/avatar.tsx",
+      "exportName": "Avatar",
+      "variants": {
+        "size": ["sm", "md", "lg"]
+      },
+      "props": {
+        "src": "string",
+        "alt": "string",
+        "fallback": "string",
+        "size": "string"
+      },
+      "description": "Avatar component for user profiles",
+      "subComponents": {
+        "AvatarImage": {
+          "figmaComponentId": "1:132",
+          "exportName": "AvatarImage"
+        },
+        "AvatarFallback": {
+          "figmaComponentId": "1:133",
+          "exportName": "AvatarFallback"
+        }
+      }
+    },
+    "dropdown-menu": {
+      "figmaComponentId": "1:134",
+      "figmaComponentKey": "dropdown-menu",
+      "reactComponent": "components/ui/dropdown-menu.tsx",
+      "exportName": "DropdownMenu",
+      "variants": {},
+      "props": {
+        "open": "boolean",
+        "onOpenChange": "function"
+      },
+      "description": "Dropdown menu component",
+      "subComponents": {
+        "DropdownMenuTrigger": {
+          "figmaComponentId": "1:135",
+          "exportName": "DropdownMenuTrigger"
+        },
+        "DropdownMenuContent": {
+          "figmaComponentId": "1:136",
+          "exportName": "DropdownMenuContent"
+        },
+        "DropdownMenuItem": {
+          "figmaComponentId": "1:137",
+          "exportName": "DropdownMenuItem"
+        },
+        "DropdownMenuSeparator": {
+          "figmaComponentId": "1:138",
+          "exportName": "DropdownMenuSeparator"
+        }
+      }
+    },
+    "select": {
+      "figmaComponentId": "1:139",
+      "figmaComponentKey": "select",
+      "reactComponent": "components/ui/select.tsx",
+      "exportName": "Select",
+      "variants": {},
+      "props": {
+        "value": "string",
+        "onValueChange": "function",
+        "disabled": "boolean",
+        "placeholder": "string"
+      },
+      "description": "Select dropdown component",
+      "subComponents": {
+        "SelectTrigger": {
+          "figmaComponentId": "1:140",
+          "exportName": "SelectTrigger"
+        },
+        "SelectContent": {
+          "figmaComponentId": "1:141",
+          "exportName": "SelectContent"
+        },
+        "SelectItem": {
+          "figmaComponentId": "1:142",
+          "exportName": "SelectItem"
+        },
+        "SelectValue": {
+          "figmaComponentId": "1:143",
+          "exportName": "SelectValue"
+        }
+      }
+    },
+    "toast": {
+      "figmaComponentId": "1:144",
+      "figmaComponentKey": "toast",
+      "reactComponent": "components/ui/toast.tsx",
+      "exportName": "Toast",
+      "variants": {
+        "variant": ["default", "destructive"]
+      },
+      "props": {
+        "variant": "string",
+        "title": "string",
+        "description": "string",
+        "action": "ReactNode"
+      },
+      "description": "Toast notification component"
+    },
+    "tooltip": {
+      "figmaComponentId": "1:145",
+      "figmaComponentKey": "tooltip",
+      "reactComponent": "components/ui/tooltip.tsx",
+      "exportName": "Tooltip",
+      "variants": {},
+      "props": {
+        "content": "string",
+        "side": "string",
+        "align": "string"
+      },
+      "description": "Tooltip component",
+      "subComponents": {
+        "TooltipTrigger": {
+          "figmaComponentId": "1:146",
+          "exportName": "TooltipTrigger"
+        },
+        "TooltipContent": {
+          "figmaComponentId": "1:147",
+          "exportName": "TooltipContent"
+        },
+        "TooltipProvider": {
+          "figmaComponentId": "1:148",
+          "exportName": "TooltipProvider"
+        }
+      }
+    },
+    "separator": {
+      "figmaComponentId": "1:149",
+      "figmaComponentKey": "separator",
+      "reactComponent": "components/ui/separator.tsx",
+      "exportName": "Separator",
+      "variants": {
+        "orientation": ["horizontal", "vertical"]
+      },
+      "props": {
+        "orientation": "string",
+        "className": "string"
+      },
+      "description": "Separator line component"
+    },
+    "label": {
+      "figmaComponentId": "1:150",
+      "figmaComponentKey": "label",
+      "reactComponent": "components/ui/label.tsx",
+      "exportName": "Label",
+      "variants": {},
+      "props": {
+        "htmlFor": "string",
+        "className": "string"
+      },
+      "description": "Form label component"
+    }
+  },
+  "metadata": {
+    "totalComponents": 11,
+    "lastUpdated": "2025-10-31T08:00:00.000Z",
+    "figmaFileId": "placeholder-file-id",
+    "reactComponentsPath": "components/ui/"
+  }
+}

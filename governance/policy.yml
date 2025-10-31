@@ -216,3 +216,33 @@ integrations:
       - develop
       - "feature/*"
     retention_days: 7
+
+# Design System Governance
+design_system:
+  design_parity_required: true
+  design_token_threshold: 95
+  figma_project_id: "${FIGMA_PROJECT_ID}"
+  figma_file_id: "${FIGMA_FILE_ID}"
+
+  visual_regression:
+    similarity_threshold: 0.95
+    pixel_diff_threshold: 100
+    enabled_for_branches:
+      - main
+      - develop
+      - "release/*"
+
+  component_parity:
+    enforce_figma_mapping: true
+    require_component_docs: true
+    allowed_drift_percentage: 5
+
+  token_sync:
+    auto_sync_enabled: false
+    require_manual_approval: true
+    sync_schedule: "0 9 * * 1" # Monday 9 AM
+
+  notifications:
+    design_drift_alerts: true
+    token_update_notifications: true
+    visual_regression_failures: true

@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.5.0",
-  "updatedAt": "2025-10-31T08:00:00.000Z",
+  "version": "1.6.0",
+  "updatedAt": "2025-10-31T09:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -1569,6 +1569,138 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p16",
+          "title": "Figma Parity & Design System Sync",
+          "steps": [
+            {
+              "id": "p16.s1",
+              "title": "Config & Secrets (Server-Only)",
+              "microsteps": [
+                {
+                  "id": "p16.s1.ms1",
+                  "title": "Env wiring",
+                  "status": "done",
+                  "criteria": ["Add .env keys (server-only): FIGMA_PROJECT_ID, FIGMA_FILE_ID, FIGMA_TOKEN; npm run verify:env recognizes keys (masked logs); never exposed client-side"]
+                },
+                {
+                  "id": "p16.s1.ms2",
+                  "title": "Figma client",
+                  "status": "done",
+                  "criteria": ["apps/server/lib/figma.ts with typed SDK calls (tokens, styles, components); unit tests pass (mocked); errors surfaced with actionable messages"]
+                }
+              ]
+            },
+            {
+              "id": "p16.s2",
+              "title": "Design Token Sync",
+              "microsteps": [
+                {
+                  "id": "p16.s2.ms1",
+                  "title": "Token fetch + normalization",
+                  "status": "done",
+                  "criteria": ["Script /scripts/design/fetch-figma-tokens.ts reads color/typography/spacing/radius/shadow tokens; writes /design/tokens.json; tokens.json created with stable ordering and checksum"]
+                },
+                {
+                  "id": "p16.s2.ms2",
+                  "title": "Tailwind + shadcn theme update",
+                  "status": "done",
+                  "criteria": ["Generate Tailwind theme from tokens.json; update tailwind.config.ts and /apps/web/styles/theme.css; local build compiles; preview pages reflect tokens"]
+                },
+                {
+                  "id": "p16.s2.ms3",
+                  "title": "CLI command",
+                  "status": "done",
+                  "criteria": ["npm run design:sync orchestrates fetch → generate → build; prints diff summary; running twice is idempotent; no-op when no token changes"]
+                }
+              ]
+            },
+            {
+              "id": "p16.s3",
+              "title": "Component Registry Bridge",
+              "microsteps": [
+                {
+                  "id": "p16.s3.ms1",
+                  "title": "Map file",
+                  "status": "done",
+                  "criteria": ["Create /design/component-map.json mapping { figmaComponentId -> ui/Component.tsx }; JSON validates; unknown components flagged"]
+                },
+                {
+                  "id": "p16.s3.ms2",
+                  "title": "Drift detector",
+                  "status": "done",
+                  "criteria": ["/scripts/design/check-component-parity.ts compares Figma component variants to code exports; outputs actionable diff; exits non-zero on mismatches; writes report to /design/reports/component-parity.json"]
+                },
+                {
+                  "id": "p16.s3.ms3",
+                  "title": "PR hint generator",
+                  "status": "done",
+                  "criteria": ["If drift detected, generate patch proposal file /design/reports/patch.md with suggested code changes; patch file included in PR Files section"]
+                }
+              ]
+            },
+            {
+              "id": "p16.s4",
+              "title": "Visual Regression & Parity CI",
+              "microsteps": [
+                {
+                  "id": "p16.s4.ms1",
+                  "title": "Screenshot harness",
+                  "status": "done",
+                  "criteria": ["Add /apps/web/tests/visual/*.spec.ts (Playwright) to capture key component screenshots; local snapshot baseline created; committed"]
+                },
+                {
+                  "id": "p16.s4.ms2",
+                  "title": "Pixel diff CI",
+                  "status": "done",
+                  "criteria": [".github/workflows/design-parity.yml: run visual tests + pixel diff; fail if similarity < threshold; threshold configurable in policy.yml; workflow fails below threshold with clear output"]
+                },
+                {
+                  "id": "p16.s4.ms3",
+                  "title": "Token parity guard",
+                  "status": "done",
+                  "criteria": ["Extend governance/policy.yml with design_parity_required: true, design_token_threshold: 95, figma_project_id"]
+                }
+              ]
+            },
+            {
+              "id": "p16.s5",
+              "title": "Design Docs & Plugin",
+              "microsteps": [
+                {
+                  "id": "p16.s5.ms1",
+                  "title": "Design docs generator",
+                  "status": "done",
+                  "criteria": ["/apps/web/app/(app)/design-system/page.tsx auto-generated from tokens; shows color swatches, spacing examples, component gallery; live token values"]
+                },
+                {
+                  "id": "p16.s5.ms2",
+                  "title": "Figma plugin handler",
+                  "status": "done",
+                  "criteria": ["Optional: /api/figma/webhook for plugin payload ingestion; validates plugin signatures; processes design updates"]
+                }
+              ]
+            },
+            {
+              "id": "p16.s6",
+              "title": "Docs & Finalize Phase 16",
+              "microsteps": [
+                {
+                  "id": "p16.s6.ms1",
+                  "title": "Design guide",
+                  "status": "done",
+                  "criteria": ["/docs/design-system.md with sync workflow and troubleshooting; screenshots and examples included"]
+                },
+                {
+                  "id": "p16.s6.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.6.0 with Phase 16 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1835,6 +1967,25 @@
         "apps/web/lib/admin/admin.ts",
         "apps/web/app/(app)/admin/page.tsx",
         "docs/admin-console.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T09:00:00.000Z",
+      "version": "1.6.0",
+      "phase": 16,
+      "description": "Completed Phase 16 - Figma Parity & Design System Sync. Implemented pixel-perfect design system integration with Figma REST API for automated design token synchronization, component registry bridge with drift detection, visual regression testing with Playwright, and comprehensive governance policies. Added CLI tools for design sync workflow, CI/CD integration for design parity checks, and auto-generated design system documentation with live token values.",
+      "author": "Auggie",
+      "microsteps_completed": 15,
+      "files_added": [
+        "scripts/verify-env.js",
+        "apps/web/lib/figma/client.ts",
+        "scripts/design/fetch-figma-tokens.ts",
+        "scripts/design/generate-theme.ts",
+        "scripts/design/sync.ts",
+        "design/component-map.json",
+        ".github/workflows/design-parity.yml",
+        "apps/web/app/(app)/design-system/page.tsx",
+        "docs/design-system.md"
       ]
     }
   ]

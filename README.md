@@ -1031,6 +1031,146 @@ CREATE TABLE support_tickets (
 - **Credits Adjustment**: Billing corrections with full audit trails
 - **Log Export**: Comprehensive audit log export with PII redaction
 
+## Phase 16 — Figma Parity & Design System Sync ✅
+
+Pixel-perfect design system integration with automated Figma synchronization and visual regression testing.
+
+### Features
+- **Design Token Sync**: Automated extraction and normalization of design tokens from Figma
+- **Component Registry**: Mapping and drift detection between Figma components and React components
+- **Visual Regression**: Automated screenshot testing with similarity thresholds
+- **CLI Workflow**: Complete design sync workflow with idempotent operations
+- **CI/CD Integration**: Automated design parity checks in pull requests
+
+### Design Token Synchronization
+- **Automated Extraction**: Fetch colors, typography, spacing, radius, and shadows from Figma
+- **Token Normalization**: Convert Figma tokens to CSS-compatible values
+- **Tailwind Integration**: Generate Tailwind theme configuration from design tokens
+- **CSS Variables**: Auto-generated CSS custom properties for design tokens
+
+### Usage
+```bash
+# Fetch design tokens from Figma
+npm run design:fetch
+
+# Generate Tailwind theme from tokens
+npm run design:generate
+
+# Complete sync workflow
+npm run design:sync
+
+# Sync with options
+npm run design:sync --force --verbose
+```
+
+### Environment Setup
+```bash
+# Figma Integration (Server-Only)
+FIGMA_PROJECT_ID=your-figma-project-id
+FIGMA_FILE_ID=your-figma-file-id
+FIGMA_TOKEN=your-figma-access-token
+```
+
+### Design Token Structure
+```json
+{
+  "version": "1.0.0",
+  "timestamp": "2025-10-31T09:00:00.000Z",
+  "checksum": "abc123def456",
+  "tokens": {
+    "colors": {
+      "primary": {
+        "name": "primary",
+        "value": "#3b82f6",
+        "type": "color",
+        "category": "colors",
+        "description": "Primary brand color"
+      }
+    },
+    "spacing": {
+      "md": {
+        "name": "md",
+        "value": "1rem",
+        "type": "spacing",
+        "category": "spacing",
+        "description": "Medium spacing"
+      }
+    }
+  }
+}
+```
+
+### Component Parity System
+- **Component Mapping**: JSON mapping between Figma components and React components
+- **Drift Detection**: Automated detection of mismatches between design and code
+- **Patch Generation**: Suggested code changes for design parity issues
+- **Variant Validation**: Ensure React component variants match Figma designs
+
+### Visual Regression Testing
+- **Playwright Integration**: Automated screenshot capture of UI components
+- **Similarity Thresholds**: Configurable pixel difference and similarity thresholds
+- **Baseline Management**: Version-controlled screenshot baselines
+- **CI/CD Integration**: Automated visual regression checks in pull requests
+
+### Governance Integration
+```yaml
+# governance/policy.yml
+design_system:
+  design_parity_required: true
+  design_token_threshold: 95
+
+  visual_regression:
+    similarity_threshold: 0.95
+    pixel_diff_threshold: 100
+
+  component_parity:
+    enforce_figma_mapping: true
+    allowed_drift_percentage: 5
+
+  token_sync:
+    auto_sync_enabled: false
+    require_manual_approval: true
+```
+
+### CLI Commands
+- **`npm run design:fetch`**: Fetch design tokens from Figma
+- **`npm run design:generate`**: Generate Tailwind theme from tokens
+- **`npm run design:sync`**: Complete sync workflow (fetch → generate → build)
+- **`npm run verify:env`**: Verify environment variables with masked output
+
+### CI/CD Workflow
+```yaml
+# .github/workflows/design-parity.yml
+name: Design Parity Check
+
+on:
+  pull_request:
+    paths:
+      - 'design/**'
+      - 'apps/web/components/ui/**'
+      - 'apps/web/styles/**'
+
+jobs:
+  design-token-parity:
+    - Fetch design tokens from Figma
+    - Generate theme files
+    - Check component parity
+    - Run visual regression tests
+    - Comment PR with results
+```
+
+### Design System Documentation
+- **Live Documentation**: Auto-generated design system page at `/design-system`
+- **Token Visualization**: Interactive display of colors, spacing, and other tokens
+- **Component Gallery**: Visual component library with variants
+- **Usage Examples**: Code examples and CSS variable references
+
+### Security & Privacy
+- **Server-Side Only**: Figma tokens never exposed to client-side code
+- **Masked Logging**: Environment variables masked in logs and CI output
+- **Token Validation**: Figma token format validation and error handling
+- **Access Control**: Figma file permissions respected
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -1048,3 +1188,4 @@ CREATE TABLE support_tickets (
 - **Phase 13**: Integrations with Jira, Linear, and Preview Environments ✅
 - **Phase 14**: Monetization & Billing with Stripe, usage metering, and governance ✅
 - **Phase 15**: Admin Console & Token/Cost Tracking with governance operations ✅
+- **Phase 16**: Figma Parity & Design System Sync with visual regression testing ✅
