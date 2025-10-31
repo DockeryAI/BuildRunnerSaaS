@@ -762,8 +762,8 @@ export default function CreatePage() {
       isLoading={isLoading}
       startBrainstorming={startBrainstorming}
       clearAllSessionData={clearAllSessionData}
-    />;
-  }
+    />
+  );
 
   // Main interactive brainstorming interface with beautiful design
   return (
