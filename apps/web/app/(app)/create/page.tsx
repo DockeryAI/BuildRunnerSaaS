@@ -21,7 +21,11 @@ import {
 import { SuggestionCard } from '../../../components/brainstorm/Card';
 import { DraggableSuggestion } from '../../../components/brainstorm/DraggableSuggestion';
 import { CompactFeature } from '../../../components/brainstorm/CompactFeature';
+import { PRDFlowTabs } from '../../../components/prd/PRDFlowTabs';
+import { PRDSectionDisplay } from '../../../components/prd/PRDSectionDisplay';
 import { BrainstormState, useBrainstormState } from '../../../lib/brainstorm/state';
+import { PRDBuilder } from '../../../lib/prd/builder';
+import { PRDDocument, createDefaultPRD } from '../../../lib/prd/schema';
 import Link from 'next/link';
 
 interface Message {
@@ -222,12 +226,16 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 export default function CreatePage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('product');
+  const [selectedSection, setSelectedSection] = useState<string>('executive_summary');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useDeepThink, setUseDeepThink] = useState(false);
   const [shelvedFeatures, setShelvedFeatures] = useState<any[]>([]);
   const [futureVersionFeatures, setFutureVersionFeatures] = useState<any[]>([]);
+  const [prdDocument, setPrdDocument] = useState<PRDDocument>(createDefaultPRD());
+  const [completedSections, setCompletedSections] = useState<string[]>([]);
+  const [currentPhase, setCurrentPhase] = useState<number>(1);
+  const [prdBuilder, setPrdBuilder] = useState<PRDBuilder | null>(null);
   const [modelCategories, setModelCategories] = useState<Record<string, ModelCategory>>({});
   const [predefinedPrompts, setPredefinedPrompts] = useState<Record<string, string>>({});
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -623,7 +631,7 @@ export default function CreatePage() {
   const startBrainstorming = async (idea: string) => {
     if (!idea.trim()) return;
 
-    console.log('Starting brainstorming with idea:', idea);
+    console.log('Starting PRD building with idea:', idea);
     setIsLoading(true);
     setError(null);
 
@@ -633,36 +641,140 @@ export default function CreatePage() {
       setInitialIdea(idea);
       setShowOnboarding(false);
 
-      // Start with product development - the first step in our flow
-      const welcomeMessage = `Great! Let's build "${idea}". I'll guide you through a structured process:
+      // Initialize PRD Builder
+      const builder = new PRDBuilder(idea, "product@buildrunner.cloud");
+      builder.initializeFromIdea(idea);
+      setPrdBuilder(builder);
+      setPrdDocument(builder.getPRD());
 
-1. 🛠️ **Product Development** - Define features, user experience, and technical requirements
-2. 📊 **Strategy & Competition** - Market positioning and competitive analysis
-3. 💰 **Monetization** - Revenue models and pricing strategy
+      // Start building PRD automatically
+      await buildPRDContext(idea, builder);
 
-Let's start with product development. What are the core features and user experience you envision?`;
-
+      // Add system message to conversation
       const systemMessage: Message = {
         id: `system_${Date.now()}`,
         role: 'system',
-        content: welcomeMessage,
-        category: 'product',
+        content: `I've started building your PRD for "${idea}". The document is being populated automatically. You can navigate through the sections using the tabs above to review and edit any content.`,
+        category: 'prd',
         timestamp: new Date(),
       };
 
       setMessages([systemMessage]);
       saveConversationHistory([systemMessage]);
-      setSelectedCategory('product'); // Start with product category
-
-      // Automatically generate initial product development suggestions (internal call)
-      console.log('Generating initial suggestions...');
-      await generateInitialSuggestions(idea);
 
     } catch (error) {
-      console.error('Error starting brainstorming:', error);
-      setError('Failed to start brainstorming. Please check your API keys and try again.');
+      console.error('Error starting PRD building:', error);
+      setError('Failed to start PRD building. Please check your API keys and try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Build PRD Context (Phase 1)
+  const buildPRDContext = async (idea: string, builder: PRDBuilder) => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch('/api/prd/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'build_context',
+          product_idea: idea,
+          existing_features: prdSections.features || []
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.result) {
+        builder.fillContext(data.result);
+        setPrdDocument(builder.getPRD());
+        setCompletedSections(['metadata', 'executive_summary', 'problem_statement', 'target_audience', 'value_proposition']);
+
+        // Automatically move to Phase 2 and build shape
+        await buildPRDShape(idea, builder, data.result);
+      }
+
+    } catch (error) {
+      console.error('Error building PRD context:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Build PRD Shape (Phase 2)
+  const buildPRDShape = async (idea: string, builder: PRDBuilder, contextData: any) => {
+    try {
+      const response = await fetch('/api/prd/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'build_shape',
+          product_idea: idea,
+          context_data: contextData,
+          existing_features: prdSections.features || []
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.result) {
+        builder.fillShape(data.result);
+        setPrdDocument(builder.getPRD());
+        setCompletedSections(prev => [...prev, 'objectives', 'scope', 'features']);
+        setCurrentPhase(2);
+      }
+
+    } catch (error) {
+      console.error('Error building PRD shape:', error);
+    }
+  };
+
+  // Update PRD section
+  const updatePRDSection = (sectionId: string, data: any) => {
+    if (!prdBuilder) return;
+
+    // Update the PRD document based on section
+    const updatedPRD = { ...prdDocument };
+
+    switch (sectionId) {
+      case 'metadata':
+        updatedPRD.meta = { ...updatedPRD.meta, ...data };
+        break;
+      case 'executive_summary':
+        updatedPRD.executive_summary = data.executive_summary || data;
+        break;
+      case 'problem_statement':
+        updatedPRD.problem = { ...updatedPRD.problem, ...data };
+        break;
+      case 'target_audience':
+        updatedPRD.audience = { ...updatedPRD.audience, ...data };
+        break;
+      case 'value_proposition':
+        updatedPRD.value_prop = { ...updatedPRD.value_prop, ...data };
+        break;
+      default:
+        break;
+    }
+
+    setPrdDocument(updatedPRD);
+
+    // Mark section as completed if it has content
+    if (!completedSections.includes(sectionId)) {
+      setCompletedSections(prev => [...prev, sectionId]);
     }
   };
 
@@ -923,128 +1035,26 @@ Let's start with product development. What are the core features and user experi
             {/* Right Column - AI Chat Interface with Draggable Suggestions */}
             <div className="col-span-1">
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col overflow-hidden">
-                {/* Category Tabs and Deep Think Toggle */}
-                <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex space-x-1">
-                      {Object.entries(categoryIcons).map(([category, IconComponent]) => (
-                        <button
-                          key={category}
-                          onClick={() => setSelectedCategory(category)}
-                          className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            selectedCategory === category
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-white'
-                          }`}
-                        >
-                          <IconComponent className="h-4 w-4" />
-                          <span className="capitalize">{category}</span>
-                        </button>
-                      ))}
-                    </div>
+                {/* PRD Flow Tabs */}
+                <PRDFlowTabs
+                  selectedSection={selectedSection}
+                  onSectionChange={setSelectedSection}
+                  completedSections={completedSections}
+                  currentPhase={currentPhase}
+                />
 
-                    {/* Deep Think Toggle and Score Button */}
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <BeakerIcon className="h-4 w-4 text-gray-500" />
-                        <label className="flex items-center space-x-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={useDeepThink}
-                            onChange={(e) => setUseDeepThink(e.target.checked)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-gray-700 font-medium">Deep Think</span>
-                        </label>
-                        <div className="group relative">
-                          <ExclamationTriangleIcon className="h-4 w-4 text-gray-400 cursor-help" />
-                          <div className="absolute right-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            Uses DeepSeek R1 for deliberate reasoning. Slower but provides detailed analysis and scoring.
-                          </div>
-                        </div>
-                      </div>
+                {/* PRD Section Content */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <PRDSectionDisplay
+                    sectionId={selectedSection}
+                    prd={prdDocument}
+                    onUpdate={updatePRDSection}
+                    isLoading={isLoading}
+                  />
 
-                      {/* Score Ideas Button */}
-                      {prdSections.features && prdSections.features.length > 0 && (
-                        <button
-                          onClick={() => {/* TODO: Implement scoring */}}
-                          className="flex items-center space-x-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
-                        >
-                          <ChartBarIcon className="h-4 w-4" />
-                          <span>Score Ideas</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
-                {/* Messages and Suggestions */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.length === 0 ? (
-                    <div className="text-center py-12">
-                      <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to brainstorm!</h3>
-                      <p className="text-gray-500">Start by asking about {selectedCategory} or any aspect of your product.</p>
-                      <p className="text-gray-400 text-sm mt-2">AI suggestions will appear as draggable cards you can move to your PRD.</p>
-                    </div>
-                  ) : (
-                    <>
-                      {messages.map((message, messageIndex) => (
-                        <div key={message.id}>
-                          {/* Message */}
-                          <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-                            <div
-                              className={`max-w-[85%] rounded-xl px-4 py-3 ${
-                                message.role === 'user'
-                                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                                  : message.role === 'system'
-                                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-200'
-                                  : 'bg-gray-50 text-gray-900 border border-gray-200'
-                              }`}
-                            >
-                              <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                              <div className="mt-2 text-xs opacity-70">
-                                {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : 'Now'}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Show suggestions after AI messages */}
-                          {message.role === 'assistant' && state.suggestions.length > 0 && messageIndex === messages.length - 1 && (
-                            <div className="ml-4 space-y-3">
-                              <div className="flex items-center space-x-2 mb-3">
-                                <SparklesIcon className="h-4 w-4 text-blue-600" />
-                                <span className="text-sm font-medium text-gray-700">AI Suggestions - Drag to PRD</span>
-                              </div>
-                              {state.suggestions.slice(-5).map((suggestion) => (
-                                <DraggableSuggestion
-                                  key={suggestion.id}
-                                  suggestion={suggestion}
-                                  onDragStart={handleDragStart}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </>
-                  )}
-
-                  {isLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
-                        <div className="flex items-center space-x-3">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                          <span className="text-gray-600 text-sm">AI is analyzing and generating suggestions...</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Input */}
+                {/* Status Bar */}
                 <div className="border-t border-gray-200 bg-gray-50 p-4">
                   {error && (
                     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -1055,23 +1065,23 @@ Let's start with product development. What are the core features and user experi
                     </div>
                   )}
 
-                  <div className="flex space-x-3">
-                    <input
-                      type="text"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(inputValue)}
-                      placeholder={`Ask about ${selectedCategory} development...`}
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      disabled={isLoading}
-                    />
-                    <button
-                      onClick={() => sendMessage(inputValue)}
-                      disabled={!inputValue.trim() || isLoading}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
-                    >
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </button>
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center space-x-4">
+                      {isLoading ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          <span>Building PRD content...</span>
+                        </div>
+                      ) : (
+                        <span>PRD sections are auto-populated. Click any section to edit.</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span>{completedSections.length} sections completed</span>
+                      <span>•</span>
+                      <span>Phase {currentPhase} of 4</span>
+                    </div>
                   </div>
                 </div>
               </div>
