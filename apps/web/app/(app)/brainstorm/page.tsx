@@ -37,11 +37,10 @@ interface ModelCategory {
 }
 
 const categoryIcons = {
-  strategy: BeakerIcon,
   product: DocumentTextIcon,
-  monetization: CurrencyDollarIcon,
-  gtm: RocketLaunchIcon,
+  strategy: BeakerIcon,
   competitor: ChartBarIcon,
+  monetization: CurrencyDollarIcon,
 };
 
 // Onboarding Component - moved outside to prevent re-creation on every render
@@ -73,10 +72,10 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            What is your idea?
+            What would you like to build?
           </h1>
           <p className="text-lg text-gray-600">
-            Describe your idea and I'll help you develop a comprehensive strategy with AI-powered insights.
+            Describe your product idea and I'll guide you through product development, strategy, competition analysis, and monetization.
           </p>
         </div>
 
@@ -112,9 +111,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           />
         </div>
 
-        {/* Conversation Starters */}
+        {/* Product Ideas */}
         <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-3">Need inspiration? Try these conversation starters:</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">Need inspiration? Try these product ideas:</p>
           <div className="grid grid-cols-1 gap-2">
             {[
               "A SaaS platform for automated CI/CD pipelines",
@@ -196,7 +195,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 export default function BrainstormPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('strategy');
+  const [selectedCategory, setSelectedCategory] = useState<string>('product');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelCategories, setModelCategories] = useState<Record<string, ModelCategory>>({});
@@ -214,6 +213,15 @@ export default function BrainstormPage() {
     loadModelConfig();
     loadConversationHistory();
     checkApiKeys();
+
+    // Clear any old session data to ensure fresh start
+    const shouldClearOldData = !localStorage.getItem('brainstorm_conversation') ||
+                               localStorage.getItem('brainstorm_conversation') === '[]';
+    if (shouldClearOldData) {
+      localStorage.removeItem('buildrunner_current_idea');
+      localStorage.removeItem('buildrunner_initial_idea'); // Remove old key
+      setInitialIdea('');
+    }
   }, []);
 
   // Check if we should show onboarding
@@ -405,6 +413,22 @@ export default function BrainstormPage() {
     }
   };
 
+  const clearAllSessionData = () => {
+    // Clear all localStorage keys related to brainstorming
+    localStorage.removeItem('buildrunner_current_idea');
+    localStorage.removeItem('buildrunner_initial_idea');
+    localStorage.removeItem('brainstorm_conversation');
+    localStorage.removeItem('brainstorm_state');
+
+    // Reset component state
+    setMessages([]);
+    setInitialIdea('');
+    setSelectedCategory('product');
+    setShowOnboarding(true);
+
+    console.log('All session data cleared');
+  };
+
   const startBrainstorming = async (idea: string) => {
     if (!idea.trim()) return;
 
@@ -418,23 +442,30 @@ export default function BrainstormPage() {
       setInitialIdea(idea);
       setShowOnboarding(false);
 
-      // Start with a strategy question about the idea
-      const welcomeMessage = `Great! Let's brainstorm your idea: "${idea}". I'll help you develop a comprehensive strategy. Let's start with understanding your vision and value proposition.`;
+      // Start with product development - the first step in our flow
+      const welcomeMessage = `Great! Let's build "${idea}". I'll guide you through a structured process:
+
+1. 🛠️ **Product Development** - Define features, user experience, and technical requirements
+2. 📊 **Strategy & Competition** - Market positioning and competitive analysis
+3. 💰 **Monetization** - Revenue models and pricing strategy
+
+Let's start with product development. What are the core features and user experience you envision?`;
 
       const systemMessage: Message = {
         id: `system_${Date.now()}`,
         role: 'system',
         content: welcomeMessage,
-        category: 'strategy',
+        category: 'product',
         timestamp: new Date(),
       };
 
       setMessages([systemMessage]);
       saveConversationHistory([systemMessage]);
+      setSelectedCategory('product'); // Start with product category
 
-      // Automatically generate initial strategic suggestions
-      console.log('Sending initial strategy message...');
-      await sendMessage(`Help me develop a strategy for: ${idea}`, 'strategy');
+      // Automatically generate initial product development suggestions
+      console.log('Sending initial product development message...');
+      await sendMessage(`Help me develop the product features and user experience for: ${idea}`, 'product');
 
     } catch (error) {
       console.error('Error starting brainstorming:', error);
@@ -483,7 +514,15 @@ export default function BrainstormPage() {
                 <p className="text-blue-900">{initialIdea}</p>
                 <div className="mt-2 flex space-x-2">
                   <button className="text-sm text-blue-600 hover:text-blue-800">Save Idea</button>
-                  <button className="text-sm text-red-600 hover:text-red-800">Clear Session</button>
+                  <button
+                    onClick={() => {
+                      clearAllSessionData();
+                      setShowIdeaManager(false);
+                    }}
+                    className="text-sm text-red-600 hover:text-red-800"
+                  >
+                    Clear Session
+                  </button>
                 </div>
               </div>
             ) : (
@@ -509,12 +548,7 @@ export default function BrainstormPage() {
             </button>
             <button
               onClick={() => {
-                // Start new idea
-                localStorage.removeItem('buildrunner_current_idea');
-                localStorage.removeItem('brainstorm_conversation');
-                setMessages([]);
-                setInitialIdea('');
-                setShowOnboarding(true);
+                clearAllSessionData();
                 setShowIdeaManager(false);
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
