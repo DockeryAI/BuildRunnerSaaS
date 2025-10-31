@@ -206,6 +206,103 @@ analytics:
   max_daily_cost: 50.00            # Block operations above daily limit
 ```
 
+## Phase 10 — Collaboration & Comments Integration ✅
+
+Native team collaboration with inline comments, mentions, realtime presence, and external issue sync.
+
+### Features
+- **Role-Based Access Control**: PM, TechLead, QA, Contributor, Viewer roles with granular permissions
+- **Inline Comments**: Threaded comments on milestones, steps, microsteps with markdown support
+- **@Mentions & Subscriptions**: User, role, and team mentions with automatic notifications
+- **Comment → Microstep Promotion**: Convert comments into trackable microsteps with acceptance criteria
+- **Realtime Presence**: Live user presence and activity tracking with Supabase Realtime
+- **Notification Center**: In-app notifications with email and webhook integration
+- **External Issue Sync**: Jira, Linear, GitHub, Asana integration stubs for Phase 13
+
+### Role System
+- **PM (Project Manager)**: Full project control, role management, comment promotion
+- **TechLead**: Technical leadership, comment promotion, analytics access
+- **QA**: Quality assurance focus, commenting, testing oversight
+- **Contributor**: Development work, commenting, limited project access
+- **Viewer**: Read-only access to project content
+
+### Comment Features
+- **Threaded Discussions**: Nested replies with conversation threading
+- **Rich Mentions**: @username, @role:PM, @team:frontend with autocomplete
+- **Link Attachments**: PR links, file references, test results
+- **Markdown Support**: Basic formatting with live preview
+- **Resolution Tracking**: Mark comments as resolved with audit trail
+
+### Realtime Collaboration
+- **Live Presence**: See who's online and what they're working on
+- **Instant Updates**: Comments appear immediately across all clients
+- **Activity Indicators**: Real-time typing indicators and cursor positions
+- **Optimistic UI**: Immediate feedback with server reconciliation
+
+### Notification System
+- **In-App Notifications**: Bell icon with unread count and flyout
+- **Email Notifications**: Configurable email alerts for mentions and comments
+- **Webhook Integration**: Slack and Discord notifications with rich formatting
+- **Priority Levels**: Low, normal, high, urgent with appropriate styling
+
+### External Issue Integration
+- **Provider Support**: Jira, Linear, GitHub Issues, Asana (stubs for Phase 13)
+- **Bidirectional Sync**: Comments and microsteps can create external issues
+- **Status Tracking**: Sync status and external links with audit trail
+- **Mapping Tables**: Robust data model for multi-provider integration
+
+### Usage
+```bash
+# View comments on any entity
+GET /api/comments?project_id=123&entity_type=microstep&entity_id=p1.s1.ms1
+
+# Create comment with mentions
+POST /api/comments
+{
+  "project_id": "123",
+  "entity_type": "microstep",
+  "entity_id": "p1.s1.ms1",
+  "body": "Great work @johndoe! @role:QA please review."
+}
+
+# Promote comment to microstep
+POST /api/comments/456/promote
+{
+  "step_id": "p1.s2",
+  "title": "Implement user authentication",
+  "criteria": ["Login form works", "JWT tokens generated"]
+}
+
+# Create external issue
+POST /api/issues
+{
+  "provider": "jira",
+  "project_id": "123",
+  "entity_type": "microstep",
+  "entity_id": "p1.s1.ms1",
+  "title": "Fix authentication bug"
+}
+```
+
+### Plan Limits by Tier
+```yaml
+free:
+  max_seats: 3
+  features: [comments, basic_notifications]
+
+pro:
+  max_seats: 10
+  features: [comments, mentions, notifications, webhooks]
+
+team:
+  max_seats: 50
+  features: [all_collaboration, external_issues, realtime]
+
+enterprise:
+  max_seats: 1000
+  features: [all_features, sso, audit_logs]
+```
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -217,3 +314,4 @@ analytics:
 - **Phase 7**: QA & Acceptance Automation with CI/CD integration
 - **Phase 8**: Templates & Marketplace with composable packs
 - **Phase 9**: Analytics & Cost Monitoring with anomaly detection ✅
+- **Phase 10**: Collaboration & Comments Integration with realtime presence ✅

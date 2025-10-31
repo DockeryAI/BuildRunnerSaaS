@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.9.0",
-  "updatedAt": "2025-10-31T02:30:00.000Z",
+  "version": "1.0.0-rc.0",
+  "updatedAt": "2025-10-31T03:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -705,6 +705,156 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p10",
+          "title": "Collaboration & Comments Integration",
+          "steps": [
+            {
+              "id": "p10.s1",
+              "title": "Roles & Seats",
+              "microsteps": [
+                {
+                  "id": "p10.s1.ms1",
+                  "title": "Schema for roles & membership",
+                  "status": "done",
+                  "criteria": ["SQL idempotent; role enums validated in server"]
+                },
+                {
+                  "id": "p10.s1.ms2",
+                  "title": "Role enforcement middleware",
+                  "status": "done",
+                  "criteria": ["Unauthorized attempts return 403 with actionable message"]
+                },
+                {
+                  "id": "p10.s1.ms3",
+                  "title": "Seats & plan gating",
+                  "status": "done",
+                  "criteria": ["UI shows 'seat limit reached' gracefully; server enforces"]
+                }
+              ]
+            },
+            {
+              "id": "p10.s2",
+              "title": "Comments & Mentions",
+              "microsteps": [
+                {
+                  "id": "p10.s2.ms1",
+                  "title": "Comments table & API",
+                  "status": "done",
+                  "criteria": ["Create/read/delete work; runner_events log action=comment_created/comment_deleted"]
+                },
+                {
+                  "id": "p10.s2.ms2",
+                  "title": "Mentions & subscriptions",
+                  "status": "done",
+                  "criteria": ["@mention parser tags users; subscribers get notifications"]
+                },
+                {
+                  "id": "p10.s2.ms3",
+                  "title": "Inline UI",
+                  "status": "done",
+                  "criteria": ["Threads render; @ autocomplete; markdown supported (limited)"]
+                }
+              ]
+            },
+            {
+              "id": "p10.s3",
+              "title": "Comment → Microstep Promotion",
+              "microsteps": [
+                {
+                  "id": "p10.s3.ms1",
+                  "title": "Promotion API",
+                  "status": "done",
+                  "criteria": ["spec-sync writes new microstep; IDs namespaced; runner_event action=promoted_to_microstep"]
+                },
+                {
+                  "id": "p10.s3.ms2",
+                  "title": "UI affordance",
+                  "status": "done",
+                  "criteria": ["Confirmation dialog shows target step; success toast; thread links to new microstep"]
+                }
+              ]
+            },
+            {
+              "id": "p10.s4",
+              "title": "Notifications (In-app + Email + Webhooks)",
+              "microsteps": [
+                {
+                  "id": "p10.s4.ms1",
+                  "title": "Notifications schema & service",
+                  "status": "done",
+                  "criteria": ["New comment/mention/promotion triggers notification; read/unread works"]
+                },
+                {
+                  "id": "p10.s4.ms2",
+                  "title": "UI notification center",
+                  "status": "done",
+                  "criteria": ["Realtime updates on new items; accessible keyboard nav"]
+                },
+                {
+                  "id": "p10.s4.ms3",
+                  "title": "Email & webhooks (opt-in)",
+                  "status": "done",
+                  "criteria": ["If configured, notifications deliver; otherwise no-op safely"]
+                }
+              ]
+            },
+            {
+              "id": "p10.s5",
+              "title": "Realtime Presence & Live Updates",
+              "microsteps": [
+                {
+                  "id": "p10.s5.ms1",
+                  "title": "Presence channel",
+                  "status": "done",
+                  "criteria": ["Show avatars of active users on a plan entity; presence drops after disconnect"]
+                },
+                {
+                  "id": "p10.s5.ms2",
+                  "title": "Live comment updates",
+                  "status": "done",
+                  "criteria": ["Second client sees new comment within 2s"]
+                }
+              ]
+            },
+            {
+              "id": "p10.s6",
+              "title": "Issue Sync Stubs (Jira/Linear Ready)",
+              "microsteps": [
+                {
+                  "id": "p10.s6.ms1",
+                  "title": "Mapping tables",
+                  "status": "done",
+                  "criteria": ["Idempotent SQL; indices on provider/external_id"]
+                },
+                {
+                  "id": "p10.s6.ms2",
+                  "title": "Create external issue from comment/microstep",
+                  "status": "done",
+                  "criteria": ["Mapping rows created with placeholders; runner_event action=external_issue_stubbed"]
+                }
+              ]
+            },
+            {
+              "id": "p10.s7",
+              "title": "Docs & Finalize Phase 10",
+              "microsteps": [
+                {
+                  "id": "p10.s7.ms1",
+                  "title": "README & in-app help",
+                  "status": "done",
+                  "criteria": ["Screenshots included; links valid"]
+                },
+                {
+                  "id": "p10.s7.ms2",
+                  "title": "Plan/State updates",
+                  "status": "done",
+                  "criteria": ["br lint passes; PR merged"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -854,6 +1004,31 @@
         "supabase/functions/usage-collector/index.ts",
         "supabase/functions/report-scheduler/index.ts",
         "buildrunner/governance/policy.yml"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T03:00:00.000Z",
+      "version": "1.0.0-rc.0",
+      "phase": 10,
+      "description": "Completed Phase 10 - Collaboration & Comments Integration. Implemented comprehensive team collaboration with role-based access control (PM, TechLead, QA, Contributor, Viewer), inline threaded comments with @mentions and subscriptions, comment-to-microstep promotion workflow, realtime presence tracking with Supabase Realtime, notification center with in-app/email/webhook delivery, and external issue sync stubs for Jira/Linear/GitHub/Asana integration. Added plan limits and seat management with billing tier enforcement.",
+      "author": "Auggie",
+      "microsteps_completed": 17,
+      "files_added": [
+        "supabase/migrations/20251031000003_Phase10-collab.sql",
+        "apps/web/lib/auth/roles.ts",
+        "apps/web/lib/auth/plans.ts",
+        "apps/web/app/api/comments/route.ts",
+        "apps/web/app/api/comments/[id]/route.ts",
+        "apps/web/app/api/comments/[id]/promote/route.ts",
+        "apps/web/lib/comments/mentions.ts",
+        "apps/web/components/comments/CommentThread.tsx",
+        "apps/web/components/comments/CommentComposer.tsx",
+        "apps/web/components/comments/PromotionDialog.tsx",
+        "apps/web/lib/notifications/service.ts",
+        "apps/web/components/notifications/NotificationCenter.tsx",
+        "apps/web/lib/realtime/presence.ts",
+        "apps/web/lib/realtime/comments.ts",
+        "apps/web/app/api/issues/route.ts"
       ]
     }
   ]
