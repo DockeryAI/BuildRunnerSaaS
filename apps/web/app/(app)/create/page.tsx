@@ -176,7 +176,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             }}
             className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
           >
-            🗑️ Clear All Data & Refresh (Debug)
+            🗑️ Force Fresh Start (Clear All Data)
           </button>
         </div>
 
@@ -232,37 +232,22 @@ export default function CreatePage() {
 
   // Load model categories and prompts on mount
   useEffect(() => {
+    // ALWAYS clear session data first to ensure fresh start
+    clearAllSessionData();
+
     loadModelConfig();
-    loadConversationHistory();
     checkApiKeys();
 
-    // Clear any old session data to ensure fresh start
-    const shouldClearOldData = !localStorage.getItem('brainstorm_conversation') ||
-                               localStorage.getItem('brainstorm_conversation') === '[]';
-    if (shouldClearOldData) {
-      localStorage.removeItem('buildrunner_current_idea');
-      localStorage.removeItem('buildrunner_initial_idea'); // Remove old key
-      setInitialIdea('');
-    }
+    // Don't load conversation history - always start fresh
+    console.log('Create page loaded - starting fresh');
   }, []);
 
   // Always show onboarding by default - user requested to go straight to "What would you like to build"
-  // Only skip onboarding if there's an active brainstorming session with messages
+  // Only skip onboarding if user explicitly starts a brainstorming session
   useEffect(() => {
-    const hasActiveSession = messages.length > 0;
-
-    if (hasActiveSession) {
-      setShowOnboarding(false);
-      // Load the idea for the current session if it exists
-      const currentIdea = localStorage.getItem('buildrunner_current_idea');
-      if (currentIdea) {
-        setInitialIdea(currentIdea);
-      }
-    } else {
-      // Always show onboarding for fresh starts
-      setShowOnboarding(true);
-    }
-  }, [messages]);
+    // Always show onboarding unless explicitly in a session
+    setShowOnboarding(true);
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -298,27 +283,7 @@ export default function CreatePage() {
     }
   };
 
-  const loadConversationHistory = () => {
-    try {
-      const saved = localStorage.getItem('brainstorm_conversation');
-      if (saved) {
-        const history = JSON.parse(saved);
-        // Convert timestamp strings back to Date objects and validate
-        const messagesWithDates = history.map((msg: any) => ({
-          ...msg,
-          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
-        })).filter((msg: any) => {
-          // Filter out messages with invalid timestamps
-          return msg.timestamp instanceof Date && !isNaN(msg.timestamp.getTime());
-        });
-        setMessages(messagesWithDates);
-      }
-    } catch (error) {
-      console.error('Failed to load conversation history:', error);
-      // Clear corrupted data
-      localStorage.removeItem('brainstorm_conversation');
-    }
-  };
+  // Removed loadConversationHistory - always start fresh as requested
 
   const saveConversationHistory = (newMessages: Message[]) => {
     try {
@@ -334,29 +299,34 @@ export default function CreatePage() {
   };
 
   const clearAllSessionData = () => {
-    // Clear all localStorage keys related to brainstorming
+    // Clear ALL localStorage keys that might contain session data
     const keysToRemove = [
       'buildrunner_current_idea',
       'buildrunner_initial_idea',
       'brainstorm_conversation',
       'brainstorm_state',
-      'brainstorm_session_id'
+      'brainstorm_session_id',
+      'brainstorm_messages',
+      'brainstorm_suggestions'
     ];
 
     keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-      console.log(`Removed localStorage key: ${key}`);
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        console.log(`Removed localStorage key: ${key}`);
+      }
     });
 
-    // Reset component state
+    // Reset ALL component state to initial values
     setMessages([]);
     setInitialIdea('');
     setSelectedCategory('product');
     setShowOnboarding(true);
     setError(null);
     setIsLoading(false);
+    setInputValue('');
 
-    console.log('All session data cleared completely');
+    console.log('All session data cleared completely - fresh start guaranteed');
   };
 
   const sendMessage = async (content: string, category: string = selectedCategory) => {
