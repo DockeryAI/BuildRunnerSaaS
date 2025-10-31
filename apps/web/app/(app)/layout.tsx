@@ -18,6 +18,7 @@ import {
   User,
   LogOut,
   BarChart3,
+  Package,
   Shield
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Plan', href: '/plan', icon: Edit3 },
   { name: 'Flow', href: '/flow', icon: GitMerge },
   { name: 'Timeline', href: '/timeline', icon: BarChart3 },
+  { name: 'Templates', href: '/templates', icon: Package },
   { name: 'Workbench', href: '/workbench', icon: Wrench },
   { name: 'Reconcile', href: '/reconcile', icon: GitMerge },
   { name: 'Tests', href: '/tests', icon: CheckSquare },
