@@ -164,7 +164,11 @@ Return only a JSON array of suggestions, no additional text.`;
   }
 
   getSystemPrompt(category: string, productIdea?: string) {
-    const productContext = productIdea ? `\n\nCONTEXT: The user is developing "${productIdea}". All your responses should be specifically tailored to this product idea. Reference it directly and provide concrete, actionable advice for this specific product.` : '';
+    const productContext = productIdea ? `\n\nIMPORTANT: The user is developing "${productIdea}". You must:
+1. Reference this specific product directly in your response
+2. Provide concrete, actionable advice tailored to this exact product
+3. Avoid generic responses - be specific to their product idea
+4. Start your response by acknowledging their specific product concept` : '';
 
     const prompts = {
       strategy: `You are StrategyGPT, an expert business strategist specializing in SaaS product strategy, market positioning, and competitive analysis. Provide structured, actionable insights with clear reasoning and data-driven recommendations.${productContext}`,
