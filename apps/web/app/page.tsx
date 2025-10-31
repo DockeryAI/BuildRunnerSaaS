@@ -1,32 +1,24 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '../lib/auth';
-
 export default function HomePage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading) {
-      if (user) {
-        // User is authenticated, redirect to create (PRD builder)
-        router.push('/create');
-      } else {
-        // User is not authenticated, redirect to sign-in
-        router.push('/sign-in');
-      }
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">BuildRunner SaaS</h1>
+        <p className="text-gray-600 mb-8">Welcome to the PRD Builder</p>
+        <div className="space-y-4">
+          <a
+            href="/create"
+            className="block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Go to Create Page
+          </a>
+          <a
+            href="/test"
+            className="block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+          >
+            Go to Test Page
+          </a>
+        </div>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }
