@@ -73,7 +73,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            What do you want to build?
+            What is your idea?
           </h1>
           <p className="text-lg text-gray-600">
             Describe your idea and I'll help you develop a comprehensive strategy with AI-powered insights.
@@ -106,21 +106,23 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
           <textarea
             value={initialIdea}
             onChange={(e) => setInitialIdea(e.target.value)}
-            placeholder="Describe your idea... (e.g., 'A SaaS platform for automated CI/CD pipelines', 'A mobile app for fitness tracking', 'An AI-powered customer service tool')"
+            placeholder="Describe your idea..."
             className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             disabled={!apiKeysConfigured}
           />
         </div>
 
-        {/* Examples */}
+        {/* Conversation Starters */}
         <div className="mb-6">
-          <p className="text-sm font-medium text-gray-700 mb-3">Need inspiration? Try these examples:</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">Need inspiration? Try these conversation starters:</p>
           <div className="grid grid-cols-1 gap-2">
             {[
               "A SaaS platform for automated CI/CD pipelines",
               "An AI-powered customer service chatbot",
               "A mobile app for team project management",
               "A marketplace for freelance developers",
+              "A fintech app for small business accounting",
+              "An e-learning platform for coding bootcamps"
             ].map((example, index) => (
               <button
                 key={index}
@@ -202,6 +204,7 @@ export default function BrainstormPage() {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [initialIdea, setInitialIdea] = useState('');
   const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
+  const [showIdeaManager, setShowIdeaManager] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { state, addSuggestion, updateDecision, exportHistory } = useBrainstormState();
@@ -216,12 +219,14 @@ export default function BrainstormPage() {
   // Check if we should show onboarding
   useEffect(() => {
     const hasExistingSession = messages.length > 0 || state.suggestions.length > 0;
-    const hasInitialIdea = localStorage.getItem('buildrunner_initial_idea');
 
-    if (hasExistingSession || hasInitialIdea) {
+    // Only skip onboarding if there's an active session, not just a saved idea
+    if (hasExistingSession) {
       setShowOnboarding(false);
-      if (hasInitialIdea) {
-        setInitialIdea(hasInitialIdea);
+      // Load the idea for the current session if it exists
+      const currentIdea = localStorage.getItem('buildrunner_current_idea');
+      if (currentIdea) {
+        setInitialIdea(currentIdea);
       }
     }
   }, [messages, state.suggestions]);
@@ -408,8 +413,8 @@ export default function BrainstormPage() {
     setError(null);
 
     try {
-      // Save the initial idea
-      localStorage.setItem('buildrunner_initial_idea', idea);
+      // Save the current idea for this session
+      localStorage.setItem('buildrunner_current_idea', idea);
       setInitialIdea(idea);
       setShowOnboarding(false);
 
@@ -451,6 +456,77 @@ export default function BrainstormPage() {
     />;
   }
 
+  // Idea Manager Modal
+  const IdeaManagerModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">Manage Ideas</h2>
+            <button
+              onClick={() => setShowIdeaManager(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <span className="sr-only">Close</span>
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Current Idea</h3>
+            {initialIdea ? (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-900">{initialIdea}</p>
+                <div className="mt-2 flex space-x-2">
+                  <button className="text-sm text-blue-600 hover:text-blue-800">Save Idea</button>
+                  <button className="text-sm text-red-600 hover:text-red-800">Clear Session</button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500">No active idea</p>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Saved Ideas</h3>
+            <div className="space-y-3">
+              <div className="p-4 border border-gray-200 rounded-lg">
+                <p className="text-gray-500">No saved ideas yet. Start brainstorming to save your first idea!</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowIdeaManager(false)}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                // Start new idea
+                localStorage.removeItem('buildrunner_current_idea');
+                localStorage.removeItem('brainstorm_conversation');
+                setMessages([]);
+                setInitialIdea('');
+                setShowOnboarding(true);
+                setShowIdeaManager(false);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Start New Idea
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -468,6 +544,13 @@ export default function BrainstormPage() {
             </div>
 
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowIdeaManager(true)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Manage Ideas
+              </button>
+
               <button
                 onClick={exportConversation}
                 className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -613,6 +696,9 @@ export default function BrainstormPage() {
           </div>
         </div>
       </div>
+
+      {/* Idea Manager Modal */}
+      {showIdeaManager && <IdeaManagerModal />}
     </div>
   );
 }

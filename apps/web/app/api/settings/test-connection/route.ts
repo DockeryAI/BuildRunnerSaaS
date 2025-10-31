@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
       case 'producthunt':
         testResult = await testProductHunt(value);
         break;
+      case 'github_token':
+        testResult = await testGitHub(value);
+        break;
       default:
         testResult = { success: false, error: `Unknown key type: ${keyId}` };
     }
@@ -242,26 +245,77 @@ async function testProductHunt(apiKey: string) {
     if (response.ok) {
       const data = await response.json();
       if (data.errors) {
-        return { 
-          success: false, 
-          error: `ProductHunt API error: ${data.errors[0]?.message}` 
+        return {
+          success: false,
+          error: `ProductHunt API error: ${data.errors[0]?.message}`
         };
       }
-      return { 
-        success: true, 
-        message: 'ProductHunt API key is valid' 
+      return {
+        success: true,
+        message: 'ProductHunt API key is valid'
       };
     } else {
       const error = await response.text();
-      return { 
-        success: false, 
-        error: `ProductHunt API error: ${response.status} - ${error}` 
+      return {
+        success: false,
+        error: `ProductHunt API error: ${response.status} - ${error}`
       };
     }
   } catch (error) {
-    return { 
-      success: false, 
-      error: `ProductHunt connection failed: ${error.message}` 
+    return {
+      success: false,
+      error: `ProductHunt connection failed: ${error.message}`
+    };
+  }
+}
+
+async function testGitHub(token: string) {
+  console.log('Testing GitHub token...');
+
+  try {
+    // Add a small delay to show it's actually testing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const response = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'BuildRunner-SaaS',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('GitHub test successful, user:', data.login);
+      return {
+        success: true,
+        message: `Connected successfully as ${data.login}. Repositories accessible.`
+      };
+    } else {
+      const error = await response.text();
+      console.error('GitHub test failed:', response.status, error);
+      return {
+        success: false,
+        error: `GitHub API error: ${response.status} - ${error.substring(0, 200)}`
+      };
+    }
+  } catch (error) {
+    console.error('GitHub test error:', error);
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'GitHub connection timed out after 10 seconds'
+      };
+    }
+    return {
+      success: false,
+      error: `GitHub connection failed: ${error.message}`
     };
   }
 }

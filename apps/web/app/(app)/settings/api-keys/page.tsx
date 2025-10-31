@@ -64,6 +64,14 @@ export default function APIKeysPage() {
       required: false,
       status: 'disconnected',
     },
+    {
+      id: 'github_token',
+      name: 'GitHub Personal Access Token',
+      description: 'Required: For saving and syncing brainstorm sessions to GitHub',
+      value: '',
+      required: true,
+      status: 'disconnected',
+    },
   ]);
 
   const [showValues, setShowValues] = useState<Record<string, boolean>>({});
@@ -349,6 +357,7 @@ export default function APIKeysPage() {
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• <strong>OpenRouter:</strong> Sign up at <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai</a> and get your API key</li>
               <li>• <strong>Supabase:</strong> Create a project at <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline">supabase.com</a> and copy your URL and anon key</li>
+              <li>• <strong>GitHub:</strong> Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline">GitHub Settings → Developer settings → Personal access tokens</a> and create a token with repo access</li>
               <li>• <strong>Crunchbase:</strong> Get API access at <a href="https://data.crunchbase.com" target="_blank" rel="noopener noreferrer" className="underline">data.crunchbase.com</a> (optional)</li>
               <li>• <strong>ProductHunt:</strong> Apply for API access at <a href="https://api.producthunt.com" target="_blank" rel="noopener noreferrer" className="underline">api.producthunt.com</a> (optional)</li>
             </ul>
