@@ -891,6 +891,146 @@ CREATE TABLE subscriptions (
 - **Historical Analysis**: Usage trends and optimization recommendations
 - **Cost Breakdown**: Detailed cost attribution by service and project
 
+## Phase 15 — Admin Console & Token/Cost Tracking ✅
+
+Comprehensive admin operations platform for monitoring, controlling, and managing BuildRunner.
+
+### Features
+- **Admin Dashboard**: Real-time visibility into projects, costs, usage, and quality metrics
+- **Cost Reconciliation**: Automated cost tracking with budget enforcement and alerts
+- **Governance Operations**: Impersonation, rate limiting, and maintenance windows
+- **API Key Management**: Hashed storage, scoped permissions, and automated rotation
+- **Support Tools**: Credits adjustments, incident center, and audit logging
+
+### Admin Dashboard
+- **Overview Cards**: Projects, monthly spend, tokens, quality score, active issues, open tickets
+- **Project Monitoring**: Real-time budget utilization, token usage, and quality tracking
+- **Alert Management**: Critical issues requiring immediate attention
+- **Quick Actions**: Common admin operations accessible from dashboard
+
+### Cost & Budget Management
+- **Budget Enforcement**: Soft limits with warnings and hard caps with API blocking
+- **Cost Reconciliation**: Automated aggregation of usage events and billing data
+- **Forecasting**: Predictive spending based on current usage patterns
+- **Credits System**: Billing adjustments and compensation tracking
+
+### Usage
+```bash
+# Access Admin Console
+https://app.buildrunner.com/admin
+
+# Set project budget
+curl -X POST /api/admin/budgets \
+  -H "Authorization: Bearer admin-token" \
+  -d '{
+    "project_id": "proj_123",
+    "monthly_usd": 1000.00,
+    "hard_cap": true,
+    "alert_threshold": 0.8
+  }'
+
+# Start impersonation session
+curl -X POST /api/admin/impersonation \
+  -H "Authorization: Bearer admin-token" \
+  -d '{
+    "user_id": "user_123",
+    "reason": "Support ticket debugging",
+    "duration_minutes": 60
+  }'
+
+# Create API key with scopes
+curl -X POST /api/admin/api-keys \
+  -H "Authorization: Bearer admin-token" \
+  -d '{
+    "project_id": "proj_123",
+    "name": "CI/CD Pipeline",
+    "scopes": ["planner.read", "builder.run", "qa.run"]
+  }'
+```
+
+### Database Schema
+```sql
+-- Cost budgets and spending limits
+CREATE TABLE cost_budgets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  monthly_usd NUMERIC(10,2) NOT NULL,
+  hard_cap BOOLEAN DEFAULT false,
+  alert_threshold NUMERIC(3,2) DEFAULT 0.8,
+  enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- API keys with hashed storage
+CREATE TABLE api_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  key_hash TEXT NOT NULL,
+  key_prefix TEXT NOT NULL,
+  scopes TEXT[] NOT NULL DEFAULT '{}',
+  enabled BOOLEAN DEFAULT true,
+  last_used_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Impersonation sessions for admin support
+CREATE TABLE impersonation_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  project_id UUID,
+  reason TEXT NOT NULL,
+  start_at TIMESTAMPTZ DEFAULT now(),
+  end_at TIMESTAMPTZ,
+  duration_minutes INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Support tickets for incident management
+CREATE TABLE support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT CHECK (status IN ('open','in_progress','resolved','closed')) DEFAULT 'open',
+  priority TEXT CHECK (priority IN ('low','medium','high','critical')) DEFAULT 'medium',
+  category TEXT CHECK (category IN ('budget','reliability','governance','integrations','billing','performance')),
+  assigned_to UUID,
+  meta JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Role-Based Access Control
+- **GlobalAdmin**: Full access to all admin functions across organizations
+- **TenantAdmin**: Admin functions scoped to their organization
+- **SupportAgent**: Limited access to support tools and incident management
+
+### Governance Operations
+- **Impersonation**: Secure user impersonation with full audit trails and automatic session termination
+- **Rate Limiting**: Per-project API throttling with immediate enforcement
+- **Maintenance Windows**: Scheduled operation blocking with override capabilities
+- **Audit Logging**: Complete audit trails for all admin actions
+
+### API Key Management
+- **Secure Storage**: Keys hashed with bcrypt, only prefix stored for identification
+- **Scoped Permissions**: Fine-grained access control with scope enforcement
+- **Automated Rotation**: One-click key rotation with grace periods
+- **Usage Tracking**: Last used timestamps and expiration management
+
+### Cost Reconciliation
+- **Automated Processing**: Background worker aggregates usage events and billing data
+- **Real-Time Updates**: Cost snapshots updated with current spend and forecasts
+- **Budget Alerts**: Automatic notifications at 80%, 90%, and 100% thresholds
+- **Credit Integration**: Billing adjustments and compensation tracking
+
+### Support & Incident Management
+- **Incident Center**: Centralized ticket management with assignment and status tracking
+- **Automated Tickets**: System-generated tickets for budget violations and quality issues
+- **Credits Adjustment**: Billing corrections with full audit trails
+- **Log Export**: Comprehensive audit log export with PII redaction
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -907,3 +1047,4 @@ CREATE TABLE subscriptions (
 - **Phase 12**: Enterprise & Compliance with VPC deployment, SSO, and audit ✅
 - **Phase 13**: Integrations with Jira, Linear, and Preview Environments ✅
 - **Phase 14**: Monetization & Billing with Stripe, usage metering, and governance ✅
+- **Phase 15**: Admin Console & Token/Cost Tracking with governance operations ✅

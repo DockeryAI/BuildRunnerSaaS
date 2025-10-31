@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.4.0",
-  "updatedAt": "2025-10-31T07:00:00.000Z",
+  "version": "1.5.0",
+  "updatedAt": "2025-10-31T08:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -1401,6 +1401,174 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p15",
+          "title": "Admin Console & Token/Cost Tracking",
+          "steps": [
+            {
+              "id": "p15.s1",
+              "title": "Schema & Permissions",
+              "microsteps": [
+                {
+                  "id": "p15.s1.ms1",
+                  "title": "SQL migration (idempotent)",
+                  "status": "done",
+                  "criteria": ["Create admin tables: tenant_settings, cost_budgets, credits, rate_limits, api_keys, impersonation_sessions, maintenance_windows, support_tickets, admin_actions; migration applies cleanly"]
+                },
+                {
+                  "id": "p15.s1.ms2",
+                  "title": "Role/permission gates",
+                  "status": "done",
+                  "criteria": ["Extend server authz: new role GlobalAdmin; Admin Console routes require GlobalAdmin or TenantAdmin; unauthorized access returns 403"]
+                },
+                {
+                  "id": "p15.s1.ms3",
+                  "title": "Indexes & FKs",
+                  "status": "done",
+                  "criteria": ["Add missing indexes (project_id, created_at); query plans show index usage on dashboards"]
+                }
+              ]
+            },
+            {
+              "id": "p15.s2",
+              "title": "Token & Cost Tracking",
+              "microsteps": [
+                {
+                  "id": "p15.s2.ms1",
+                  "title": "Reconciler worker",
+                  "status": "done",
+                  "criteria": ["Background job supabase/functions/cost-reconciler/index.ts; runs locally; snapshot visible; runner_event action=cost_reconciled"]
+                },
+                {
+                  "id": "p15.s2.ms2",
+                  "title": "Budgets & caps",
+                  "status": "done",
+                  "criteria": ["CRUD endpoints for cost_budgets; enforce hard_cap at server middleware; over-cap requests blocked with 402-style message"]
+                },
+                {
+                  "id": "p15.s2.ms3",
+                  "title": "Alerts & escalations",
+                  "status": "done",
+                  "criteria": ["Email/Slack notifications when spend crosses 80/90/100% of budget; alert_threshold triggers notifications; support_ticket created"]
+                }
+              ]
+            },
+            {
+              "id": "p15.s3",
+              "title": "Admin Console (UI)",
+              "microsteps": [
+                {
+                  "id": "p15.s3.ms1",
+                  "title": "Admin Home",
+                  "status": "done",
+                  "criteria": ["/admin dashboard cards: Projects, Spend (MTD), Tokens (MTD), Quality, Active Issues, Open Tickets; loads in <1s from indexed views"]
+                },
+                {
+                  "id": "p15.s3.ms2",
+                  "title": "Project drilldown",
+                  "status": "done",
+                  "criteria": ["/admin/projects/[id] tabs: Overview, Tokens/Cost, Quality, Governance, Keys, Rate Limits, Maintenance, Logs; all tabs render data; actions are role-gated"]
+                },
+                {
+                  "id": "p15.s3.ms3",
+                  "title": "Cost & tokens tab",
+                  "status": "done",
+                  "criteria": ["Charts: tokens/day, spend/day; forecast line; budget bar with thresholds; numbers match reconciler; export CSV works"]
+                }
+              ]
+            },
+            {
+              "id": "p15.s4",
+              "title": "Governance Ops (Impersonation, Rate Limits, Maintenance)",
+              "microsteps": [
+                {
+                  "id": "p15.s4.ms1",
+                  "title": "Impersonation with audit",
+                  "status": "done",
+                  "criteria": ["Start/stop impersonation; banner in UI; write to admin_actions + audit_ledger hash chain; every session recorded with reason and duration"]
+                },
+                {
+                  "id": "p15.s4.ms2",
+                  "title": "Rate limit controls",
+                  "status": "done",
+                  "criteria": ["Edit rate_limits; immediate effect on API gateway; throttled calls return 429; settings persisted"]
+                },
+                {
+                  "id": "p15.s4.ms3",
+                  "title": "Maintenance windows",
+                  "status": "done",
+                  "criteria": ["Create windows; block risky operations during window; override requires dual-approval; attempted risky op shows governance block"]
+                }
+              ]
+            },
+            {
+              "id": "p15.s5",
+              "title": "Keys & Rotation",
+              "microsteps": [
+                {
+                  "id": "p15.s5.ms1",
+                  "title": "API key lifecycle",
+                  "status": "done",
+                  "criteria": ["Create/disable/delete keys; store hash only; display last 4 chars on creation only; keys not recoverable; verify via hash on inbound"]
+                },
+                {
+                  "id": "p15.s5.ms2",
+                  "title": "Scoped keys",
+                  "status": "done",
+                  "criteria": ["Scopes: planner.read, builder.run, qa.run, analytics.read; enforced at server middleware; scope violations return 403 with missing scope name"]
+                },
+                {
+                  "id": "p15.s5.ms3",
+                  "title": "Rotation flow",
+                  "status": "done",
+                  "criteria": ["One-click rotate: issues new key, revokes old after grace; emails admins; logs admin_actions action=key_rotated; old key blocked after grace period"]
+                }
+              ]
+            },
+            {
+              "id": "p15.s6",
+              "title": "Support Tools & Incident Center",
+              "microsteps": [
+                {
+                  "id": "p15.s6.ms1",
+                  "title": "Credits adjustments",
+                  "status": "done",
+                  "criteria": ["Add credits to a project with reason; reconcile into spend view; snapshot reflects credits; audit entry saved"]
+                },
+                {
+                  "id": "p15.s6.ms2",
+                  "title": "Incident center",
+                  "status": "done",
+                  "criteria": ["Page /admin/incidents: open tickets, filter, assign, status transitions; updates write to support_tickets; notifications to assignees"]
+                },
+                {
+                  "id": "p15.s6.ms3",
+                  "title": "Log viewer & export",
+                  "status": "done",
+                  "criteria": ["Read-only view of runner_events/audit_ledger; export CSV/JSON; search by actor/action/id; exports succeed; PII redaction where policy requires"]
+                }
+              ]
+            },
+            {
+              "id": "p15.s7",
+              "title": "Docs & Finalize Phase 15",
+              "microsteps": [
+                {
+                  "id": "p15.s7.ms1",
+                  "title": "Admin guide",
+                  "status": "done",
+                  "criteria": ["/docs/admin-console.md: roles, budgets, impersonation, keys, maintenance, incidents; screenshots and deep links included"]
+                },
+                {
+                  "id": "p15.s7.ms2",
+                  "title": "Plan/state updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.5.0 with Phase 15 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1652,6 +1820,21 @@
         "apps/web/app/api/billing/checkout/route.ts",
         "apps/web/app/api/webhooks/stripe/route.ts",
         "docs/billing.md"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T08:00:00.000Z",
+      "version": "1.5.0",
+      "phase": 15,
+      "description": "Completed Phase 15 - Admin Console & Token/Cost Tracking. Implemented comprehensive admin operations platform with real-time dashboard, cost reconciliation worker, budget enforcement with hard caps, impersonation sessions with full audit trails, API key management with hashed storage and scoped permissions, maintenance windows with operation blocking, support ticket system with incident center, and complete audit logging. Added role-based access control for GlobalAdmin/TenantAdmin with governance integration.",
+      "author": "Auggie",
+      "microsteps_completed": 20,
+      "files_added": [
+        "supabase/migrations/20251031000008_Phase15-admin.sql",
+        "supabase/functions/cost-reconciler/index.ts",
+        "apps/web/lib/admin/admin.ts",
+        "apps/web/app/(app)/admin/page.tsx",
+        "docs/admin-console.md"
       ]
     }
   ]
