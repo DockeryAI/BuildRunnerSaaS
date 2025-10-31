@@ -3,12 +3,16 @@ import fs from 'fs-extra';
 import path from 'path';
 import { BuildSpecSchema } from '../../../../lib/types';
 
-const PLAN_PATH = path.join(process.cwd(), 'buildrunner/specs/plan.json');
-const STATE_PATH = path.join(process.cwd(), 'buildrunner/state/runner_state.json');
+const PLAN_PATH = path.join(process.cwd(), '../../buildrunner/specs/plan.json');
+const STATE_PATH = path.join(process.cwd(), '../../buildrunner/state/runner_state.json');
 
 export async function GET() {
   try {
+    console.log('[LOCAL_PLAN] Looking for plan at:', PLAN_PATH);
+    console.log('[LOCAL_PLAN] Current working directory:', process.cwd());
+
     if (!await fs.pathExists(PLAN_PATH)) {
+      console.log('[LOCAL_PLAN] Plan file not found at:', PLAN_PATH);
       return NextResponse.json(null);
     }
 
