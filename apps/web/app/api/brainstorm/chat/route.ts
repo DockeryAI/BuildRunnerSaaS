@@ -185,11 +185,16 @@ function getApiKeys() {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('Brainstorm chat API called');
+
   try {
     const body = await request.json();
     const { category, message, conversation_history } = body;
 
+    console.log('Request data:', { category, message: message.substring(0, 100) + '...', historyLength: conversation_history?.length || 0 });
+
     if (!category || !message) {
+      console.error('Missing required fields:', { category: !!category, message: !!message });
       return NextResponse.json(
         { error: 'Category and message are required' },
         { status: 400 }
@@ -204,30 +209,40 @@ export async function POST(request: NextRequest) {
       try {
         const keys = JSON.parse(apiKeys);
         openrouterKey = keys.openrouter || '';
+        console.log('API keys parsed from headers, OpenRouter key present:', !!openrouterKey);
       } catch (e) {
-        console.warn('Failed to parse API keys from headers');
+        console.warn('Failed to parse API keys from headers:', e);
       }
     }
 
     // Fallback to environment variable
     if (!openrouterKey) {
       openrouterKey = process.env.OPENROUTER_API_KEY || '';
+      console.log('Using environment OpenRouter key:', !!openrouterKey);
     }
 
     if (!openrouterKey) {
+      console.error('No OpenRouter API key available');
       return NextResponse.json(
-        { error: 'OpenRouter API key not configured' },
+        { error: 'OpenRouter API key not configured. Please add it in Settings → API Keys.' },
         { status: 400 }
       );
     }
 
     const service = new OpenRouterService(openrouterKey);
 
+    console.log('Generating AI response and suggestions...');
+
     // Generate response and suggestions
     const [response, suggestions] = await Promise.all([
       service.generateResponse(category, conversation_history || []),
       service.generateSuggestions(category, message)
     ]);
+
+    console.log('AI response generated successfully:', {
+      responseLength: response?.length || 0,
+      suggestionsCount: suggestions?.length || 0
+    });
 
     return NextResponse.json({
       response,
@@ -239,7 +254,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in brainstorm chat:', error);
     return NextResponse.json(
-      { error: 'Failed to process chat request' },
+      { error: `Failed to process chat request: ${error.message}` },
       { status: 500 }
     );
   }

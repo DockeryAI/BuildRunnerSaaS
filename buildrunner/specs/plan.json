@@ -1,8 +1,8 @@
 {
-  "projectId": "project-1761925332266",
-  "title": "I want to build a",
+  "projectId": "project-1761926896141",
+  "title": "a sales agent that schedules",
   "version": "0.4.0",
-  "updatedAt": "2025-10-31T15:42:12.266Z",
+  "updatedAt": "2025-10-31T16:08:16.141Z",
   "milestones": [
     {
       "id": "m1",
@@ -108,10 +108,10 @@
   ],
   "changeHistory": [
     {
-      "timestamp": "2025-10-31T15:42:12.266Z",
+      "timestamp": "2025-10-31T16:08:16.141Z",
       "version": "0.4.0",
       "phase": 4,
-      "description": "Generated plan from prompt: I want to build a sales meeting agent that books m...",
+      "description": "Generated plan from prompt: a sales agent that schedules meetings\n...",
       "author": "AI Planner",
       "microsteps_completed": 0,
       "files_added": []

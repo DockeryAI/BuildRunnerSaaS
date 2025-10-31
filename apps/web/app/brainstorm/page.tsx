@@ -134,6 +134,8 @@ export default function BrainstormPage() {
   const sendMessage = async (content: string, category: string = selectedCategory) => {
     if (!content.trim() || isLoading) return;
 
+    console.log('Sending message:', { content, category });
+
     const userMessage: Message = {
       id: `user_${Date.now()}`,
       role: 'user',
@@ -154,7 +156,14 @@ export default function BrainstormPage() {
       const savedKeys = localStorage.getItem('buildrunner_api_keys');
       const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
 
+      console.log('API keys available:', Object.keys(apiKeys));
+
+      if (!apiKeys.openrouter) {
+        throw new Error('OpenRouter API key not configured. Please add it in Settings.');
+      }
+
       // Send request to brainstorm API
+      console.log('Making API request to /api/brainstorm/chat...');
       const response = await fetch('/api/brainstorm/chat', {
         method: 'POST',
         headers: {
@@ -167,6 +176,8 @@ export default function BrainstormPage() {
           conversation_history: messages.slice(-5), // Last 5 messages for context
         }),
       });
+
+      console.log('API response status:', response.status);
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -258,26 +269,40 @@ export default function BrainstormPage() {
   const startBrainstorming = async (idea: string) => {
     if (!idea.trim()) return;
 
-    // Save the initial idea
-    localStorage.setItem('buildrunner_initial_idea', idea);
-    setInitialIdea(idea);
-    setShowOnboarding(false);
+    console.log('Starting brainstorming with idea:', idea);
+    setIsLoading(true);
+    setError(null);
 
-    // Start with a strategy question about the idea
-    const welcomeMessage = `Great! Let's brainstorm your idea: "${idea}". I'll help you develop a comprehensive strategy. Let's start with understanding your vision and value proposition.`;
+    try {
+      // Save the initial idea
+      localStorage.setItem('buildrunner_initial_idea', idea);
+      setInitialIdea(idea);
+      setShowOnboarding(false);
 
-    const systemMessage: Message = {
-      id: `system_${Date.now()}`,
-      role: 'system',
-      content: welcomeMessage,
-      category: 'strategy',
-      timestamp: new Date(),
-    };
+      // Start with a strategy question about the idea
+      const welcomeMessage = `Great! Let's brainstorm your idea: "${idea}". I'll help you develop a comprehensive strategy. Let's start with understanding your vision and value proposition.`;
 
-    setMessages([systemMessage]);
+      const systemMessage: Message = {
+        id: `system_${Date.now()}`,
+        role: 'system',
+        content: welcomeMessage,
+        category: 'strategy',
+        timestamp: new Date(),
+      };
 
-    // Automatically generate initial strategic suggestions
-    await sendMessage(`Help me develop a strategy for: ${idea}`, 'strategy');
+      setMessages([systemMessage]);
+      saveConversationHistory([systemMessage]);
+
+      // Automatically generate initial strategic suggestions
+      console.log('Sending initial strategy message...');
+      await sendMessage(`Help me develop a strategy for: ${idea}`, 'strategy');
+
+    } catch (error) {
+      console.error('Error starting brainstorming:', error);
+      setError('Failed to start brainstorming. Please check your API keys and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Onboarding Component
@@ -353,6 +378,16 @@ export default function BrainstormPage() {
               ))}
             </div>
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
+                <p className="text-red-800">{error}</p>
+              </div>
+            </div>
+          )}
 
           {/* Start Button */}
           <button

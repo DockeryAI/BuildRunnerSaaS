@@ -44,67 +44,109 @@ export async function POST(request: NextRequest) {
 }
 
 async function testOpenRouter(apiKey: string) {
+  console.log('Testing OpenRouter API key...');
+
   try {
+    // Add a small delay to show it's actually testing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://buildrunner.cloud',
+        'X-Title': 'BuildRunner SaaS',
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.ok) {
       const data = await response.json();
-      return { 
-        success: true, 
-        message: `Connected successfully. Found ${data.data?.length || 0} available models.` 
+      console.log('OpenRouter test successful, models found:', data.data?.length || 0);
+      return {
+        success: true,
+        message: `Connected successfully. Found ${data.data?.length || 0} available models.`
       };
     } else {
       const error = await response.text();
-      return { 
-        success: false, 
-        error: `OpenRouter API error: ${response.status} - ${error}` 
+      console.error('OpenRouter test failed:', response.status, error);
+      return {
+        success: false,
+        error: `OpenRouter API error: ${response.status} - ${error.substring(0, 200)}`
       };
     }
   } catch (error) {
-    return { 
-      success: false, 
-      error: `OpenRouter connection failed: ${error.message}` 
+    console.error('OpenRouter test error:', error);
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'OpenRouter connection timed out after 10 seconds'
+      };
+    }
+    return {
+      success: false,
+      error: `OpenRouter connection failed: ${error.message}`
     };
   }
 }
 
 async function testSupabaseUrl(url: string) {
+  console.log('Testing Supabase URL...');
+
   try {
+    // Add a small delay to show it's actually testing
+    await new Promise(resolve => setTimeout(resolve, 800));
+
     // Basic URL validation
     const urlObj = new URL(url);
     if (!urlObj.hostname.includes('supabase')) {
-      return { 
-        success: false, 
-        error: 'URL does not appear to be a Supabase URL' 
+      return {
+        success: false,
+        error: 'URL does not appear to be a Supabase URL (should contain "supabase")'
       };
     }
 
-    // Test basic connectivity
+    // Test basic connectivity with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
     const response = await fetch(`${url}/rest/v1/`, {
       method: 'HEAD',
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (response.status === 401 || response.status === 200) {
       // 401 is expected without auth, 200 means it's accessible
-      return { 
-        success: true, 
-        message: 'Supabase URL is valid and accessible' 
+      console.log('Supabase URL test successful');
+      return {
+        success: true,
+        message: 'Supabase URL is valid and accessible'
       };
     } else {
-      return { 
-        success: false, 
-        error: `Supabase URL test failed: ${response.status}` 
+      console.error('Supabase URL test failed:', response.status);
+      return {
+        success: false,
+        error: `Supabase URL test failed with status: ${response.status}`
       };
     }
   } catch (error) {
-    return { 
-      success: false, 
-      error: `Invalid Supabase URL: ${error.message}` 
+    console.error('Supabase URL test error:', error);
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'Supabase URL connection timed out after 8 seconds'
+      };
+    }
+    return {
+      success: false,
+      error: `Invalid Supabase URL: ${error.message}`
     };
   }
 }
