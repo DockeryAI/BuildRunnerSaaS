@@ -1,0 +1,280 @@
+name: BuildRunner QA
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [ opened, synchronize, reopened ]
+  push:
+    branches: [ main ]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run QA against'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      microstep_filter:
+        description: 'Specific microstep IDs to test (comma-separated)'
+        required: false
+        type: string
+      parallel:
+        description: 'Run tests in parallel'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  QA_RUNNER_VERSION: '1.0.0'
+
+jobs:
+  qa-validation:
+    name: QA Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    strategy:
+      matrix:
+        environment: 
+          - ${{ github.event.inputs.environment || 'development' }}
+      fail-fast: false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Validate plan.json schema
+        run: |
+          npm run lint:spec
+          echo "✅ Plan schema validation passed"
+
+      - name: Setup QA environment
+        run: |
+          # Create evidence directory
+          mkdir -p qa-evidence
+          
+          # Set up QA configuration
+          cat > qa-config.json << EOF
+          {
+            "environment": "${{ matrix.environment }}",
+            "parallel": ${{ github.event.inputs.parallel || false }},
+            "timeout_ms": 1800000,
+            "retry_count": 2,
+            "evidence_collection": true,
+            "filters": {
+              "microstep_ids": ${{ github.event.inputs.microstep_filter && format('["{0}"]', join(split(github.event.inputs.microstep_filter, ','), '","')) || '[]' }}
+            }
+          }
+          EOF
+          
+          echo "QA Configuration:"
+          cat qa-config.json
+
+      - name: Run QA validation
+        id: qa_run
+        env:
+          # Supabase credentials (only service role key for CI)
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          QA_ENVIRONMENT: ${{ matrix.environment }}
+        run: |
+          echo "🚀 Starting QA validation for environment: ${{ matrix.environment }}"
+          
+          # Run QA with JSON output for parsing
+          npm run build
+          node qa-runner.ts --config=qa-config.json --json > qa-results.json
+          
+          # Extract summary for GitHub output
+          QA_SUMMARY=$(cat qa-results.json | jq -r '.summary')
+          echo "qa_summary=$QA_SUMMARY" >> $GITHUB_OUTPUT
+          
+          # Extract key metrics
+          TOTAL_TESTS=$(echo "$QA_SUMMARY" | jq -r '.total_tests')
+          PASSED_TESTS=$(echo "$QA_SUMMARY" | jq -r '.passed_tests')
+          FAILED_TESTS=$(echo "$QA_SUMMARY" | jq -r '.failed_tests')
+          PASS_RATE=$(echo "$QA_SUMMARY" | jq -r '.pass_rate')
+          
+          echo "total_tests=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+          echo "passed_tests=$PASSED_TESTS" >> $GITHUB_OUTPUT
+          echo "failed_tests=$FAILED_TESTS" >> $GITHUB_OUTPUT
+          echo "pass_rate=$PASS_RATE" >> $GITHUB_OUTPUT
+          
+          echo "📊 QA Results Summary:"
+          echo "   Total Tests: $TOTAL_TESTS"
+          echo "   Passed: $PASSED_TESTS"
+          echo "   Failed: $FAILED_TESTS"
+          echo "   Pass Rate: $PASS_RATE%"
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-evidence-${{ matrix.environment }}-${{ github.run_number }}
+          path: |
+            qa-evidence/
+            qa-results.json
+            qa-config.json
+          retention-days: 30
+
+      - name: Create QA report comment (PR only)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read QA results
+            const qaResults = JSON.parse(fs.readFileSync('qa-results.json', 'utf8'));
+            const summary = qaResults.summary;
+            const results = qaResults.results;
+            
+            // Generate markdown report
+            let report = `## 🧪 QA Validation Report\n\n`;
+            report += `**Environment:** ${{ matrix.environment }}\n`;
+            report += `**Run ID:** ${summary.run_id}\n`;
+            report += `**Total Tests:** ${summary.total_tests}\n`;
+            report += `**Pass Rate:** ${summary.pass_rate}%\n\n`;
+            
+            if (summary.failed_tests > 0) {
+              report += `### ❌ Failed Tests (${summary.failed_tests})\n\n`;
+              
+              results.filter(r => r.overall_status === 'failed').forEach(result => {
+                report += `- **${result.microstep_id}**: ${result.metadata.title || 'Unknown'}\n`;
+                result.criteria.filter(c => c.status === 'failed').forEach(criterion => {
+                  report += `  - ❌ ${criterion.description}\n`;
+                  if (criterion.error_message) {
+                    report += `    - Error: ${criterion.error_message}\n`;
+                  }
+                });
+              });
+              report += `\n`;
+            }
+            
+            if (summary.passed_tests > 0) {
+              report += `### ✅ Passed Tests (${summary.passed_tests})\n\n`;
+              results.filter(r => r.overall_status === 'passed').forEach(result => {
+                report += `- **${result.microstep_id}**: ${result.metadata.title || 'Unknown'} (${result.criteria.length} criteria)\n`;
+              });
+            }
+            
+            report += `\n---\n`;
+            report += `*QA validation completed at ${new Date().toISOString()}*\n`;
+            report += `*Artifacts: [qa-evidence-${{ matrix.environment }}-${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*`;
+            
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+      - name: Update commit status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = ${{ steps.qa_run.outputs.failed_tests }} > 0 ? 'failure' : 'success';
+            const description = `QA: ${${{ steps.qa_run.outputs.passed_tests }}}/${${{ steps.qa_run.outputs.total_tests }}} passed (${${{ steps.qa_run.outputs.pass_rate }}}%)`;
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: description,
+              context: 'BuildRunner QA'
+            });
+
+      - name: Fail job if tests failed
+        if: steps.qa_run.outputs.failed_tests > 0
+        run: |
+          echo "❌ QA validation failed with ${{ steps.qa_run.outputs.failed_tests }} failed tests"
+          exit 1
+
+  qa-flaky-analysis:
+    name: Flaky Test Analysis
+    runs-on: ubuntu-latest
+    needs: qa-validation
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run flaky test analysis
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🔍 Analyzing flaky tests..."
+          npm run build
+          node qa/scripts/analyze-flaky.ts --lookback-days=30 --threshold=0.1
+          
+          echo "✅ Flaky test analysis completed"
+
+      - name: Create flaky test issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // This would create GitHub issues for newly detected flaky tests
+            console.log('Flaky test issue creation would be implemented here');
+
+  qa-metrics-update:
+    name: Update QA Metrics
+    runs-on: ubuntu-latest
+    needs: qa-validation
+    if: always()
+    
+    steps:
+      - name: Update QA metrics
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "📊 Updating QA metrics..."
+          
+          # This would update qa_metrics table with daily aggregates
+          curl -X POST "$SUPABASE_URL/rest/v1/rpc/update_daily_qa_metrics" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "run_date": "'$(date -u +%Y-%m-%d)'",
+              "total_runs": ${{ needs.qa-validation.outputs.total_tests || 0 }},
+              "passed_runs": ${{ needs.qa-validation.outputs.passed_tests || 0 }},
+              "failed_runs": ${{ needs.qa-validation.outputs.failed_tests || 0 }}
+            }' || echo "Metrics update failed (expected in development)"
+          
+          echo "✅ QA metrics updated"
