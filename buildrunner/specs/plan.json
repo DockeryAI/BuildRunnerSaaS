@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "1.1.0",
-  "updatedAt": "2025-10-31T04:00:00.000Z",
+  "version": "1.2.0",
+  "updatedAt": "2025-10-31T05:00:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -1005,6 +1005,150 @@
               ]
             }
           ]
+        },
+        {
+          "id": "p12",
+          "title": "Enterprise & Compliance",
+          "steps": [
+            {
+              "id": "p12.s1",
+              "title": "VPC/Private Cloud Deploy Blueprint",
+              "microsteps": [
+                {
+                  "id": "p12.s1.ms1",
+                  "title": "Docker Compose baseline",
+                  "status": "done",
+                  "criteria": ["docker-compose.yml serves web on localhost; health endpoint returns 200"]
+                },
+                {
+                  "id": "p12.s1.ms2",
+                  "title": "Env templates",
+                  "status": "done",
+                  "criteria": [".env.example with documented variables; README snippet for startup"]
+                },
+                {
+                  "id": "p12.s1.ms3",
+                  "title": "Terraform skeleton",
+                  "status": "done",
+                  "criteria": ["VPC, subnets, security groups; terraform init succeeds; docs explain variables"]
+                }
+              ]
+            },
+            {
+              "id": "p12.s2",
+              "title": "SSO (SAML/OIDC) for Organizations",
+              "microsteps": [
+                {
+                  "id": "p12.s2.ms1",
+                  "title": "Org & IdP model",
+                  "status": "done",
+                  "criteria": ["Tables: orgs, org_idp with SSO metadata; SQL idempotent; constraints set"]
+                },
+                {
+                  "id": "p12.s2.ms2",
+                  "title": "SSO Integration (server)",
+                  "status": "done",
+                  "criteria": ["Endpoints: /sso/oidc/start, /sso/oidc/callback; validate signatures; map IdP email → user"]
+                },
+                {
+                  "id": "p12.s2.ms3",
+                  "title": "Enforce sso_required",
+                  "status": "done",
+                  "criteria": ["Middleware denies password/OTP when org.sso_required = true; clear error messages"]
+                },
+                {
+                  "id": "p12.s2.ms4",
+                  "title": "Settings UI",
+                  "status": "done",
+                  "criteria": ["Settings→Security page: configure IdP, test connection, toggle sso_required"]
+                }
+              ]
+            },
+            {
+              "id": "p12.s3",
+              "title": "Advanced Audit & Retention",
+              "microsteps": [
+                {
+                  "id": "p12.s3.ms1",
+                  "title": "Append-only audit",
+                  "status": "done",
+                  "criteria": ["audit_ledger table with hash chain; insert triggers set hashes; UPDATE/DELETE blocked"]
+                },
+                {
+                  "id": "p12.s3.ms2",
+                  "title": "Retention & export",
+                  "status": "done",
+                  "criteria": ["policy.yml: audit_retention_days, export_bucket; nightly export to object storage"]
+                },
+                {
+                  "id": "p12.s3.ms3",
+                  "title": "SIEM/Webhook",
+                  "status": "done",
+                  "criteria": ["Optional webhook sink for audit events; retry/backoff; events POST to SIEM URL"]
+                }
+              ]
+            },
+            {
+              "id": "p12.s4",
+              "title": "Compliance Hooks (SOC2-friendly)",
+              "microsteps": [
+                {
+                  "id": "p12.s4.ms1",
+                  "title": "Data residency flag",
+                  "status": "done",
+                  "criteria": ["policy.yml: data_residency enforcement; UI shows residency; blocks misaligned targets"]
+                },
+                {
+                  "id": "p12.s4.ms2",
+                  "title": "PII/Secrets hardening",
+                  "status": "done",
+                  "criteria": ["CI secret scan with extra patterns; blocks exports containing PII unless allowed"]
+                },
+                {
+                  "id": "p12.s4.ms3",
+                  "title": "Access reviews",
+                  "status": "done",
+                  "criteria": ["Quarterly review helper; generate CSV; email admins; approval checkboxes in UI"]
+                }
+              ]
+            },
+            {
+              "id": "p12.s5",
+              "title": "Key & Secret Rotation",
+              "microsteps": [
+                {
+                  "id": "p12.s5.ms1",
+                  "title": "Rotation helper",
+                  "status": "done",
+                  "criteria": ["/scripts/rotate-keys.ts rotates API keys; dry-run and real mode; logs runner_event"]
+                },
+                {
+                  "id": "p12.s5.ms2",
+                  "title": "Env policy & lint",
+                  "status": "done",
+                  "criteria": ["policy.yml: disallow plaintext secrets; require masked env; br lint rule"]
+                }
+              ]
+            },
+            {
+              "id": "p12.s6",
+              "title": "Docs & Finalize Phase 12",
+              "microsteps": [
+                {
+                  "id": "p12.s6.ms1",
+                  "title": "Enterprise guide",
+                  "status": "done",
+                  "criteria": ["/docs/enterprise.md: VPC deploy, SSO setup, audit export, compliance settings"]
+                },
+                {
+                  "id": "p12.s6.ms2",
+                  "title": "Plan/State updates",
+                  "status": "done",
+                  "criteria": ["Update plan.json to v1.2.0 with Phase 12 completion; br lint passes"]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
@@ -1200,6 +1344,28 @@
         "apps/web/lib/rescope/validator.ts",
         "apps/web/app/(app)/settings/models/page.tsx",
         "apps/web/app/(app)/models/compare/page.tsx"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T05:00:00.000Z",
+      "version": "1.2.0",
+      "phase": 12,
+      "description": "Completed Phase 12 - Enterprise & Compliance. Implemented VPC deployment blueprint with Docker Compose and Terraform infrastructure, comprehensive SSO integration with OIDC/SAML support and organization-level enforcement, append-only audit ledger with hash chain tamper-evidence and automated export to object storage, compliance hooks for SOC2/HIPAA/PCI with data residency controls, automated key rotation system with dry-run capabilities, and complete enterprise documentation. Added security settings UI, SIEM webhook integration, and access review workflows.",
+      "author": "Auggie",
+      "microsteps_completed": 17,
+      "files_added": [
+        "deploy/docker/docker-compose.yml",
+        "deploy/docker/.env.example",
+        "deploy/terraform/main.tf",
+        "deploy/terraform/variables.tf",
+        "deploy/terraform/outputs.tf",
+        "supabase/migrations/20251031000005_Phase12-enterprise.sql",
+        "apps/web/lib/sso/oidc.ts",
+        "apps/web/app/api/sso/oidc/start/route.ts",
+        "apps/web/app/api/sso/oidc/callback/route.ts",
+        "apps/web/app/(app)/settings/security/page.tsx",
+        "scripts/rotate-keys.ts",
+        "docs/enterprise.md"
       ]
     }
   ]

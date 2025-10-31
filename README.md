@@ -414,6 +414,146 @@ confidence: 85%
 cost_multiplier: 1.8x
 ```
 
+## Phase 12 — Enterprise & Compliance ✅
+
+Enterprise-ready deployment with VPC infrastructure, SSO integration, and comprehensive audit compliance.
+
+### Features
+- **VPC Deployment**: Docker Compose and Terraform infrastructure for private cloud deployment
+- **SSO Integration**: OIDC and SAML support with organization-level enforcement
+- **Audit & Compliance**: Append-only audit ledger with hash chain tamper-evidence
+- **Data Residency**: Geographic data controls for US, EU, and custom regions
+- **Key Rotation**: Automated secret rotation with dry-run capabilities
+- **Security Hardening**: Enterprise-grade security controls and monitoring
+
+### VPC Deployment
+- **Docker Compose**: Complete multi-service deployment with health checks
+- **Terraform Infrastructure**: VPC, subnets, security groups, load balancers
+- **Environment Templates**: Comprehensive configuration with security best practices
+- **Monitoring Stack**: Prometheus, Grafana, and log aggregation
+- **SSL/TLS**: Automated certificate management and HTTPS enforcement
+
+### SSO Integration
+- **OIDC Support**: OpenID Connect with PKCE and automatic user provisioning
+- **SAML Support**: SAML 2.0 with signature validation and attribute mapping
+- **Organization Enforcement**: Require SSO for all users in organization
+- **Multi-Provider**: Support multiple identity providers per organization
+- **Session Management**: Secure session handling with logout support
+
+### Audit & Compliance
+- **Append-Only Ledger**: Tamper-evident audit trail with cryptographic hash chain
+- **Automated Export**: Nightly export to S3-compatible object storage
+- **SIEM Integration**: Real-time webhook integration with retry/backoff
+- **Retention Policies**: Configurable retention periods (30 days to 7 years)
+- **Compliance Frameworks**: SOC 2, HIPAA, PCI DSS support
+
+### Security Features
+- **Data Residency**: Enforce geographic data storage requirements
+- **Secret Scanning**: CI/CD integration to prevent secret leakage
+- **Access Reviews**: Quarterly user access reviews with approval workflows
+- **Key Rotation**: Automated rotation of API keys and secrets
+- **Environment Hardening**: Secure defaults and policy enforcement
+
+### Usage
+```bash
+# Quick deployment with Docker Compose
+cd deploy/docker
+cp .env.example .env
+# Edit .env with your configuration
+docker compose up -d
+
+# Infrastructure deployment with Terraform
+cd deploy/terraform
+terraform init
+terraform plan
+terraform apply
+
+# Configure SSO
+curl -X POST /api/settings/identity-providers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Corporate SSO",
+    "type": "oidc",
+    "issuer": "https://your-idp.com/.well-known/openid_configuration",
+    "client_id": "your-client-id",
+    "client_secret": "your-client-secret"
+  }'
+
+# Rotate keys
+tsx scripts/rotate-keys.ts --dry-run  # Test first
+tsx scripts/rotate-keys.ts            # Live rotation
+```
+
+### Enterprise Configuration
+```yaml
+# Organization settings
+organization:
+  sso_required: true
+  data_residency: "us"
+  compliance_framework: "soc2"
+  audit_retention_days: 365
+
+# Identity provider
+identity_provider:
+  type: "oidc"
+  issuer: "https://your-idp.com"
+  client_id: "buildrunner-client"
+  auto_provision: true
+  default_role: "Viewer"
+
+# Security policies
+security:
+  enforce_https: true
+  session_timeout: 3600
+  max_login_attempts: 5
+  require_mfa: true
+```
+
+### Compliance Features
+```sql
+-- Audit trail verification
+SELECT
+  actor, action, created_at,
+  hash = compute_audit_hash(id, actor, action, payload, prev_hash, created_at) as valid
+FROM audit_ledger
+ORDER BY created_at DESC;
+
+-- Access review status
+SELECT
+  review_period, status, due_date,
+  COUNT(*) as total_items,
+  COUNT(*) FILTER (WHERE approved = true) as approved_items
+FROM access_reviews ar
+JOIN access_review_items ari ON ar.id = ari.review_id
+GROUP BY review_period, status, due_date;
+```
+
+### Deployment Architecture
+```
+Internet Gateway
+       |
+   Load Balancer (ALB)
+       |
+   ┌─────────────────┐
+   │  Public Subnet  │
+   └─────────────────┘
+           |
+   ┌─────────────────┐
+   │ Private Subnet  │  ← Web/API Servers
+   └─────────────────┘
+           |
+   ┌─────────────────┐
+   │Database Subnet  │  ← PostgreSQL/Redis
+   └─────────────────┘
+```
+
+### Security Controls
+- **Network Segmentation**: Multi-tier VPC with security groups
+- **Encryption**: TLS 1.3 in transit, AES-256 at rest
+- **Access Control**: RBAC with SSO integration
+- **Monitoring**: Real-time security event monitoring
+- **Backup**: Automated encrypted backups with cross-region replication
+
 ## Architecture
 
 - **Phase 1**: Repository scaffolding and CLI foundation
@@ -427,3 +567,4 @@ cost_multiplier: 1.8x
 - **Phase 9**: Analytics & Cost Monitoring with anomaly detection ✅
 - **Phase 10**: Collaboration & Comments Integration with realtime presence ✅
 - **Phase 11**: Explainability & Multi-Model with AI narratives and model router ✅
+- **Phase 12**: Enterprise & Compliance with VPC deployment, SSO, and audit ✅
