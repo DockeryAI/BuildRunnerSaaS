@@ -43,6 +43,178 @@ const categoryIcons = {
   monetization: CurrencyDollarIcon,
 };
 
+// OnboardingFlow Component - moved outside to prevent re-creation on every render
+interface OnboardingFlowProps {
+  initialIdea: string;
+  setInitialIdea: (idea: string) => void;
+  apiKeysConfigured: boolean;
+  error: string | null;
+  isLoading: boolean;
+  startBrainstorming: (idea: string) => void;
+  clearAllSessionData: () => void;
+}
+
+const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
+  initialIdea,
+  setInitialIdea,
+  apiKeysConfigured,
+  error,
+  isLoading,
+  startBrainstorming,
+  clearAllSessionData,
+}) => (
+  <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12">
+        {/* Header with Lightbulb */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full">
+              <LightBulbIcon className="h-12 w-12 text-blue-600" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            What would you like to build?
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Describe your product idea and I'll guide you through product development, strategy, competition analysis, and monetization.
+          </p>
+        </div>
+
+        {/* API Keys Check */}
+        {!apiKeysConfigured && (
+          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
+              <div className="flex-1">
+                <p className="text-yellow-800">
+                  <span className="font-medium">Setup Required:</span> Configure your API keys to enable AI brainstorming.
+                </p>
+              </div>
+              <Link
+                href="/settings/api-keys"
+                className="flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors"
+              >
+                <CogIcon className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Large Idea Input */}
+        <div className="mb-8">
+          <textarea
+            value={initialIdea}
+            onChange={(e) => setInitialIdea(e.target.value)}
+            placeholder="Describe your idea in detail... (e.g., 'A mobile app that helps teams collaborate on projects with real-time chat, file sharing, and task management')"
+            className="w-full h-40 p-6 text-lg border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200"
+            disabled={!apiKeysConfigured}
+          />
+        </div>
+
+        {/* Product Examples */}
+        <div className="mb-8">
+          <p className="text-sm font-medium text-gray-700 mb-4">Need inspiration? Try these product ideas:</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              "A SaaS platform for automated CI/CD pipelines",
+              "An AI-powered customer service chatbot",
+              "A mobile app for team project management",
+              "A marketplace for freelance developers",
+              "A fintech app for small business accounting",
+              "An e-learning platform for coding bootcamps"
+            ].map((example, index) => (
+              <button
+                key={index}
+                onClick={() => setInitialIdea(example)}
+                disabled={!apiKeysConfigured}
+                className="text-left p-4 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                "{example}"
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
+              <p className="text-red-800">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="space-y-4">
+          <button
+            onClick={() => startBrainstorming(initialIdea)}
+            disabled={!initialIdea.trim() || !apiKeysConfigured || isLoading}
+            className="w-full flex items-center justify-center space-x-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                <span>Starting brainstorm...</span>
+              </>
+            ) : (
+              <>
+                <SparklesIcon className="h-6 w-6" />
+                <span>Start AI Brainstorming</span>
+                <ArrowRightIcon className="h-6 w-6" />
+              </>
+            )}
+          </button>
+
+          {/* Debug: Clear All Data Button */}
+          <button
+            onClick={() => {
+              clearAllSessionData();
+              window.location.reload();
+            }}
+            className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            🗑️ Clear All Data & Refresh (Debug)
+          </button>
+        </div>
+
+        {/* Features Preview */}
+        <div className="mt-10 pt-8 border-t border-gray-200">
+          <p className="text-lg font-medium text-gray-700 mb-6 text-center">What you'll get:</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-3 bg-blue-100 rounded-full">
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Product Development</span>
+            </div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-3 bg-green-100 rounded-full">
+                <BeakerIcon className="h-6 w-6 text-green-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Strategic Planning</span>
+            </div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <ChartBarIcon className="h-6 w-6 text-purple-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Competitive Analysis</span>
+            </div>
+            <div className="flex flex-col items-center space-y-2">
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <CurrencyDollarIcon className="h-6 w-6 text-yellow-600" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Monetization Strategy</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function CreatePage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -75,20 +247,23 @@ export default function CreatePage() {
     }
   }, []);
 
-  // Check if we should show onboarding
+  // Always show onboarding by default - user requested to go straight to "What would you like to build"
+  // Only skip onboarding if there's an active brainstorming session with messages
   useEffect(() => {
-    const hasExistingSession = messages.length > 0 || state.suggestions.length > 0;
+    const hasActiveSession = messages.length > 0;
 
-    // Only skip onboarding if there's an active session, not just a saved idea
-    if (hasExistingSession) {
+    if (hasActiveSession) {
       setShowOnboarding(false);
       // Load the idea for the current session if it exists
       const currentIdea = localStorage.getItem('buildrunner_current_idea');
       if (currentIdea) {
         setInitialIdea(currentIdea);
       }
+    } else {
+      // Always show onboarding for fresh starts
+      setShowOnboarding(true);
     }
-  }, [messages, state.suggestions]);
+  }, [messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -185,159 +360,7 @@ export default function CreatePage() {
     console.log('All session data cleared completely');
   };
 
-  // Beautiful Onboarding Component with Lightbulb Design
-  const OnboardingFlow = () => (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12">
-          {/* Header with Lightbulb */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center mb-6">
-              <div className="p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full">
-                <LightBulbIcon className="h-12 w-12 text-blue-600" />
-              </div>
-            </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              What would you like to build?
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Describe your product idea and I'll guide you through product development, strategy, competition analysis, and monetization.
-            </p>
-          </div>
 
-          {/* API Keys Check */}
-          {!apiKeysConfigured && (
-            <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600" />
-                <div className="flex-1">
-                  <p className="text-yellow-800">
-                    <span className="font-medium">Setup Required:</span> Configure your API keys to enable AI brainstorming.
-                  </p>
-                </div>
-                <Link
-                  href="/settings/api-keys"
-                  className="flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors"
-                >
-                  <CogIcon className="h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Large Idea Input */}
-          <div className="mb-8">
-            <textarea
-              value={initialIdea}
-              onChange={(e) => setInitialIdea(e.target.value)}
-              placeholder="Describe your idea in detail... (e.g., 'A mobile app that helps teams collaborate on projects with real-time chat, file sharing, and task management')"
-              className="w-full h-40 p-6 text-lg border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200"
-              disabled={!apiKeysConfigured}
-            />
-          </div>
-
-          {/* Product Examples */}
-          <div className="mb-8">
-            <p className="text-sm font-medium text-gray-700 mb-4">Need inspiration? Try these product ideas:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                "A SaaS platform for automated CI/CD pipelines",
-                "An AI-powered customer service chatbot",
-                "A mobile app for team project management",
-                "A marketplace for freelance developers",
-                "A fintech app for small business accounting",
-                "An e-learning platform for coding bootcamps"
-              ].map((example, index) => (
-                <button
-                  key={index}
-                  onClick={() => setInitialIdea(example)}
-                  disabled={!apiKeysConfigured}
-                  className="text-left p-4 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  "{example}"
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Error Display */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
-                <p className="text-red-800">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="space-y-4">
-            <button
-              onClick={() => startBrainstorming(initialIdea)}
-              disabled={!initialIdea.trim() || !apiKeysConfigured || isLoading}
-              className="w-full flex items-center justify-center space-x-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                  <span>Starting brainstorm...</span>
-                </>
-              ) : (
-                <>
-                  <SparklesIcon className="h-6 w-6" />
-                  <span>Start AI Brainstorming</span>
-                  <ArrowRightIcon className="h-6 w-6" />
-                </>
-              )}
-            </button>
-
-            {/* Debug: Clear All Data Button */}
-            <button
-              onClick={() => {
-                clearAllSessionData();
-                window.location.reload();
-              }}
-              className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              🗑️ Clear All Data & Refresh (Debug)
-            </button>
-          </div>
-
-          {/* Features Preview */}
-          <div className="mt-10 pt-8 border-t border-gray-200">
-            <p className="text-lg font-medium text-gray-700 mb-6 text-center">What you'll get:</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div className="flex flex-col items-center space-y-2">
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <DocumentTextIcon className="h-6 w-6 text-blue-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Product Development</span>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <div className="p-3 bg-green-100 rounded-full">
-                  <BeakerIcon className="h-6 w-6 text-green-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Strategic Planning</span>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <ChartBarIcon className="h-6 w-6 text-purple-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Competitive Analysis</span>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <div className="p-3 bg-yellow-100 rounded-full">
-                  <CurrencyDollarIcon className="h-6 w-6 text-yellow-600" />
-                </div>
-                <span className="text-sm font-medium text-gray-700">Monetization Strategy</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const sendMessage = async (content: string, category: string = selectedCategory) => {
     if (!content.trim() || isLoading) return;
@@ -492,7 +515,15 @@ Let's start with product development. What are the core features and user experi
 
   // Show onboarding if no session exists
   if (showOnboarding) {
-    return <OnboardingFlow />;
+    return <OnboardingFlow
+      initialIdea={initialIdea}
+      setInitialIdea={setInitialIdea}
+      apiKeysConfigured={apiKeysConfigured}
+      error={error}
+      isLoading={isLoading}
+      startBrainstorming={startBrainstorming}
+      clearAllSessionData={clearAllSessionData}
+    />;
   }
 
   // Main brainstorming interface (simplified for now)
