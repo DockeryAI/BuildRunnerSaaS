@@ -11,11 +11,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(app)/layout.js"
     ],
-    "/(app)/brainstorm/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(app)/brainstorm/page.js"
-    ],
     "/(app)/create/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
