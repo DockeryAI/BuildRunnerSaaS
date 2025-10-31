@@ -1,8 +1,8 @@
 {
   "projectId": "placeholder:will-be-uuid",
   "title": "BuildRunner Core Runner & Spec Foundation",
-  "version": "0.6.0",
-  "updatedAt": "2025-10-30T23:30:00.000Z",
+  "version": "0.8.0",
+  "updatedAt": "2025-10-31T01:30:00.000Z",
   "milestones": [
     {
       "id": "m1",
@@ -435,6 +435,144 @@
           ]
         }
       ]
+    },
+    {
+      "id": "p8",
+      "title": "Templates & Marketplace",
+      "steps": [
+        {
+          "id": "p8.s1",
+          "title": "Template Data Model & Storage",
+          "microsteps": [
+            {
+              "id": "p8.s1.ms1",
+              "title": "Schema & tables",
+              "status": "done",
+              "criteria": ["SQL applies cleanly; re-run safe"]
+            },
+            {
+              "id": "p8.s1.ms2",
+              "title": "Storage helpers",
+              "status": "done",
+              "criteria": ["Create/read/update/delete functions tested; audit events recorded"]
+            },
+            {
+              "id": "p8.s1.ms3",
+              "title": "Zod schemas",
+              "status": "done",
+              "criteria": ["Validates examples, rejects malformed payloads"]
+            }
+          ]
+        },
+        {
+          "id": "p8.s2",
+          "title": "Template Import & Diff Preview",
+          "microsteps": [
+            {
+              "id": "p8.s2.ms1",
+              "title": "Import UI",
+              "status": "done",
+              "criteria": ["Validates structure and shows summary (milestones/steps/microsteps counts)"]
+            },
+            {
+              "id": "p8.s2.ms2",
+              "title": "Dry-run merge",
+              "status": "done",
+              "criteria": ["Returns deterministic diff; large plans handled gracefully"]
+            },
+            {
+              "id": "p8.s2.ms3",
+              "title": "Apply merge",
+              "status": "done",
+              "criteria": ["spec-sync persists merged plan; runner_events logs action=template_merge_applied"]
+            }
+          ]
+        },
+        {
+          "id": "p8.s3",
+          "title": "Composable Packs",
+          "microsteps": [
+            {
+              "id": "p8.s3.ms1",
+              "title": "Pack format",
+              "status": "done",
+              "criteria": ["Schema validates; example packs pass (Auth, Billing, Email)"]
+            },
+            {
+              "id": "p8.s3.ms2",
+              "title": "Pack library",
+              "status": "done",
+              "criteria": ["Packs install individually or in combination via dry-run"]
+            },
+            {
+              "id": "p8.s3.ms3",
+              "title": "Conflict resolution",
+              "status": "done",
+              "criteria": ["Conflicts displayed with clear user choices; final apply is deterministic"]
+            }
+          ]
+        },
+        {
+          "id": "p8.s4",
+          "title": "Template Publisher & Marketplace",
+          "microsteps": [
+            {
+              "id": "p8.s4.ms1",
+              "title": "Publisher UI",
+              "status": "done",
+              "criteria": ["Save creates template_def + template_version rows; audit event action=template_published"]
+            },
+            {
+              "id": "p8.s4.ms2",
+              "title": "Marketplace browse",
+              "status": "done",
+              "criteria": ["Install → opens dry-run diff; user can apply and commit"]
+            },
+            {
+              "id": "p8.s4.ms3",
+              "title": "Ratings/usage counters",
+              "status": "done",
+              "criteria": ["Increment on successful apply; simple popularity sort"]
+            }
+          ]
+        },
+        {
+          "id": "p8.s5",
+          "title": "Governance Hooks for Templates",
+          "microsteps": [
+            {
+              "id": "p8.s5.ms1",
+              "title": "Policy checks on apply",
+              "status": "done",
+              "criteria": ["Violations block apply with actionable error"]
+            },
+            {
+              "id": "p8.s5.ms2",
+              "title": "Audit & history",
+              "status": "done",
+              "criteria": ["Phase 5 Timeline shows template events; data present in runner_events"]
+            }
+          ]
+        },
+        {
+          "id": "p8.s6",
+          "title": "Docs & Finalize Phase 8",
+          "microsteps": [
+            {
+              "id": "p8.s6.ms1",
+              "title": "README & help",
+              "status": "done",
+              "criteria": ["Docs render and link correctly"]
+            },
+            {
+              "id": "p8.s6.ms2",
+              "title": "Plan/state updates",
+              "status": "done",
+              "criteria": ["br lint passes; PR merged"]
+            }
+          ]
+        }
+      ]
     }
   ],
   "changeHistory": [
@@ -536,6 +674,30 @@
         "apps/web/lib/audit.ts",
         "apps/web/lib/approval.ts",
         "apps/web/lib/security.ts"
+      ]
+    },
+    {
+      "timestamp": "2025-10-31T01:30:00.000Z",
+      "version": "0.8.0",
+      "phase": 8,
+      "description": "Completed Phase 8 - Templates & Marketplace. Implemented comprehensive template system with data model and storage, import UI with drag-and-drop validation, dry-run merge with semantic diff preview, composable packs with JSON patch format, marketplace browse with filtering and search, template publisher with versioning, governance hooks for policy compliance, and complete audit trail integration. Added 5 built-in packs (Auth, Billing, Email, Analytics, Blog) with conflict resolution and dependency management.",
+      "author": "Auggie",
+      "microsteps_completed": 16,
+      "files_added": [
+        "supabase/migrations/20251031000001_Phase8-templates.sql",
+        "apps/web/lib/templates/storage.ts",
+        "apps/web/lib/templates/schemas.ts",
+        "apps/web/lib/templates/merge.ts",
+        "apps/web/lib/templates/packs.ts",
+        "apps/web/components/templates/ImportPanel.tsx",
+        "apps/web/components/templates/DiffPreview.tsx",
+        "apps/web/components/templates/TemplateCard.tsx",
+        "apps/web/app/(app)/templates/page.tsx",
+        "apps/web/app/(app)/templates/import/page.tsx",
+        "apps/web/app/api/templates/route.ts",
+        "apps/web/app/api/templates/packs/route.ts",
+        "apps/web/app/api/templates/merge/dry-run/route.ts",
+        "apps/web/app/api/templates/merge/apply/route.ts"
       ]
     }
   ]
