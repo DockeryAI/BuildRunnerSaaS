@@ -517,7 +517,7 @@ export default function PlanPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
     </div>
   );
 }
