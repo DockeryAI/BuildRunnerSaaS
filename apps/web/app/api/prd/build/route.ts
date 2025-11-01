@@ -68,6 +68,18 @@ class PRDBuildingService {
   }
 
   private async makeAPICall(model: string, messages: any[], options: any = {}) {
+    console.log('Making API call to OpenRouter with model:', model);
+
+    const requestBody = {
+      model,
+      messages,
+      temperature: options.temperature || 0.3,
+      max_tokens: options.max_tokens || 3000,
+      ...options
+    };
+
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -76,20 +88,20 @@ class PRDBuildingService {
         'HTTP-Referer': 'https://buildrunner.cloud',
         'X-Title': 'BuildRunner SaaS - PRD Builder',
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: options.temperature || 0.3,
-        max_tokens: options.max_tokens || 3000,
-        ...options
-      }),
+      body: JSON.stringify(requestBody),
     });
 
+    console.log('Response status:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`OpenRouter API error: ${response.status} - ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      throw new Error(`OpenRouter API error: ${response.status} - ${response.statusText} - ${errorText}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('API response:', result);
+    return result;
   }
 
   // Phase 1: Context - Fill executive summary, problem, value prop, personas
@@ -321,6 +333,7 @@ Define comprehensive analytics and evidence framework. Return only the JSON obje
     try {
       const phaseInfo = this.getPhaseInfo(phase);
 
+      console.log('Making API call to Claude...');
       const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
         {
           role: 'system',
@@ -364,6 +377,8 @@ Generate phase-specific suggestions for Phase ${phase}. Return only the JSON arr
         max_tokens: 2500
       });
 
+      console.log('API call completed, data:', data);
+
       const content = data.choices[0]?.message?.content;
       if (!content) {
         throw new Error('No content in API response');
@@ -393,6 +408,8 @@ Generate phase-specific suggestions for Phase ${phase}. Return only the JSON arr
 
     } catch (error) {
       console.error('Suggestion generation error:', error);
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
       return [];
     }
   }
