@@ -360,7 +360,9 @@ IMPORTANT:
 - shortDescription must be ONE LINE only
 - Include real citations for any statistics or claims
 - All numbers must have sources cited
-- Generate 3-5 specific, actionable suggestions that align with the current phase and user's message.`
+- Generate 3-5 specific, actionable suggestions that align with the current phase and user's message
+- For features section: Create INDIVIDUAL feature suggestions, not combined lists
+- Each feature should be a separate suggestion with its own clear name and detailed description`
         },
         {
           role: 'user',

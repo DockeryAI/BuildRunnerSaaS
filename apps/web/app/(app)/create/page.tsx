@@ -734,15 +734,7 @@ function CreatePage() {
         case 'features':
           return {
             ...section,
-            items: [{
-              id: `auto-${Date.now()}-5`,
-              title: 'Core Features',
-              shortDescription: extractFeatures(idea),
-              fullDescription: generateDetailedFeatures(idea),
-              citations: ['Derived from product description'],
-              status: 'active' as const,
-              isExpanded: false
-            }],
+            items: generateIndividualFeatures(idea),
             completed: true
           };
         default:
@@ -753,24 +745,104 @@ function CreatePage() {
     setPrdSections(autoFilledSections);
   }
 
-  function extractFeatures(idea: string): string {
-    // Extract key features from user input
+  function generateIndividualFeatures(idea: string): PRDItem[] {
     const lowerIdea = idea.toLowerCase();
-    const features = [];
+    const features: PRDItem[] = [];
+    const baseId = Date.now();
 
-    if (lowerIdea.includes('automat')) features.push('automation engine');
-    if (lowerIdea.includes('follow') || lowerIdea.includes('track')) features.push('follow-up system');
-    if (lowerIdea.includes('schedul')) features.push('scheduling integration');
-    if (lowerIdea.includes('ai') || lowerIdea.includes('intelligent')) features.push('AI-powered recommendations');
-    if (lowerIdea.includes('email') || lowerIdea.includes('message')) features.push('communication tools');
-    if (lowerIdea.includes('lead') || lowerIdea.includes('contact')) features.push('contact management');
+    // Generate individual feature items based on user input
+    if (lowerIdea.includes('automat')) {
+      features.push({
+        id: `auto-${baseId}-f1`,
+        title: 'Automation Engine',
+        shortDescription: 'Core automation system that handles repetitive tasks',
+        fullDescription: 'Intelligent automation engine that identifies, processes, and executes repetitive tasks without human intervention. Includes workflow builder, trigger management, and error handling.',
+        citations: ['Derived from product description'],
+        status: 'active' as const,
+        isExpanded: false
+      });
+    }
 
-    return features.length > 0 ? features.join(', ') : 'core automation features';
-  }
+    if (lowerIdea.includes('follow') || lowerIdea.includes('track')) {
+      features.push({
+        id: `auto-${baseId}-f2`,
+        title: 'Follow-up System',
+        shortDescription: 'Automated follow-up and tracking for leads and contacts',
+        fullDescription: 'Comprehensive follow-up system that tracks interactions, schedules reminders, and automatically sends personalized follow-up messages based on user behavior and engagement patterns.',
+        citations: ['Derived from product description'],
+        status: 'active' as const,
+        isExpanded: false
+      });
+    }
 
-  function generateDetailedFeatures(idea: string): string {
-    const keywords = extractKeywords(idea);
-    return `Core feature set includes: ${extractFeatures(idea)}, user dashboard for monitoring and control, integration APIs for third-party services, and comprehensive analytics. The system will focus on ${keywords.process} while maintaining user oversight and customization options.`;
+    if (lowerIdea.includes('schedul')) {
+      features.push({
+        id: `auto-${baseId}-f3`,
+        title: 'Scheduling Integration',
+        shortDescription: 'Calendar integration and appointment scheduling',
+        fullDescription: 'Smart scheduling system that integrates with popular calendar platforms (Google, Outlook, Apple) to automatically book appointments, avoid conflicts, and send meeting reminders.',
+        citations: ['Derived from product description'],
+        status: 'active' as const,
+        isExpanded: false
+      });
+    }
+
+    if (lowerIdea.includes('ai') || lowerIdea.includes('intelligent')) {
+      features.push({
+        id: `auto-${baseId}-f4`,
+        title: 'AI-Powered Recommendations',
+        shortDescription: 'Machine learning recommendations for optimal actions',
+        fullDescription: 'AI system that analyzes patterns and provides intelligent recommendations for timing, messaging, and actions to maximize conversion rates and user engagement.',
+        citations: ['Derived from product description'],
+        status: 'active' as const,
+        isExpanded: false
+      });
+    }
+
+    if (lowerIdea.includes('email') || lowerIdea.includes('message')) {
+      features.push({
+        id: `auto-${baseId}-f5`,
+        title: 'Communication Tools',
+        shortDescription: 'Multi-channel communication and messaging system',
+        fullDescription: 'Integrated communication platform supporting email, SMS, and other messaging channels with template management, personalization, and delivery tracking.',
+        citations: ['Derived from product description'],
+        status: 'active' as const,
+        isExpanded: false
+      });
+    }
+
+    if (lowerIdea.includes('lead') || lowerIdea.includes('contact')) {
+      features.push({
+        id: `auto-${baseId}-f6`,
+        title: 'Contact Management',
+        shortDescription: 'Centralized contact and lead management system',
+        fullDescription: 'Comprehensive contact database with lead scoring, segmentation, interaction history, and integration with CRM systems for seamless data management.',
+        citations: ['Derived from product description'],
+        status: 'active' as const,
+        isExpanded: false
+      });
+    }
+
+    // Always include a dashboard feature
+    features.push({
+      id: `auto-${baseId}-f7`,
+      title: 'User Dashboard',
+      shortDescription: 'Central control panel for monitoring and management',
+      fullDescription: 'Intuitive dashboard providing real-time analytics, system status, performance metrics, and controls for managing all automation workflows and settings.',
+      citations: ['Standard feature for automation platforms'],
+      status: 'active' as const,
+      isExpanded: false
+    });
+
+    return features.length > 0 ? features : [{
+      id: `auto-${baseId}-f1`,
+      title: 'Core Automation',
+      shortDescription: 'Primary automation functionality',
+      fullDescription: 'Core automation system that handles the main functionality described in the product concept.',
+      citations: ['Derived from product description'],
+      status: 'active' as const,
+      isExpanded: false
+    }];
   }
 
   async function generateSuggestions(message: string, phase: number) {
@@ -938,15 +1010,54 @@ function CreatePage() {
           {
             id: `${baseId}-7`,
             type: 'features',
-            title: 'Core Features',
-            shortDescription: 'AI email sequences, intelligent scheduling, lead scoring, CRM integration',
-            fullDescription: 'Core feature set: AI-powered email sequences with personalization, intelligent scheduling with conflict detection, lead qualification scoring (0-100 scale), CRM integration with bi-directional sync, and automated follow-up workflows with customizable triggers. Each feature designed for 80% automation with 20% human oversight.',
+            title: 'AI Email Sequences',
+            shortDescription: 'Automated email campaigns with AI-powered personalization',
+            fullDescription: 'AI-powered email sequence system that creates personalized email campaigns based on lead behavior, engagement patterns, and demographic data. Includes A/B testing, delivery optimization, and performance analytics.',
             citations: [
               'Gartner: Sales Automation Feature Requirements (2023)',
-              'Forrester: CRM Integration Best Practices (2023)'
+              'Salesforce Email Marketing Effectiveness Study (2023)'
             ],
             section: 'features',
             priority: 'high'
+          },
+          {
+            id: `${baseId}-8`,
+            type: 'features',
+            title: 'Intelligent Scheduling',
+            shortDescription: 'Smart calendar integration with conflict detection',
+            fullDescription: 'Advanced scheduling system that integrates with multiple calendar platforms, automatically detects conflicts, suggests optimal meeting times, and handles timezone conversions. Includes buffer time management and meeting preparation reminders.',
+            citations: [
+              'Calendly Scheduling Efficiency Report (2023)',
+              'Microsoft Calendar Integration Best Practices (2023)'
+            ],
+            section: 'features',
+            priority: 'high'
+          },
+          {
+            id: `${baseId}-9`,
+            type: 'features',
+            title: 'Lead Scoring System',
+            shortDescription: 'AI-powered lead qualification and scoring (0-100 scale)',
+            fullDescription: 'Machine learning-based lead scoring system that evaluates prospects on a 0-100 scale using behavioral data, engagement metrics, and demographic information. Automatically prioritizes high-value leads and triggers appropriate follow-up actions.',
+            citations: [
+              'HubSpot Lead Scoring Effectiveness Study (2023)',
+              'Marketo Lead Management Best Practices (2023)'
+            ],
+            section: 'features',
+            priority: 'medium'
+          },
+          {
+            id: `${baseId}-10`,
+            type: 'features',
+            title: 'CRM Integration',
+            shortDescription: 'Bi-directional sync with popular CRM platforms',
+            fullDescription: 'Seamless integration with major CRM systems (Salesforce, HubSpot, Pipedrive) featuring bi-directional data sync, real-time updates, and custom field mapping. Maintains data consistency across platforms.',
+            citations: [
+              'Forrester: CRM Integration Best Practices (2023)',
+              'Salesforce Integration Architecture Guide (2023)'
+            ],
+            section: 'features',
+            priority: 'medium'
           }
         ];
 
