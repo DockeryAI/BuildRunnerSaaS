@@ -630,8 +630,8 @@ function CreatePage() {
     // Auto-fill PRD based on user input
     autoFillPRD(idea);
 
-    // Generate initial suggestions for Phase 1
-    await generateSuggestions(idea, 1);
+    // Automatically generate initial suggestions for Phase 1 based on the product idea
+    await generateSuggestions(`Generate comprehensive suggestions for ${idea} focusing on market opportunity, problem validation, target audience, and value proposition`, 1);
   }
 
   function generateExecutiveSummary(idea: string): string {
@@ -728,7 +728,49 @@ function CreatePage() {
       }
     });
 
+    // Phase 2 auto-fill (Features)
+    autoFilledSections[2] = autoFilledSections[2].map(section => {
+      switch (section.id) {
+        case 'features':
+          return {
+            ...section,
+            items: [{
+              id: `auto-${Date.now()}-5`,
+              title: 'Core Features',
+              shortDescription: extractFeatures(idea),
+              fullDescription: generateDetailedFeatures(idea),
+              citations: ['Derived from product description'],
+              status: 'active' as const,
+              isExpanded: false
+            }],
+            completed: true
+          };
+        default:
+          return section;
+      }
+    });
+
     setPrdSections(autoFilledSections);
+  }
+
+  function extractFeatures(idea: string): string {
+    // Extract key features from user input
+    const lowerIdea = idea.toLowerCase();
+    const features = [];
+
+    if (lowerIdea.includes('automat')) features.push('automation engine');
+    if (lowerIdea.includes('follow') || lowerIdea.includes('track')) features.push('follow-up system');
+    if (lowerIdea.includes('schedul')) features.push('scheduling integration');
+    if (lowerIdea.includes('ai') || lowerIdea.includes('intelligent')) features.push('AI-powered recommendations');
+    if (lowerIdea.includes('email') || lowerIdea.includes('message')) features.push('communication tools');
+    if (lowerIdea.includes('lead') || lowerIdea.includes('contact')) features.push('contact management');
+
+    return features.length > 0 ? features.join(', ') : 'core automation features';
+  }
+
+  function generateDetailedFeatures(idea: string): string {
+    const keywords = extractKeywords(idea);
+    return `Core feature set includes: ${extractFeatures(idea)}, user dashboard for monitoring and control, integration APIs for third-party services, and comprehensive analytics. The system will focus on ${keywords.process} while maintaining user oversight and customization options.`;
   }
 
   async function generateSuggestions(message: string, phase: number) {
@@ -757,10 +799,10 @@ function CreatePage() {
 
       const data = await response.json();
 
-      console.log('API Response:', data);
+      console.log('API Response:', JSON.stringify(data, null, 2));
 
       if (data.result && Array.isArray(data.result)) {
-        console.log('AI Suggestions received:', data.result);
+        console.log('AI Suggestions received:', JSON.stringify(data.result, null, 2));
         setSuggestions(data.result);
 
         // Show if using mock data

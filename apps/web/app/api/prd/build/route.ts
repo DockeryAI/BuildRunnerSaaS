@@ -369,7 +369,27 @@ Generate phase-specific suggestions for Phase ${phase}. Return only the JSON arr
         throw new Error('No content in API response');
       }
 
-      return JSON.parse(content);
+      console.log('Raw AI response:', content);
+
+      // Extract JSON from Claude's response (might be wrapped in markdown)
+      let jsonStr = content.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+
+      // Find JSON array in the response
+      const jsonMatch = jsonStr.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[0];
+      }
+
+      console.log('Extracted JSON:', jsonStr);
+
+      return JSON.parse(jsonStr);
 
     } catch (error) {
       console.error('Suggestion generation error:', error);
