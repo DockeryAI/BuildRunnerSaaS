@@ -3,9 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET() {
   try {
     console.log('Testing AI connection...');
-    
+    console.log('Environment check - API key exists:', !!process.env.OPENROUTER_API_KEY);
+    console.log('API key prefix:', process.env.OPENROUTER_API_KEY?.substring(0, 10) + '...');
+
     if (!process.env.OPENROUTER_API_KEY) {
+      console.log('No API key found in environment');
       return NextResponse.json({ error: 'No API key configured' }, { status: 500 });
+    }
+
+    if (process.env.OPENROUTER_API_KEY.includes('placeholder')) {
+      console.log('Placeholder API key detected');
+      return NextResponse.json({ error: 'Placeholder API key - need real key' }, { status: 500 });
     }
 
     console.log('API key found, making test call...');
