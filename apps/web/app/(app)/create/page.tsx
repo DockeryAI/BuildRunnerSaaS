@@ -435,6 +435,7 @@ function PRDSectionPanel({
   onDeleteItem,
   onShelveItem,
   onMoveToFuture,
+  onSuggestName,
 }: {
   phase: number;
   sections: PRDSection[];
@@ -443,6 +444,7 @@ function PRDSectionPanel({
   onDeleteItem: (sectionId: string, itemId: string) => void;
   onShelveItem: (sectionId: string, itemId: string) => void;
   onMoveToFuture: (sectionId: string, itemId: string) => void;
+  onSuggestName?: (itemId: string) => void;
 }) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -501,7 +503,7 @@ function PRDSectionPanel({
                       onDelete={(itemId) => onDeleteItem(section.id, itemId)}
                       onShelve={(itemId) => onShelveItem(section.id, itemId)}
                       onMoveToFuture={(itemId) => onMoveToFuture(section.id, itemId)}
-                      onSuggestName={section.id === 'executive_summary' ? handleSuggestName : undefined}
+                      onSuggestName={section.id === 'executive_summary' ? onSuggestName : undefined}
                       isExecutiveSummary={section.id === 'executive_summary'}
                     />
                   ))}
@@ -1378,6 +1380,7 @@ function CreatePage() {
               onDeleteItem={handleDeleteItem}
               onShelveItem={handleShelveItem}
               onMoveToFuture={handleMoveToFuture}
+              onSuggestName={handleSuggestName}
             />
           </div>
 
