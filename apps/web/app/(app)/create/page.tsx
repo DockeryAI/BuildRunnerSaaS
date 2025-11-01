@@ -14,7 +14,8 @@ import {
   PencilIcon,
   TrashIcon,
   ArchiveBoxIcon,
-  ClockIcon
+  ClockIcon,
+  BookmarkIcon
 } from '@heroicons/react/24/outline';
 
 type Message = { role: 'user' | 'assistant'; content: string };
@@ -199,12 +200,16 @@ function PRDItemComponent({
   onDelete,
   onShelve,
   onMoveToFuture,
+  onSuggestName,
+  isExecutiveSummary = false,
 }: {
   item: PRDItem;
   onEdit: (id: string, newContent: { title: string; shortDescription: string; fullDescription: string }) => void;
   onDelete: (id: string) => void;
   onShelve: (id: string) => void;
   onMoveToFuture: (id: string) => void;
+  onSuggestName?: (id: string) => void;
+  isExecutiveSummary?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(item.isExpanded);
   const [isEditing, setIsEditing] = useState(false);
@@ -270,6 +275,16 @@ function PRDItemComponent({
 
         {/* Action buttons */}
         <div className="flex items-center space-x-1 ml-2 flex-shrink-0">
+          {isExecutiveSummary && onSuggestName && (
+            <button
+              onClick={() => onSuggestName(item.id)}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Fill out the PRD as much as possible for the best name suggestions"
+            >
+              <BookmarkIcon className="h-4 w-4 text-purple-600" />
+            </button>
+          )}
+
           <button
             onClick={() => setIsEditing(!isEditing)}
             className="p-1 hover:bg-gray-200 rounded"
@@ -592,10 +607,11 @@ function CreatePage() {
   const [productIdea, setProductIdea] = useState<string>('');
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [currentPhase, setCurrentPhase] = useState<number>(1);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [allSuggestions, setAllSuggestions] = useState<Record<number, Suggestion[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draggedSuggestion, setDraggedSuggestion] = useState<Suggestion | null>(null);
+  const [isGeneratingNames, setIsGeneratingNames] = useState(false);
 
   // PRD sections by phase
   const [prdSections, setPrdSections] = useState<Record<number, PRDSection[]>>({
@@ -630,19 +646,43 @@ function CreatePage() {
     // Auto-fill PRD based on user input
     autoFillPRD(idea);
 
-    // Automatically generate initial suggestions for Phase 1 based on the product idea
-    await generateSuggestions(`Generate comprehensive suggestions for ${idea} focusing on market opportunity, problem validation, target audience, and value proposition`, 1);
+    // Generate suggestions for all phases at once
+    await generateAllPhaseSuggestions(idea);
+  }
+
+  async function generateAllPhaseSuggestions(idea: string) {
+    setIsLoading(true);
+    try {
+      // Generate suggestions for all 4 phases simultaneously
+      const phasePromises = [1, 2, 3, 4].map(phase =>
+        generateSuggestionsForPhase(idea, phase)
+      );
+
+      const allPhaseResults = await Promise.all(phasePromises);
+
+      // Organize suggestions by phase
+      const suggestionsByPhase: Record<number, Suggestion[]> = {};
+      allPhaseResults.forEach((suggestions, index) => {
+        suggestionsByPhase[index + 1] = suggestions;
+      });
+
+      setAllSuggestions(suggestionsByPhase);
+    } catch (error) {
+      console.error('Error generating all phase suggestions:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function generateExecutiveSummary(idea: string): string {
-    // AI restructures user input into proper executive summary format
+    // Use [Name] placeholder instead of extracting from user input
     const keywords = extractKeywords(idea);
-    return `${keywords.product} delivers ${keywords.value} through ${keywords.technology}, targeting ${keywords.audience} with ${keywords.outcome}`;
+    return `[Name] delivers ${keywords.value} through ${keywords.technology}, targeting ${keywords.audience} with ${keywords.outcome}`;
   }
 
   function generateDetailedExecutiveSummary(idea: string): string {
     const keywords = extractKeywords(idea);
-    return `${keywords.product} is an innovative solution that leverages ${keywords.technology} to address critical challenges in ${keywords.domain}. By automating ${keywords.process}, the platform enables ${keywords.audience} to achieve ${keywords.outcome} while reducing operational overhead by an estimated 60-80%. The solution addresses a growing market need for intelligent automation, with potential to capture significant market share in the ${keywords.domain} sector.`;
+    return `[Name] is an innovative solution that leverages ${keywords.technology} to address critical challenges in ${keywords.domain}. By automating ${keywords.process}, the platform enables ${keywords.audience} to achieve ${keywords.outcome} while reducing operational overhead by an estimated 60-80%. The solution addresses a growing market need for intelligent automation, with potential to capture significant market share in the ${keywords.domain} sector.`;
   }
 
   function extractKeywords(idea: string) {
