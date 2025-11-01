@@ -362,7 +362,10 @@ IMPORTANT:
 - All numbers must have sources cited
 - Generate 3-5 specific, actionable suggestions that align with the current phase and user's message
 - For features section: Create INDIVIDUAL feature suggestions, not combined lists
-- Each feature should be a separate suggestion with its own clear name and detailed description`
+- Each feature should be a separate suggestion with its own clear name and detailed description
+- DO NOT suggest features that are already mentioned in the product idea or current PRD
+- Suggest NEW, ADDITIONAL features that would complement what's already described
+- Focus on features that would enhance or extend the core functionality`
         },
         {
           role: 'user',
@@ -372,7 +375,13 @@ User Message: ${userMessage}
 
 Current PRD State: ${JSON.stringify(currentPRD, null, 2)}
 
-Generate phase-specific suggestions for Phase ${phase}. Return only the JSON array.`
+Generate phase-specific suggestions for Phase ${phase}.
+
+IMPORTANT: Look at the Current PRD State above and DO NOT suggest anything that's already there.
+Suggest NEW, ADDITIONAL items that would complement what's already described.
+For features, suggest advanced or complementary features that aren't already mentioned.
+
+Return only the JSON array.`
         }
       ], {
         temperature: 0.4,

@@ -880,7 +880,16 @@ function CreatePage() {
 
       if (data.result && Array.isArray(data.result)) {
         console.log('AI Suggestions received:', JSON.stringify(data.result, null, 2));
-        setSuggestions(data.result);
+
+        // ADD new suggestions to existing ones, don't replace
+        setSuggestions(prev => {
+          // Filter out duplicates based on title/shortDescription
+          const existingTitles = prev.map(s => s.title.toLowerCase());
+          const newSuggestions = data.result.filter((newSugg: Suggestion) =>
+            !existingTitles.includes(newSugg.title.toLowerCase())
+          );
+          return [...prev, ...newSuggestions];
+        });
 
         // Show if using mock data
         if (data.source === 'mock_data') {
@@ -1010,51 +1019,51 @@ function CreatePage() {
           {
             id: `${baseId}-7`,
             type: 'features',
-            title: 'AI Email Sequences',
-            shortDescription: 'Automated email campaigns with AI-powered personalization',
-            fullDescription: 'AI-powered email sequence system that creates personalized email campaigns based on lead behavior, engagement patterns, and demographic data. Includes A/B testing, delivery optimization, and performance analytics.',
+            title: 'Advanced Analytics Dashboard',
+            shortDescription: 'Comprehensive reporting and performance analytics',
+            fullDescription: 'Advanced analytics platform providing detailed insights into conversion rates, engagement metrics, ROI tracking, and performance trends. Includes customizable reports, data visualization, and predictive analytics.',
             citations: [
-              'Gartner: Sales Automation Feature Requirements (2023)',
-              'Salesforce Email Marketing Effectiveness Study (2023)'
-            ],
-            section: 'features',
-            priority: 'high'
-          },
-          {
-            id: `${baseId}-8`,
-            type: 'features',
-            title: 'Intelligent Scheduling',
-            shortDescription: 'Smart calendar integration with conflict detection',
-            fullDescription: 'Advanced scheduling system that integrates with multiple calendar platforms, automatically detects conflicts, suggests optimal meeting times, and handles timezone conversions. Includes buffer time management and meeting preparation reminders.',
-            citations: [
-              'Calendly Scheduling Efficiency Report (2023)',
-              'Microsoft Calendar Integration Best Practices (2023)'
-            ],
-            section: 'features',
-            priority: 'high'
-          },
-          {
-            id: `${baseId}-9`,
-            type: 'features',
-            title: 'Lead Scoring System',
-            shortDescription: 'AI-powered lead qualification and scoring (0-100 scale)',
-            fullDescription: 'Machine learning-based lead scoring system that evaluates prospects on a 0-100 scale using behavioral data, engagement metrics, and demographic information. Automatically prioritizes high-value leads and triggers appropriate follow-up actions.',
-            citations: [
-              'HubSpot Lead Scoring Effectiveness Study (2023)',
-              'Marketo Lead Management Best Practices (2023)'
+              'Salesforce Analytics Impact Study (2023)',
+              'Tableau Business Intelligence Report (2023)'
             ],
             section: 'features',
             priority: 'medium'
           },
           {
+            id: `${baseId}-8`,
+            type: 'features',
+            title: 'Multi-Channel Integration',
+            shortDescription: 'Integration with social media and messaging platforms',
+            fullDescription: 'Comprehensive integration with social media platforms (LinkedIn, Twitter), messaging apps (WhatsApp, Slack), and communication tools to enable omnichannel engagement and follow-up.',
+            citations: [
+              'Hootsuite Social Media Integration Study (2023)',
+              'Zendesk Omnichannel Communication Report (2023)'
+            ],
+            section: 'features',
+            priority: 'medium'
+          },
+          {
+            id: `${baseId}-9`,
+            type: 'features',
+            title: 'Workflow Automation Builder',
+            shortDescription: 'Visual workflow designer for custom automation sequences',
+            fullDescription: 'Drag-and-drop workflow builder allowing users to create custom automation sequences with conditional logic, triggers, and actions. Includes template library and workflow testing capabilities.',
+            citations: [
+              'Zapier Workflow Automation Report (2023)',
+              'Microsoft Power Automate Usage Study (2023)'
+            ],
+            section: 'features',
+            priority: 'high'
+          },
+          {
             id: `${baseId}-10`,
             type: 'features',
-            title: 'CRM Integration',
-            shortDescription: 'Bi-directional sync with popular CRM platforms',
-            fullDescription: 'Seamless integration with major CRM systems (Salesforce, HubSpot, Pipedrive) featuring bi-directional data sync, real-time updates, and custom field mapping. Maintains data consistency across platforms.',
+            title: 'Team Collaboration Tools',
+            shortDescription: 'Shared workspaces and team coordination features',
+            fullDescription: 'Collaborative features including shared lead pools, team performance tracking, task assignment, and internal communication tools to enable effective team coordination and knowledge sharing.',
             citations: [
-              'Forrester: CRM Integration Best Practices (2023)',
-              'Salesforce Integration Architecture Guide (2023)'
+              'Slack Team Collaboration Study (2023)',
+              'Asana Team Productivity Report (2023)'
             ],
             section: 'features',
             priority: 'medium'
@@ -1136,14 +1145,14 @@ function CreatePage() {
       isExpanded: false
     };
 
-    // Update the PRD section with the new item
+    // ADD to existing items, don't replace
     setPrdSections(prev => ({
       ...prev,
       [currentPhase]: prev[currentPhase].map(section =>
         section.id === sectionId
           ? {
               ...section,
-              items: [...section.items, newItem],
+              items: [...section.items, newItem], // ADD to existing items
               completed: true
             }
           : section
