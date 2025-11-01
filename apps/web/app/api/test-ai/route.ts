@@ -1,17 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     console.log('Testing AI connection...');
-    console.log('Environment check - API key exists:', !!process.env.OPENROUTER_API_KEY);
-    console.log('API key prefix:', process.env.OPENROUTER_API_KEY?.substring(0, 10) + '...');
 
-    if (!process.env.OPENROUTER_API_KEY) {
-      console.log('No API key found in environment');
+    // Get API keys from headers (sent from client) or environment
+    const apiKeys = request.headers.get('x-api-keys');
+    let openrouterKey = '';
+
+    if (apiKeys) {
+      try {
+        const keys = JSON.parse(apiKeys);
+        openrouterKey = keys.openrouter || '';
+        console.log('API keys parsed from headers, OpenRouter key present:', !!openrouterKey);
+      } catch (e) {
+        console.warn('Failed to parse API keys from headers:', e);
+      }
+    }
+
+    // Fallback to environment variable
+    if (!openrouterKey) {
+      openrouterKey = process.env.OPENROUTER_API_KEY || '';
+      console.log('Using environment OpenRouter key:', !!openrouterKey);
+    }
+
+    if (!openrouterKey) {
+      console.log('No API key found in headers or environment');
       return NextResponse.json({ error: 'No API key configured' }, { status: 500 });
     }
 
-    if (process.env.OPENROUTER_API_KEY.includes('placeholder')) {
+    if (openrouterKey.includes('placeholder')) {
       console.log('Placeholder API key detected');
       return NextResponse.json({ error: 'Placeholder API key - need real key' }, { status: 500 });
     }
@@ -21,7 +39,7 @@ export async function GET() {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${openrouterKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://buildrunner.cloud',
         'X-Title': 'BuildRunner SaaS - Test',

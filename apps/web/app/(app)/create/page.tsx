@@ -778,11 +778,16 @@ function CreatePage() {
     setError(null);
 
     try {
+      // Get API keys from localStorage
+      const savedKeys = localStorage.getItem('buildrunner_api_keys');
+      const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
+
       // Call the real AI API
       const response = await fetch('/api/prd/build', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-api-keys': JSON.stringify(apiKeys),
         },
         body: JSON.stringify({
           action: 'generate_suggestions',

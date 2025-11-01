@@ -522,7 +522,27 @@ export async function POST(request: NextRequest) {
       current_prd
     } = await request.json();
 
-    if (!process.env.OPENROUTER_API_KEY) {
+    // Get API keys from headers (sent from client) or environment
+    const apiKeys = request.headers.get('x-api-keys');
+    let openrouterKey = '';
+
+    if (apiKeys) {
+      try {
+        const keys = JSON.parse(apiKeys);
+        openrouterKey = keys.openrouter || '';
+        console.log('API keys parsed from headers, OpenRouter key present:', !!openrouterKey);
+      } catch (e) {
+        console.warn('Failed to parse API keys from headers:', e);
+      }
+    }
+
+    // Fallback to environment variable
+    if (!openrouterKey) {
+      openrouterKey = process.env.OPENROUTER_API_KEY || '';
+      console.log('Using environment OpenRouter key:', !!openrouterKey);
+    }
+
+    if (!openrouterKey) {
       console.log('OpenRouter API key not configured, using mock responses');
       // Return mock suggestions instead of error
       const mockSuggestions = generateMockSuggestions(product_idea, phase || 1);
@@ -535,7 +555,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const service = new PRDBuildingService(process.env.OPENROUTER_API_KEY);
+    const service = new PRDBuildingService(openrouterKey);
     const builder = new PRDBuilder(product_idea, "product@buildrunner.cloud");
 
     let result;
