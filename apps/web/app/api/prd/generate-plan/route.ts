@@ -1,5 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Helper function to get setup guide URLs
+function getSetupGuideUrl(techName: string): string | undefined {
+  const guides: Record<string, string> = {
+    'Twilio': 'https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account',
+    'SendGrid': 'https://docs.sendgrid.com/for-developers/sending-email/api-getting-started',
+    'Resend': 'https://resend.com/docs/send-with-nextjs',
+    'Supabase': '/settings/api-keys', // Internal setup
+    'Vercel': 'https://vercel.com/docs/getting-started-with-vercel',
+    'Railway': 'https://docs.railway.app/getting-started',
+    'Stripe': 'https://stripe.com/docs/development/quickstart',
+    'Calendly': 'https://developer.calendly.com/getting-started'
+  };
+  return guides[techName];
+}
+
+// Helper function to get signup URLs
+function getSignupUrl(techName: string): string | undefined {
+  const signups: Record<string, string> = {
+    'Twilio': 'https://www.twilio.com/try-twilio',
+    'SendGrid': 'https://signup.sendgrid.com/',
+    'Resend': 'https://resend.com/signup',
+    'Supabase': 'https://supabase.com/dashboard/sign-up',
+    'Vercel': 'https://vercel.com/signup',
+    'Railway': 'https://railway.app/signup',
+    'Stripe': 'https://dashboard.stripe.com/register',
+    'Calendly': 'https://calendly.com/signup',
+    'OpenAI': 'https://platform.openai.com/signup',
+    'Anthropic': 'https://console.anthropic.com/signup'
+  };
+  return signups[techName];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -51,11 +83,15 @@ Return a JSON object with this exact schema:
 {
   "architecture": {
     "recommendedStack": "Brief summary of recommended technology stack",
-    "frontend": ["Frontend technologies"],
-    "backend": ["Backend technologies"],
-    "database": ["Database technologies"],
-    "infrastructure": ["Infrastructure and deployment"],
-    "thirdPartyServices": ["Required third-party services"]
+    "technologies": [
+      {
+        "name": "Technology name",
+        "category": "frontend|backend|database|infrastructure|service",
+        "reasoning": "Why this technology is recommended for this project",
+        "difficulty": "easy|medium|advanced",
+        "setupRequired": true
+      }
+    ]
   },
   "milestones": [
     {
@@ -106,7 +142,18 @@ PROJECT PLANNING RULES:
 - Include realistic time estimates
 - Focus on technical implementation based on the PRD features
 - First milestone should always be Architecture & Setup
-- Include recommended technology stack and architecture decisions`
+- Include recommended technology stack and architecture decisions
+
+TECHNOLOGY RECOMMENDATIONS:
+- For each technology, explain WHY it is recommended for THIS specific project
+- Consider difficulty level for non-technical users
+- Mark setupRequired=true if user needs to create account or install
+- Mark setupRequired=false if its a standard development tool
+- Reasoning should be specific to the project requirements (max 150 chars)
+- Prefer technologies with good documentation and community support
+- For databases, consider Supabase (PostgreSQL) as it provides auth, storage, and API
+- For email/SMS, suggest services with simple signup (Twilio, SendGrid, Resend)
+- For deployment, prefer platforms with free tiers (Vercel, Netlify, Railway)`
           },
           {
             role: 'user',
@@ -201,6 +248,53 @@ Generate a comprehensive project implementation plan with milestones, steps, and
 
     if (!plan.generatedAt) {
       plan.generatedAt = new Date().toISOString();
+    }
+
+    // Detect existing services and enrich technology data
+    if (plan.architecture && plan.architecture.technologies) {
+      const existingServices = new Set();
+
+      // Check if Supabase is setup (from API keys)
+      if (apiKeys.supabase) {
+        existingServices.add('Supabase');
+        existingServices.add('PostgreSQL');
+      }
+
+      // Check other API keys
+      if (apiKeys.openrouter) existingServices.add('OpenRouter');
+      if (apiKeys.anthropic) existingServices.add('Anthropic');
+      if (apiKeys.openai) existingServices.add('OpenAI');
+      if (apiKeys.twilio) existingServices.add('Twilio');
+      if (apiKeys.sendgrid) existingServices.add('SendGrid');
+
+      // Enrich each technology with status
+      plan.architecture.technologies = plan.architecture.technologies.map((tech: any) => {
+        const techName = tech.name || '';
+        let status = 'needs_account'; // Default status
+
+        // Check if already setup
+        if (existingServices.has(techName)) {
+          status = 'already_setup';
+          tech.statusNote = 'Already configured in your account';
+        }
+        // Check if it's a standard dev tool (no account needed)
+        else if (['Node.js', 'npm', 'React', 'Next.js', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'Tailwind CSS'].includes(techName)) {
+          status = 'standard_tool';
+          tech.statusNote = 'Standard development tool';
+        }
+        // Check if it's already installed locally
+        else if (['VS Code', 'Git', 'Docker'].includes(techName)) {
+          status = 'likely_installed';
+          tech.statusNote = 'Commonly pre-installed';
+        }
+
+        return {
+          ...tech,
+          status,
+          setupGuideUrl: getSetupGuideUrl(techName),
+          signupUrl: getSignupUrl(techName)
+        };
+      });
     }
 
     return NextResponse.json({ plan });

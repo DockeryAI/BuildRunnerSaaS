@@ -40,13 +40,21 @@ interface Milestone {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
+interface Technology {
+  name: string;
+  category: 'frontend' | 'backend' | 'database' | 'infrastructure' | 'service';
+  reasoning: string;
+  difficulty: 'easy' | 'medium' | 'advanced';
+  setupRequired: boolean;
+  status?: 'already_setup' | 'standard_tool' | 'likely_installed' | 'needs_account';
+  statusNote?: string;
+  setupGuideUrl?: string;
+  signupUrl?: string;
+}
+
 interface Architecture {
   recommendedStack: string;
-  frontend: string[];
-  backend: string[];
-  database: string[];
-  infrastructure: string[];
-  thirdPartyServices: string[];
+  technologies: Technology[];
 }
 
 interface ProjectPlan {
@@ -226,74 +234,253 @@ export default function PlanPage() {
               <SparklesIcon className="h-6 w-6 text-blue-600 mr-2" />
               Recommended Architecture & Technology Stack
             </h2>
-            <p className="text-gray-700 mb-4">{projectPlan.architecture.recommendedStack}</p>
+            <p className="text-gray-700 mb-6">{projectPlan.architecture.recommendedStack}</p>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {projectPlan.architecture.frontend.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Frontend</h3>
-                  <ul className="space-y-1">
-                    {projectPlan.architecture.frontend.map((tech, i) => (
-                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+            {/* Group technologies by status */}
+            {(() => {
+              const alreadySetup = projectPlan.architecture.technologies.filter(
+                (t) => t.status === 'already_setup'
+              );
+              const standardTools = projectPlan.architecture.technologies.filter(
+                (t) => t.status === 'standard_tool'
+              );
+              const likelyInstalled = projectPlan.architecture.technologies.filter(
+                (t) => t.status === 'likely_installed'
+              );
+              const needsAccount = projectPlan.architecture.technologies.filter(
+                (t) => t.status === 'needs_account' || !t.status
+              );
 
-              {projectPlan.architecture.backend.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Backend</h3>
-                  <ul className="space-y-1">
-                    {projectPlan.architecture.backend.map((tech, i) => (
-                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              const difficultyColors = {
+                easy: 'bg-green-100 text-green-800',
+                medium: 'bg-yellow-100 text-yellow-800',
+                advanced: 'bg-red-100 text-red-800',
+              };
 
-              {projectPlan.architecture.database.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Database</h3>
-                  <ul className="space-y-1">
-                    {projectPlan.architecture.database.map((tech, i) => (
-                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              const categoryIcons: Record<string, string> = {
+                frontend: '🎨',
+                backend: '⚙️',
+                database: '💾',
+                infrastructure: '☁️',
+                service: '🔌',
+              };
 
-              {projectPlan.architecture.infrastructure.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Infrastructure</h3>
-                  <ul className="space-y-1">
-                    {projectPlan.architecture.infrastructure.map((tech, i) => (
-                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              return (
+                <div className="space-y-6">
+                  {/* Already Setup Section */}
+                  {alreadySetup.length > 0 && (
+                    <div>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                        <h3 className="text-sm font-bold text-green-900 uppercase tracking-wide">
+                          ✓ Already Setup in Your Account
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {alreadySetup.map((tech, i) => (
+                          <div
+                            key={i}
+                            className="bg-white border-2 border-green-300 rounded-lg p-3 group hover:shadow-md transition-all relative"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xl">{categoryIcons[tech.category]}</span>
+                                <span className="font-semibold text-gray-900">{tech.name}</span>
+                              </div>
+                              <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
+                                {tech.category}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  difficultyColors[tech.difficulty]
+                                }`}
+                              >
+                                {tech.difficulty}
+                              </span>
+                            </div>
+                            {tech.statusNote && (
+                              <p className="text-xs text-green-700 font-medium">{tech.statusNote}</p>
+                            )}
+                            {/* Tooltip on hover */}
+                            <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
+                              <p className="font-semibold mb-1">Why {tech.name}?</p>
+                              <p>{tech.reasoning}</p>
+                              <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {projectPlan.architecture.thirdPartyServices.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Third-Party Services</h3>
-                  <ul className="space-y-1">
-                    {projectPlan.architecture.thirdPartyServices.map((tech, i) => (
-                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
-                        {tech}
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Standard Tools Section */}
+                  {standardTools.length > 0 && (
+                    <div>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="h-2 w-2 bg-gray-500 rounded-full"></div>
+                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                          Standard Development Tools
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {standardTools.map((tech, i) => (
+                          <div
+                            key={i}
+                            className="bg-white border border-gray-300 rounded-lg p-3 group hover:shadow-md transition-all relative"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xl">{categoryIcons[tech.category]}</span>
+                                <span className="font-semibold text-gray-900">{tech.name}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full">
+                                {tech.category}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  difficultyColors[tech.difficulty]
+                                }`}
+                              >
+                                {tech.difficulty}
+                              </span>
+                            </div>
+                            {tech.statusNote && (
+                              <p className="text-xs text-gray-600">{tech.statusNote}</p>
+                            )}
+                            {/* Tooltip on hover */}
+                            <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
+                              <p className="font-semibold mb-1">Why {tech.name}?</p>
+                              <p>{tech.reasoning}</p>
+                              <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Likely Installed Section */}
+                  {likelyInstalled.length > 0 && (
+                    <div>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                        <h3 className="text-sm font-bold text-blue-900 uppercase tracking-wide">
+                          Commonly Pre-Installed Tools
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {likelyInstalled.map((tech, i) => (
+                          <div
+                            key={i}
+                            className="bg-white border border-blue-300 rounded-lg p-3 group hover:shadow-md transition-all relative"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xl">{categoryIcons[tech.category]}</span>
+                                <span className="font-semibold text-gray-900">{tech.name}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+                                {tech.category}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  difficultyColors[tech.difficulty]
+                                }`}
+                              >
+                                {tech.difficulty}
+                              </span>
+                            </div>
+                            {tech.statusNote && (
+                              <p className="text-xs text-blue-700">{tech.statusNote}</p>
+                            )}
+                            {/* Tooltip on hover */}
+                            <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
+                              <p className="font-semibold mb-1">Why {tech.name}?</p>
+                              <p>{tech.reasoning}</p>
+                              <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Needs Account Section */}
+                  {needsAccount.length > 0 && (
+                    <div>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="h-2 w-2 bg-orange-500 rounded-full"></div>
+                        <h3 className="text-sm font-bold text-orange-900 uppercase tracking-wide">
+                          🔑 Requires Account Setup
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {needsAccount.map((tech, i) => (
+                          <div
+                            key={i}
+                            className="bg-white border-2 border-orange-300 rounded-lg p-3 group hover:shadow-md transition-all relative"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xl">{categoryIcons[tech.category]}</span>
+                                <span className="font-semibold text-gray-900">{tech.name}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full">
+                                {tech.category}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  difficultyColors[tech.difficulty]
+                                }`}
+                              >
+                                {tech.difficulty}
+                              </span>
+                            </div>
+                            <div className="mt-3 flex items-center space-x-2">
+                              {tech.signupUrl && (
+                                <a
+                                  href={tech.signupUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
+                                >
+                                  Sign Up
+                                </a>
+                              )}
+                              {tech.setupGuideUrl && (
+                                <a
+                                  href={tech.setupGuideUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
+                                >
+                                  Guide
+                                </a>
+                              )}
+                            </div>
+                            {/* Tooltip on hover */}
+                            <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
+                              <p className="font-semibold mb-1">Why {tech.name}?</p>
+                              <p>{tech.reasoning}</p>
+                              <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
         )}
 
