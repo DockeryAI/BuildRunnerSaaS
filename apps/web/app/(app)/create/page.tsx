@@ -501,6 +501,8 @@ function PRDSectionPanel({
                       onDelete={(itemId) => onDeleteItem(section.id, itemId)}
                       onShelve={(itemId) => onShelveItem(section.id, itemId)}
                       onMoveToFuture={(itemId) => onMoveToFuture(section.id, itemId)}
+                      onSuggestName={section.id === 'executive_summary' ? handleSuggestName : undefined}
+                      isExecutiveSummary={section.id === 'executive_summary'}
                     />
                   ))}
 
@@ -612,6 +614,7 @@ function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [draggedSuggestion, setDraggedSuggestion] = useState<Suggestion | null>(null);
   const [isGeneratingNames, setIsGeneratingNames] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
 
   // PRD sections by phase
   const [prdSections, setPrdSections] = useState<Record<number, PRDSection[]>>({
@@ -1275,6 +1278,41 @@ function CreatePage() {
     await generateSuggestions(message, currentPhase);
   }
 
+  function handleSaveProgress() {
+    // Save PRD progress to localStorage
+    const progressData = {
+      productIdea,
+      prdSections,
+      allSuggestions,
+      currentPhase,
+      timestamp: new Date().toISOString()
+    };
+
+    localStorage.setItem('buildrunner_prd_progress', JSON.stringify(progressData));
+    setLastSaved(new Date().toISOString());
+    console.log('Progress saved successfully');
+  }
+
+  function handleNextStage() {
+    // Save current progress
+    handleSaveProgress();
+
+    // Navigate to project plan overview
+    // TODO: Implement navigation to project plan stage
+    console.log('Moving to Project Plan Overview stage');
+    alert('Project Plan Overview stage coming soon! Progress has been saved.');
+  }
+
+  function handleSuggestName(itemId: string) {
+    setIsGeneratingNames(true);
+    // TODO: Implement AI name generation based on PRD content
+    console.log('Generating name suggestions for item:', itemId);
+    setTimeout(() => {
+      setIsGeneratingNames(false);
+      alert('Name suggestion feature coming soon!');
+    }, 1000);
+  }
+
   if (showOnboarding) {
     return <OnboardingFlow onStart={handleStart} />;
   }
@@ -1301,6 +1339,30 @@ function CreatePage() {
 
       {/* Phase Navigation */}
       <PhaseNavigation currentPhase={currentPhase} onPhaseChange={handlePhaseChange} />
+
+      {/* Progress Actions */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleSaveProgress}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+            >
+              Save Progress
+            </button>
+            <span className="text-sm text-gray-600">
+              Last saved: {lastSaved ? new Date(lastSaved).toLocaleTimeString() : 'Never'}
+            </span>
+          </div>
+          <button
+            onClick={handleNextStage}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center space-x-2"
+          >
+            <span>Next: Project Plan Overview</span>
+            <ArrowRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
 
       {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto p-6">
@@ -1342,8 +1404,8 @@ function CreatePage() {
                       <p className="text-gray-600 text-sm">Generating suggestions...</p>
                     </div>
                   </div>
-                ) : suggestions.length > 0 ? (
-                  suggestions.map((suggestion) => (
+                ) : (allSuggestions[currentPhase] || []).length > 0 ? (
+                  (allSuggestions[currentPhase] || []).map((suggestion) => (
                     <DraggableSuggestion
                       key={suggestion.id}
                       suggestion={suggestion}

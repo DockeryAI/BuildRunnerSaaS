@@ -1,7 +1,7 @@
 {
-  "/(app)/analytics/page": "app/(app)/analytics/page.js",
   "/(app)/flow/page": "app/(app)/flow/page.js",
-  "/(app)/workbench/page": "app/(app)/workbench/page.js",
   "/(app)/reconcile/page": "app/(app)/reconcile/page.js",
+  "/(app)/workbench/page": "app/(app)/workbench/page.js",
+  "/(app)/analytics/page": "app/(app)/analytics/page.js",
   "/(app)/create/page": "app/(app)/create/page.js"
 }
