@@ -45,17 +45,25 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a project planning expert. Generate a detailed project implementation plan with Milestones, Steps, and Microsteps based on a PRD.
+            content: `You are a project planning expert and software architect. Generate a detailed project implementation plan with Milestones, Steps, and Microsteps based on a PRD.
 
 Return a JSON object with this exact schema:
 {
+  "architecture": {
+    "recommendedStack": "Brief summary of recommended technology stack",
+    "frontend": ["Frontend technologies"],
+    "backend": ["Backend technologies"],
+    "database": ["Database technologies"],
+    "infrastructure": ["Infrastructure and deployment"],
+    "thirdPartyServices": ["Required third-party services"]
+  },
   "milestones": [
     {
       "id": "unique_id",
       "title": "Milestone title",
       "description": "What this milestone achieves",
       "estimatedWeeks": 2,
-      "dependencies": ["description of what must be done first"],
+      "dependencies": [],
       "status": "pending",
       "steps": [
         {
@@ -63,7 +71,7 @@ Return a JSON object with this exact schema:
           "title": "Step title",
           "description": "What this step involves",
           "estimatedDays": 3,
-          "dependencies": ["what must be done first"],
+          "dependencies": [],
           "status": "pending",
           "microsteps": [
             {
@@ -71,7 +79,7 @@ Return a JSON object with this exact schema:
               "title": "Microstep title",
               "description": "Specific action to take",
               "estimatedHours": 4,
-              "dependencies": ["prerequisite tasks"],
+              "dependencies": [],
               "status": "pending"
             }
           ]
@@ -83,14 +91,22 @@ Return a JSON object with this exact schema:
   "generatedAt": "2025-11-01T08:00:00Z"
 }
 
-IMPORTANT:
+CRITICAL JSON FORMATTING RULES:
+- Use simple, short descriptions (max 200 characters each)
+- Do NOT use special characters, quotes, or apostrophes in descriptions
+- Keep descriptions factual and technical
+- ALL string values must be properly escaped
+- Ensure valid JSON syntax throughout
+
+PROJECT PLANNING RULES:
 - Create 3-5 milestones for a complete project
-- Each milestone should have 2-4 steps
-- Each step should have 2-5 microsteps
-- Microsteps should be specific, actionable tasks
+- Each milestone should have 2-3 steps
+- Each step should have 2-3 microsteps
+- Keep milestone/step/microstep titles concise (max 60 characters)
 - Include realistic time estimates
-- Dependencies should reference what needs to be completed first
-- Focus on technical implementation based on the PRD features`
+- Focus on technical implementation based on the PRD features
+- First milestone should always be Architecture & Setup
+- Include recommended technology stack and architecture decisions`
           },
           {
             role: 'user',
@@ -104,8 +120,8 @@ ${prdContext}
 Generate a comprehensive project implementation plan with milestones, steps, and microsteps. Include realistic time estimates and dependencies. Return ONLY the JSON object.`
           }
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        temperature: 0.2,
+        max_tokens: 8000,
       }),
     });
 
@@ -133,7 +149,28 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       jsonStr = jsonStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    const plan = JSON.parse(jsonStr);
+    // Try to parse JSON with better error handling
+    let plan;
+    try {
+      plan = JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Attempted to parse:', jsonStr.substring(0, 500) + '...');
+
+      // Try to fix common JSON issues
+      try {
+        // Remove any trailing commas before closing braces/brackets
+        const fixedJson = jsonStr
+          .replace(/,\s*}/g, '}')
+          .replace(/,\s*]/g, ']')
+          .replace(/[\u0000-\u001F]+/g, ''); // Remove control characters
+
+        plan = JSON.parse(fixedJson);
+        console.log('Successfully parsed JSON after fixing common issues');
+      } catch (secondError) {
+        throw new Error(`Failed to parse AI response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      }
+    }
 
     // Ensure all items have IDs
     if (!plan.milestones) {

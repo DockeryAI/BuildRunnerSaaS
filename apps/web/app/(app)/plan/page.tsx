@@ -40,7 +40,17 @@ interface Milestone {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
+interface Architecture {
+  recommendedStack: string;
+  frontend: string[];
+  backend: string[];
+  database: string[];
+  infrastructure: string[];
+  thirdPartyServices: string[];
+}
+
 interface ProjectPlan {
+  architecture?: Architecture;
   milestones: Milestone[];
   totalEstimatedWeeks: number;
   generatedAt: string;
@@ -208,9 +218,88 @@ export default function PlanPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden px-6 pb-6">
-        {/* Tree View */}
-        <div className="w-2/5 bg-white rounded-lg shadow mr-6 overflow-y-auto">
+      <div className="flex-1 flex flex-col overflow-hidden px-6 pb-6">
+        {/* Architecture Section */}
+        {projectPlan?.architecture && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow mb-6 p-6 border border-blue-200">
+            <h2 className="text-xl font-bold text-gray-900 mb-3 flex items-center">
+              <SparklesIcon className="h-6 w-6 text-blue-600 mr-2" />
+              Recommended Architecture & Technology Stack
+            </h2>
+            <p className="text-gray-700 mb-4">{projectPlan.architecture.recommendedStack}</p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {projectPlan.architecture.frontend.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Frontend</h3>
+                  <ul className="space-y-1">
+                    {projectPlan.architecture.frontend.map((tech, i) => (
+                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
+                        {tech}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {projectPlan.architecture.backend.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Backend</h3>
+                  <ul className="space-y-1">
+                    {projectPlan.architecture.backend.map((tech, i) => (
+                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
+                        {tech}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {projectPlan.architecture.database.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Database</h3>
+                  <ul className="space-y-1">
+                    {projectPlan.architecture.database.map((tech, i) => (
+                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
+                        {tech}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {projectPlan.architecture.infrastructure.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Infrastructure</h3>
+                  <ul className="space-y-1">
+                    {projectPlan.architecture.infrastructure.map((tech, i) => (
+                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
+                        {tech}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {projectPlan.architecture.thirdPartyServices.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900 mb-2">Third-Party Services</h3>
+                  <ul className="space-y-1">
+                    {projectPlan.architecture.thirdPartyServices.map((tech, i) => (
+                      <li key={i} className="text-sm text-gray-700 bg-white px-2 py-1 rounded">
+                        {tech}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 flex overflow-hidden">
+          {/* Tree View */}
+          <div className="w-2/5 bg-white rounded-lg shadow mr-6 overflow-y-auto">
           <div className="p-4 border-b border-gray-200 bg-gray-50">
             <h2 className="text-lg font-semibold text-gray-900">Project Structure</h2>
             <p className="text-sm text-gray-600">
@@ -428,6 +517,7 @@ export default function PlanPage() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
