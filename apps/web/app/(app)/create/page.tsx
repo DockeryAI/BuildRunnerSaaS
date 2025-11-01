@@ -1274,6 +1274,16 @@ function CreatePage() {
     }));
   }
 
+  function handleSuggestName(itemId: string) {
+    setIsGeneratingNames(true);
+    // TODO: Implement AI name generation based on PRD content
+    console.log('Generating name suggestions for item:', itemId);
+    setTimeout(() => {
+      setIsGeneratingNames(false);
+      alert('Name suggestion feature coming soon!');
+    }, 1000);
+  }
+
   async function handleMessageSend(message: string) {
     await generateSuggestions(message, currentPhase);
   }
@@ -1301,16 +1311,6 @@ function CreatePage() {
     // TODO: Implement navigation to project plan stage
     console.log('Moving to Project Plan Overview stage');
     alert('Project Plan Overview stage coming soon! Progress has been saved.');
-  }
-
-  function handleSuggestName(itemId: string) {
-    setIsGeneratingNames(true);
-    // TODO: Implement AI name generation based on PRD content
-    console.log('Generating name suggestions for item:', itemId);
-    setTimeout(() => {
-      setIsGeneratingNames(false);
-      alert('Name suggestion feature coming soon!');
-    }, 1000);
   }
 
   if (showOnboarding) {
