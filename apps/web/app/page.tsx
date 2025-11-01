@@ -1,23 +1,21 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
 export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to projects page
+    router.push('/projects');
+  }, [router]);
+
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">BuildRunner SaaS</h1>
-        <p className="text-gray-600 mb-8">Welcome to the PRD Builder</p>
-        <div className="space-y-4">
-          <a
-            href="/create"
-            className="block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Go to Create Page
-          </a>
-          <a
-            href="/test"
-            className="block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            Go to Test Page
-          </a>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Redirecting to projects...</p>
       </div>
     </div>
   );

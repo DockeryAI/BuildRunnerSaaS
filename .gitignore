@@ -4,3 +4,7 @@ dist
 .DS_Store
 .next
 apps/web/.next
+
+# API Keys (sensitive)
+.api-keys.json
+apps/web/.api-keys.json

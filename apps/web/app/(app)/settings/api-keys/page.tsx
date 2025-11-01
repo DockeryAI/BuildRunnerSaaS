@@ -49,6 +49,14 @@ export default function APIKeysPage() {
       status: 'disconnected',
     },
     {
+      id: 'supabase_management_token',
+      name: 'Supabase Management API Token',
+      description: 'Optional: For automatic Supabase project creation and management',
+      value: '',
+      required: false,
+      status: 'disconnected',
+    },
+    {
       id: 'crunchbase',
       name: 'Crunchbase API Key',
       description: 'Optional: For competitor funding and company data',
@@ -82,11 +90,34 @@ export default function APIKeysPage() {
     loadSavedKeys();
   }, []);
 
-  const loadSavedKeys = () => {
+  const loadSavedKeys = async () => {
+    try {
+      // First try to load from backend
+      const response = await fetch('/api/settings/api-keys');
+      const data = await response.json();
+
+      if (data.success && Object.keys(data.keys).length > 0) {
+        console.log('✅ Loading API keys from backend');
+        setApiKeys(prev => prev.map(key => ({
+          ...key,
+          value: data.keys[key.id] || '',
+          status: data.keys[key.id] ? 'disconnected' : 'disconnected',
+        })));
+
+        // Also save to localStorage as backup
+        localStorage.setItem('buildrunner_api_keys', JSON.stringify(data.keys));
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to load from backend, trying localStorage');
+    }
+
+    // Fallback to localStorage
     const saved = localStorage.getItem('buildrunner_api_keys');
     if (saved) {
       try {
         const parsedKeys = JSON.parse(saved);
+        console.log('✅ Loading API keys from localStorage');
         setApiKeys(prev => prev.map(key => ({
           ...key,
           value: parsedKeys[key.id] || '',
@@ -108,24 +139,40 @@ export default function APIKeysPage() {
         return acc;
       }, {} as Record<string, string>);
 
-      localStorage.setItem('buildrunner_api_keys', JSON.stringify(keyValues));
-      
-      // Also save to server if available
+      // Save to backend first
+      let backendSaved = false;
       try {
-        await fetch('/api/settings/api-keys', {
+        const response = await fetch('/api/settings/api-keys', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(keyValues),
         });
+        const result = await response.json();
+        if (result.success) {
+          console.log('✅ API keys saved to backend');
+          backendSaved = true;
+        }
       } catch (error) {
-        console.warn('Failed to save to server, using local storage only');
+        console.warn('Failed to save to backend, using localStorage only');
+      }
+
+      // Always save to localStorage as backup
+      localStorage.setItem('buildrunner_api_keys', JSON.stringify(keyValues));
+      console.log('✅ API keys saved to localStorage');
+
+      // Show success message
+      if (backendSaved) {
+        alert('✅ API keys saved successfully!');
+      } else {
+        alert('⚠️ API keys saved locally only (backend unavailable)');
       }
 
       // Test connections after saving
       await testAllConnections();
-      
+
     } catch (error) {
       console.error('Failed to save API keys:', error);
+      alert('❌ Failed to save API keys');
     } finally {
       setIsSaving(false);
     }
@@ -357,6 +404,7 @@ export default function APIKeysPage() {
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• <strong>OpenRouter:</strong> Sign up at <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" className="underline">openrouter.ai</a> and get your API key</li>
               <li>• <strong>Supabase:</strong> Create a project at <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline">supabase.com</a> and copy your URL and anon key</li>
+              <li>• <strong>Supabase Management API:</strong> Get your access token from <a href="https://app.supabase.com/account/tokens" target="_blank" rel="noopener noreferrer" className="underline">Supabase Account Settings</a> for automatic project creation (optional)</li>
               <li>• <strong>GitHub:</strong> Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline">GitHub Settings → Developer settings → Personal access tokens</a> and create a token with repo access</li>
               <li>• <strong>Crunchbase:</strong> Get API access at <a href="https://data.crunchbase.com" target="_blank" rel="noopener noreferrer" className="underline">data.crunchbase.com</a> (optional)</li>
               <li>• <strong>ProductHunt:</strong> Apply for API access at <a href="https://api.producthunt.com" target="_blank" rel="noopener noreferrer" className="underline">api.producthunt.com</a> (optional)</li>

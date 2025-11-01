@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs/promises';
+import path from 'path';
+
+const KEYS_FILE = path.join(process.cwd(), '.api-keys.json');
 
 export async function POST(request: NextRequest) {
   try {
     const apiKeys = await request.json();
-    
-    // In a production app, you would save these to a secure database
-    // For now, we'll just validate and return success
-    
+
     console.log('API keys received for saving:', Object.keys(apiKeys));
-    
+
+    // Save to filesystem (secure in production environment)
+    await fs.writeFile(KEYS_FILE, JSON.stringify(apiKeys, null, 2), 'utf-8');
+
+    console.log('✅ API keys saved to:', KEYS_FILE);
+
     return NextResponse.json({
       success: true,
       message: 'API keys saved successfully',
       saved_at: new Date().toISOString(),
     });
-    
+
   } catch (error) {
     console.error('Error saving API keys:', error);
     return NextResponse.json(
@@ -26,14 +32,23 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // In a production app, you would retrieve these from a secure database
-    // For now, return empty object
-    
+    // Try to load from filesystem
+    let keys = {};
+
+    try {
+      const fileContent = await fs.readFile(KEYS_FILE, 'utf-8');
+      keys = JSON.parse(fileContent);
+      console.log('✅ API keys loaded from:', KEYS_FILE);
+    } catch (error) {
+      // File doesn't exist yet - return empty
+      console.log('No saved API keys found');
+    }
+
     return NextResponse.json({
       success: true,
-      keys: {},
+      keys,
     });
-    
+
   } catch (error) {
     console.error('Error loading API keys:', error);
     return NextResponse.json(

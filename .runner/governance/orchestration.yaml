@@ -1,0 +1,251 @@
+# Autonomous Development Orchestration Configuration
+# This file configures the self-healing, self-verifying AI development system
+
+version: 1.0
+updated: 2025-11-01
+
+# ============================================================================
+# Verification Settings
+# ============================================================================
+verification:
+  # Require multiple LLMs to agree before marking features complete
+  require_multi_llm_consensus: true
+
+  # Minimum agreement threshold (0.67 = 2 out of 3 LLMs must agree)
+  consensus_threshold: 0.67
+
+  # Maximum attempts before escalating to human
+  max_attempts_before_escalation: 5
+
+  # Models used for verification (consulted in parallel)
+  verification_models:
+    - anthropic/claude-sonnet-3.5
+    - openai/gpt-4
+    - google/gemini-pro
+
+# ============================================================================
+# Loop Detection Settings
+# ============================================================================
+loop_detection:
+  # Number of same actions before triggering intervention
+  same_action_threshold: 3
+
+  # Number of same errors before triggering intervention
+  same_error_threshold: 2
+
+  # Timeout in seconds for no progress
+  no_progress_timeout_seconds: 300
+
+  # Enable automatic loop detection
+  enabled: true
+
+  # Check interval in seconds
+  check_interval_seconds: 30
+
+# ============================================================================
+# Intervention Settings
+# ============================================================================
+intervention:
+  # Automatically halt agent when loop detected
+  auto_halt_on_loop: true
+
+  # Use multi-LLM brainstorming for alternative strategies
+  multi_llm_brainstorm: true
+
+  # Log all interventions for learning
+  log_all_interventions: true
+
+  # Notify user on critical interventions
+  notify_user_on_critical: true
+
+  # Maximum retry attempts before escalation
+  max_retry_attempts: 3
+
+# ============================================================================
+# Problem Solving Settings
+# ============================================================================
+problem_solving:
+  # Gather comprehensive context before solving
+  gather_comprehensive_context: true
+
+  # Models to consult for problem solving (queried in parallel)
+  consult_models:
+    - anthropic/claude-sonnet-3.5  # Best reasoning
+    - openai/gpt-4                  # Different perspective
+    - google/gemini-pro             # Alternative approach
+    - openai/o1-mini                # Deep reasoning
+    - deepseek/deepseek-chat        # Code-focused
+
+  # Model used to synthesize solutions into micro-plan
+  synthesis_model: anthropic/claude-opus-4
+
+  # Verify each micro-step before proceeding
+  verify_micro_steps: true
+
+  # Execute fallback on step failure
+  auto_execute_fallback: true
+
+# ============================================================================
+# Agent Configuration
+# ============================================================================
+agents:
+  # Code builder agents
+  code_builders:
+    - id: code-builder-1
+      name: "Primary Code Builder"
+      model: anthropic/claude-sonnet-3.5
+      capabilities:
+        - code
+        - tests
+        - refactoring
+      max_loop_iterations: 3
+      supervised_by: orchestrator
+
+    - id: code-builder-2
+      name: "Secondary Code Builder"
+      model: openai/gpt-4
+      capabilities:
+        - code
+        - documentation
+        - debugging
+      max_loop_iterations: 3
+      supervised_by: orchestrator
+
+  # Orchestrator agent
+  orchestrator:
+    id: orchestrator
+    name: "Orchestrator Agent"
+    model: anthropic/claude-opus-4
+    capabilities:
+      - supervision
+      - verification
+      - intervention
+      - coordination
+    monitors:
+      - code-builder-1
+      - code-builder-2
+    supervision_interval_seconds: 30
+
+  # Problem solver
+  problem_solver:
+    id: problem-solver
+    name: "Multi-LLM Problem Solver"
+    models:
+      - anthropic/claude-sonnet-3.5
+      - openai/gpt-4
+      - google/gemini-pro
+      - openai/o1-mini
+      - deepseek/deepseek-chat
+    synthesis_model: anthropic/claude-opus-4
+
+# ============================================================================
+# Feature Registry Settings
+# ============================================================================
+feature_registry:
+  # Auto-extract features from spec on initialization
+  auto_extract_on_init: true
+
+  # Sync with PRD in real-time
+  real_time_prd_sync: true
+
+  # Storage location
+  storage:
+    local: true
+    key: feature-registry
+
+  # Default feature settings
+  defaults:
+    priority: medium
+    status: planned
+    estimated_time: "1h"
+
+# ============================================================================
+# PRD Sync Settings
+# ============================================================================
+prd_sync:
+  # Enable automatic bi-directional sync
+  auto_sync: true
+
+  # Sync direction
+  bi_directional: true
+
+  # Conflict resolution strategy
+  conflict_resolution: user_confirm  # Options: user_confirm, prefer_prd, prefer_registry, auto_merge
+
+  # Re-verify features on PRD changes
+  verify_on_change: true
+
+# ============================================================================
+# Learning System Settings
+# ============================================================================
+learning:
+  # Enable learning from past problems
+  enabled: true
+
+  # Store problem-solution pairs
+  store_solutions: true
+
+  # Suggest known solutions for similar problems
+  auto_suggest_solutions: true
+
+  # Maximum learning history entries
+  max_history_entries: 100
+
+# ============================================================================
+# Predictive Analytics Settings
+# ============================================================================
+predictive:
+  # Enable predictive blocker detection
+  enabled: true
+
+  # Risk threshold for proactive consultation (0.0-1.0)
+  risk_threshold: 0.7
+
+  # Analyze complexity before execution
+  analyze_complexity: true
+
+# ============================================================================
+# Safety Settings
+# ============================================================================
+safety:
+  # Create git checkpoints before risky actions
+  auto_checkpoint: true
+
+  # Auto-rollback on failure
+  auto_rollback: true
+
+  # Require verification before committing
+  verify_before_commit: true
+
+  # Graceful degradation on model failures
+  graceful_degradation: true
+
+# ============================================================================
+# Monitoring & Logging
+# ============================================================================
+monitoring:
+  # Enable detailed logging
+  verbose_logging: true
+
+  # Log level (debug, info, warn, error)
+  log_level: info
+
+  # Track cost per model
+  track_costs: true
+
+  # Performance monitoring
+  track_performance: true
+
+  # Dashboard updates interval (seconds)
+  dashboard_update_interval: 10
+
+# ============================================================================
+# Success Metrics Targets
+# ============================================================================
+metrics:
+  feature_completion_accuracy: 0.95  # >95%
+  loop_detection_rate: 0.90          # >90%
+  problem_resolution_success: 0.80   # >80%
+  consensus_agreement: 0.67          # >67%
+  time_to_detect_loop_seconds: 60    # <60s
+  interventions_per_phase: 3         # <3

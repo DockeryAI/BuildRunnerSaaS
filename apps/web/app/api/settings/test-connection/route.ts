@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
       case 'github_token':
         testResult = await testGitHub(value);
         break;
+      case 'supabase_management_token':
+        testResult = await testSupabaseManagementToken(value);
+        break;
       default:
         testResult = { success: false, error: `Unknown key type: ${keyId}` };
     }
@@ -316,6 +319,58 @@ async function testGitHub(token: string) {
     return {
       success: false,
       error: `GitHub connection failed: ${error.message}`
+    };
+  }
+}
+
+async function testSupabaseManagementToken(token: string) {
+  console.log('Testing Supabase Management API token...');
+
+  try {
+    // Add a small delay to show it's actually testing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    // Test by listing organizations - this is a simple read-only operation
+    const response = await fetch('https://api.supabase.com/v1/organizations', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      const orgCount = Array.isArray(data) ? data.length : 0;
+      console.log('Supabase Management API test successful, organizations found:', orgCount);
+      return {
+        success: true,
+        message: `Connected successfully. Found ${orgCount} organization${orgCount !== 1 ? 's' : ''}.`
+      };
+    } else {
+      const error = await response.text();
+      console.error('Supabase Management API test failed:', response.status, error);
+      return {
+        success: false,
+        error: `Supabase Management API error: ${response.status} - Invalid token or insufficient permissions`
+      };
+    }
+  } catch (error) {
+    console.error('Supabase Management API test error:', error);
+    if (error.name === 'AbortError') {
+      return {
+        success: false,
+        error: 'Supabase Management API connection timed out after 10 seconds'
+      };
+    }
+    return {
+      success: false,
+      error: `Supabase Management API connection failed: ${error.message}`
     };
   }
 }

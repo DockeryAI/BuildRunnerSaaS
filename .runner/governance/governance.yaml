@@ -1,0 +1,146 @@
+# Build Runner Governance (Git-backed) — Auto Totals
+version: 2
+updated: 2025-10-24
+
+model_contract:
+  must:
+    - "Always output one fenced command block per message."
+    - "Commands use zsh; outputs use text."
+    - "ChatGPT must always show the full file content when editing, unless impossible."
+    - "If full file can’t be shown, explain why and provide a minimal patch with exact insertion coordinates."
+    - "Always show progress headers using auto totals: 'Phase {current} of {total_phases:auto} – Step {current} of {total_steps:auto} complete.'"
+    - "Progress override: if a governance rule blocks forward movement, declare override and safely continue."
+    - "ChatGPT session titles must match project slugs (e.g. '🏗️ BranDock Build Runner')."
+    - "Each GPT tab emits commands for its own project only."
+    - "Use macOS + zsh; POSIX-safe; use jq for JSON."
+    - "Always auto-commit + push after each action."
+    - "When user says 'br-overview' in a BuildRunner Customer GPT chat, run the repo-local '.runner/tasks/br-overview.zsh'."
+    - "After running 'br-overview', paste the Markdown overview directly in chat, and include the generated document link."
+  must_not:
+    - "Never mix commands, output, and file content in the same fence."
+    - "Never emit multiple project commands in one tab."
+    - "Never request local uploads."
+    - "Never rely on non-Git persistence."
+
+defaults:
+  shorthand:
+    c: next
+    h: next
+    n: next
+    r: resume
+    p: previous
+    s: status
+
+editing_guarantees:
+  full_file_edits: true
+  progress_overrides_in_commits: true
+
+bootstrap:
+  primer_path: .runner/governance/primer.md
+  governance_path: .runner/governance/governance.yaml
+  state_path: .runner/state.json
+  docs_bootstrap: docs/_bootstrap.md
+
+commands:
+  br-overview:
+    script: .runner/tasks/br-overview.zsh
+    hrpo_path: .runner/hrpo.json
+    description: >
+      Generates a presentation-ready app overview from HRPO. Prints Markdown to stdout,
+      writes Markdown to docs/overview, and attempts to export a .docx (via pandoc if available).
+      Includes Executive Summary, Value Proposition, Intended Audience, Full Feature Set,
+      Build Plan (phases & steps), Progress (% complete), and Next-Version Features.
+    outputs:
+      - "Chat paste of overview (Markdown)"
+      - "File link to generated .md and .docx/.rtf"
+  hrpo-update:
+    add_feature: .runner/tasks/hrpo-add-feature.zsh
+    set_field: .runner/tasks/hrpo-set-field.zsh
+    guidance: >
+      Use these helpers to keep .runner/hrpo.json current. Emit exact zsh commands so the user can run ⌥⌘R.
+
+hrpo:
+  file: .runner/hrpo.json
+  prompt_field: chatgpt_overview_prompt
+  schema:
+    executive_summary: string
+    value_proposition: string
+    intended_audience: string|array
+    features: array[string|object]
+    build_plan:
+        { name: string, steps: array[{id:int, name:string, done:bool}] }
+      ]
+    progress:
+      steps_completed: int
+      total_steps: int
+      percent_complete: number
+    next_version_features: array[string]
+    chatgpt_overview_prompt: string
+
+ci:
+  bootstrap_workflow: .github/workflows/build-bootstrap.yml
+  triggers_on:
+    - ".runner/governance/**"
+    - ".runner/state.json"
+
+isolation_model:
+  terminal_tab_title: repo_basename
+  chat_window_title_pattern: "🏗️ {slug} Build Runner"
+
+sync:
+  mode: git
+  auto_push: true
+
+safety:
+  prompts_before:
+    - sudo
+    - rm
+    - git push
+  macros_selection_first: true
+  auto_version_every_change: true
+version: 1
+rules:
+  must:
+    - "Copy code blocks contain commands only."
+    - "Always open files/apps first via a shell command before referencing them (unless BR_SKIP_OPEN=1)."
+    - "Auto-calculate totals at runtime from HRPO/spec."
+    - "Always print: <current phase> of <total phases> - <current step> of <total steps in current phase>."
+    - "br-handoff must include governance primer and checksum in the resume prompt."
+    - "When shorthand 'c' is invoked, emit a single bash here-doc command that sets BR_SKIP_OPEN=1 and calls the recover task."
+  must_not:
+    - "Do not hard-code counts for phases or steps."
+    - "Do not emit headers in any other format or omit totals."
+    - "Do not include prose or comments inside copy code blocks."
+  defaults:
+    shell: zsh
+    repo_state_file: .runner/state.json
+    hrpo_file: .runner/hrpo.json
+    totals_lib: .runner/lib/totals.zsh
+    print_progress_task: .runner/tasks/print-progress.zsh
+    handoff_task: .runner/tasks/br-handoff.zsh
+    recover_task: .runner/tasks/recover.zsh
+  enforcement:
+    progress_header:
+      command: ".runner/tasks/print-progress.zsh"
+      exact_format: "<current phase> of <total phases> - <current step> of <total steps in current phase>"
+    open_first:
+      allow_env_override: true
+      override_env: "BR_SKIP_OPEN"
+  shorthand:
+    h: next
+    n: next
+    r: resume
+    p: previous
+    s: status
+    c: crashed
+  ci:
+    bootstrap_workflow: .github/workflows/build-bootstrap.yml
+    triggers_on:
+      - ".runner/governance/**"
+      - ".runner/lib/totals.zsh"
+      - ".runner/tasks/print-progress.zsh"
+      - ".runner/tasks/br-handoff.zsh"
+      - ".runner/tasks/recover.zsh"
+      - ".runner/state.json"
+      - "docs/**"
+  auto_totals: true

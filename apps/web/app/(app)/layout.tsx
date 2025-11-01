@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
@@ -21,12 +21,16 @@ import {
   TrendingUp,
   Package,
   Shield,
-  Lightbulb
+  Lightbulb,
+  FolderOpen,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
 
 const navigation = [
+  { name: 'Projects', href: '/projects', icon: FolderOpen },
   { name: 'Create', href: '/create', icon: Lightbulb },
   { name: 'Plan', href: '/plan', icon: Edit3 },
   { name: 'Flow', href: '/flow', icon: GitMerge },
@@ -47,8 +51,24 @@ export default function AppLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const { user, signOut } = useAuth();
+
+  // Load sidebar collapsed state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebar_collapsed');
+    if (savedState !== null) {
+      setSidebarCollapsed(savedState === 'true');
+    }
+  }, []);
+
+  // Save sidebar collapsed state to localStorage when it changes
+  const toggleSidebarCollapsed = () => {
+    const newState = !sidebarCollapsed;
+    setSidebarCollapsed(newState);
+    localStorage.setItem('sidebar_collapsed', String(newState));
+  };
 
   return (
     <ProtectedRoute>
@@ -56,20 +76,35 @@ export default function AppLayout({
         <div className="h-screen flex overflow-hidden bg-gray-100">
       {/* Sidebar */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        sidebarCollapsed ? "w-16" : "w-64"
       )}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center h-16 px-6 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">BuildRunner</h1>
+          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+            {!sidebarCollapsed && (
+              <h1 className="text-xl font-bold text-gray-900">BuildRunner</h1>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:flex"
+              onClick={toggleSidebarCollapsed}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
           {/* Project Selector */}
-          <ProjectSelector />
+          {!sidebarCollapsed && <ProjectSelector />}
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1">
+          <nav className="flex-1 px-2 py-4 space-y-1">
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -80,37 +115,51 @@ export default function AppLayout({
                     "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
                     isActive
                       ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                    sidebarCollapsed ? "justify-center" : ""
                   )}
+                  title={sidebarCollapsed ? item.name : undefined}
                 >
                   <item.icon
                     className={cn(
-                      "mr-3 h-5 w-5",
+                      sidebarCollapsed ? "" : "mr-3",
+                      "h-5 w-5",
                       isActive ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"
                     )}
                   />
-                  {item.name}
+                  {!sidebarCollapsed && item.name}
                 </Link>
               );
             })}
           </nav>
 
           {/* User Menu */}
-          <div className="px-4 py-4 border-t border-gray-200">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
+          <div className="px-2 py-4 border-t border-gray-200">
+            {sidebarCollapsed ? (
+              <div className="flex flex-col items-center space-y-2">
                 <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
                 </div>
+                <Button variant="ghost" size="icon" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="ml-3 flex-1">
-                <div className="text-sm font-medium text-gray-900">{user?.name || 'User'}</div>
-                <div className="text-xs text-gray-500">{user?.email}</div>
+            ) : (
+              <div className="flex items-center px-2">
+                <div className="flex-shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+                <div className="ml-3 flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</div>
+                  <div className="text-xs text-gray-500 truncate">{user?.email}</div>
+                </div>
+                <Button variant="ghost" size="icon" className="ml-2" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" className="ml-2" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
+            )}
           </div>
         </div>
       </div>

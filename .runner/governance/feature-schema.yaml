@@ -1,0 +1,348 @@
+# Feature Registry Schema Definition
+# Defines the structure and validation rules for features
+
+version: 1.0
+updated: 2025-11-01
+
+# ============================================================================
+# Feature Schema
+# ============================================================================
+feature:
+  # Required fields
+  required:
+    - id
+    - name
+    - description
+    - status
+    - phase
+    - priority
+
+  # Field definitions
+  fields:
+    id:
+      type: string
+      pattern: "^f\\d{3}$"  # e.g., f001, f042
+      description: "Unique identifier for the feature"
+      example: "f001"
+
+    name:
+      type: string
+      minLength: 5
+      maxLength: 100
+      description: "Short, descriptive name"
+      example: "AI-Powered Brainstorming System"
+
+    description:
+      type: string
+      minLength: 20
+      maxLength: 1000
+      description: "Detailed description of the feature"
+      example: "Multi-model AI strategy using Claude Sonnet 3.5..."
+
+    status:
+      type: enum
+      values:
+        - planned        # Not started
+        - in_progress    # Currently being worked on
+        - completed      # Fully implemented and verified
+        - blocked        # Has blockers preventing progress
+        - skipped        # Intentionally skipped
+      default: planned
+
+    phase:
+      type: number
+      minimum: 1
+      maximum: 8
+      description: "Which phase this feature belongs to"
+
+    step:
+      type: number
+      minimum: 1
+      description: "Which step within the phase"
+
+    priority:
+      type: enum
+      values:
+        - critical       # Must have for MVP
+        - high           # Important for MVP
+        - medium         # Nice to have for MVP
+        - low            # Future enhancement
+      default: medium
+
+    sub_features:
+      type: array
+      items: feature  # Recursive structure
+      description: "Nested sub-features"
+      default: []
+
+    acceptance_criteria:
+      type: array
+      items: acceptance_criterion
+      description: "Conditions that must be met"
+      minItems: 0
+
+    evidence:
+      type: object
+      required: false
+      description: "Proof that feature is implemented"
+
+    dependencies:
+      type: object
+      required: true
+      default:
+        required_features: []
+        required_packages: []
+
+    blockers:
+      type: array
+      items: blocker
+      default: []
+
+    metadata:
+      type: object
+      required: true
+
+# ============================================================================
+# Acceptance Criterion Schema
+# ============================================================================
+acceptance_criterion:
+  required:
+    - description
+    - verified
+    - verification_method
+
+  fields:
+    description:
+      type: string
+      minLength: 10
+      description: "What needs to be true"
+      example: "90% cost savings on repeated prompts"
+
+    verified:
+      type: boolean
+      default: false
+      description: "Whether this criterion has been verified"
+
+    verification_method:
+      type: string
+      description: "How to verify this criterion"
+      example: "Compare API costs before/after caching"
+
+# ============================================================================
+# Evidence Schema
+# ============================================================================
+evidence:
+  fields:
+    files_modified:
+      type: array
+      items: string
+      description: "List of files implementing this feature"
+      example: ["app/api/chat/route.ts", "lib/ai/cache.ts"]
+
+    tests_added:
+      type: array
+      items: string
+      description: "List of test files added"
+      example: ["__tests__/ai/cache.test.ts"]
+
+    tests_passed:
+      type: boolean
+      description: "Whether all tests pass"
+
+    verified_by:
+      type: string
+      description: "Which LLM verified this"
+      example: "anthropic/claude-sonnet-3.5"
+
+    verification_timestamp:
+      type: date
+      description: "When verification occurred"
+
+    verification_confidence:
+      type: number
+      minimum: 0.0
+      maximum: 1.0
+      description: "Confidence in verification (0-1)"
+
+# ============================================================================
+# Dependencies Schema
+# ============================================================================
+dependencies:
+  fields:
+    required_features:
+      type: array
+      items: string  # Feature IDs
+      description: "Features that must be completed first"
+      example: ["f001", "f003"]
+
+    required_packages:
+      type: array
+      items: string
+      description: "NPM packages needed"
+      example: ["@anthropic-ai/sdk", "openai"]
+
+# ============================================================================
+# Blocker Schema
+# ============================================================================
+blocker:
+  required:
+    - description
+    - severity
+    - attempts_to_resolve
+    - multi_llm_consulted
+
+  fields:
+    description:
+      type: string
+      minLength: 10
+      description: "What is blocking progress"
+
+    severity:
+      type: enum
+      values:
+        - critical
+        - high
+        - medium
+        - low
+
+    attempts_to_resolve:
+      type: number
+      minimum: 0
+      description: "How many times we've tried to fix this"
+
+    multi_llm_consulted:
+      type: boolean
+      default: false
+      description: "Whether multi-LLM problem solver was used"
+
+    created_at:
+      type: date
+      description: "When blocker was identified"
+
+# ============================================================================
+# Metadata Schema
+# ============================================================================
+metadata:
+  required:
+    - created_at
+    - updated_at
+    - assigned_to
+    - estimated_time
+
+  fields:
+    created_at:
+      type: date
+      description: "When feature was created"
+
+    updated_at:
+      type: date
+      description: "Last update time"
+
+    assigned_to:
+      type: string
+      default: "unassigned"
+      description: "Which agent is working on this"
+      example: "code-builder-1"
+
+    estimated_time:
+      type: string
+      pattern: "^\\d+[hmd]$"  # e.g., 2h, 30m, 1d
+      description: "Estimated implementation time"
+      example: "4h"
+
+    actual_time:
+      type: string
+      pattern: "^\\d+[hmd]$"
+      required: false
+      description: "Actual time taken (when completed)"
+
+# ============================================================================
+# Validation Rules
+# ============================================================================
+validation:
+  # Feature must have at least one acceptance criterion if status is completed
+  rules:
+    - name: completed_requires_criteria
+      condition: status == 'completed'
+      requires:
+        - acceptance_criteria.length > 0
+        - evidence != null
+        - evidence.verified_by != null
+
+    # Feature must have evidence if marked completed
+    - name: completed_requires_evidence
+      condition: status == 'completed'
+      requires:
+        - evidence.files_modified.length > 0
+        - evidence.tests_passed == true
+
+    # Blocked features must have at least one blocker
+    - name: blocked_requires_blocker
+      condition: status == 'blocked'
+      requires:
+        - blockers.length > 0
+
+    # Critical priority features must have acceptance criteria
+    - name: critical_requires_criteria
+      condition: priority == 'critical'
+      requires:
+        - acceptance_criteria.length > 0
+
+    # Features in progress must be assigned
+    - name: in_progress_requires_assignment
+      condition: status == 'in_progress'
+      requires:
+        - metadata.assigned_to != 'unassigned'
+
+# ============================================================================
+# Auto-Actions
+# ============================================================================
+auto_actions:
+  # When a feature is marked completed
+  on_complete:
+    - set: evidence.verification_timestamp = now()
+    - set: metadata.updated_at = now()
+    - trigger: verification_check
+
+  # When a feature is blocked
+  on_blocked:
+    - set: metadata.updated_at = now()
+    - notify: orchestrator
+    - check: blocker.attempts_to_resolve >= 3
+      then: trigger_multi_llm_consultation
+
+  # When a feature is updated
+  on_update:
+    - set: metadata.updated_at = now()
+    - trigger: prd_sync
+
+# ============================================================================
+# Export Formats
+# ============================================================================
+export:
+  # Export feature registry to different formats
+  formats:
+    - json          # Complete registry as JSON
+    - markdown      # Human-readable markdown
+    - csv           # Spreadsheet format
+    - yaml          # YAML format
+
+  # Fields to include in exports
+  include:
+    minimal:
+      - id
+      - name
+      - status
+      - priority
+
+    summary:
+      - id
+      - name
+      - description
+      - status
+      - phase
+      - priority
+      - metadata.assigned_to
+
+    complete:
+      - "*"  # All fields
