@@ -10,6 +10,7 @@ import {
   ArrowLeftIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline';
+import ApiKeySetupWizard from '@/components/ApiKeySetupWizard';
 
 interface Microstep {
   id: string;
@@ -75,10 +76,23 @@ export default function PlanPage() {
     type: 'milestone' | 'step' | 'microstep';
     data: Milestone | Step | Microstep;
   } | null>(null);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [selectedTechnology, setSelectedTechnology] = useState<Technology | null>(null);
 
   useEffect(() => {
     generateProjectPlan();
   }, []);
+
+  const handleOpenWizard = (tech: Technology) => {
+    setSelectedTechnology(tech);
+    setIsWizardOpen(true);
+  };
+
+  const handleWizardComplete = (apiKey: string) => {
+    console.log('API key saved for', selectedTechnology?.name);
+    // Optionally refresh the plan to update technology status
+    generateProjectPlan();
+  };
 
   async function generateProjectPlan() {
     try {
@@ -446,16 +460,12 @@ export default function PlanPage() {
                               </span>
                             </div>
                             <div className="mt-3 flex items-center space-x-2">
-                              {tech.signupUrl && (
-                                <a
-                                  href={tech.signupUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
-                                >
-                                  Sign Up
-                                </a>
-                              )}
+                              <button
+                                onClick={() => handleOpenWizard(tech)}
+                                className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
+                              >
+                                Setup Guide
+                              </button>
                               {tech.setupGuideUrl && (
                                 <a
                                   href={tech.setupGuideUrl}
@@ -463,7 +473,7 @@ export default function PlanPage() {
                                   rel="noopener noreferrer"
                                   className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
                                 >
-                                  Guide
+                                  Docs
                                 </a>
                               )}
                             </div>
@@ -705,6 +715,16 @@ export default function PlanPage() {
         </div>
       </div>
       </div>
+
+      {/* API Key Setup Wizard */}
+      {selectedTechnology && (
+        <ApiKeySetupWizard
+          technology={selectedTechnology}
+          isOpen={isWizardOpen}
+          onClose={() => setIsWizardOpen(false)}
+          onComplete={handleWizardComplete}
+        />
+      )}
     </div>
   );
 }
