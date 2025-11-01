@@ -1,18 +1,355 @@
 {
-  "phase": 6,
-  "step": 82,
-  "total_phases": 8,
-  "total_steps_in_current_phase": 82,
-  "completed_tasks_count": 279,
-  "current_stage": "auto_calculated",
-  "last_sync": "2025-10-31T23:18:29Z",
-  "status": "production_ready",
+  "current_stage": "development",
+  "last_sync": "2025-11-01T10:00:00Z",
+  "status": "in_progress",
   "branch": "feat/p0-brainstorm-strategy",
-  "commit": "208a0e3f57b66f6916abad4cc042a5192857d491",
-  "project": {
-    "name": "BuildRunnerSaaS"
+  "commit": "c9f849792a543ed4af4745cda438b94a9b5f1924",
+  "features": {
+    "ai_brainstorming": "completed",
+    "prd_builder": "completed",
+    "drag_drop_interface": "completed",
+    "feature_extraction": "completed",
+    "smart_suggestions": "completed",
+    "gpt4o_integration": "completed",
+    "documentation": "completed",
+    "onboarding_flow_ux": "completed",
+    "collapsible_product_idea": "completed",
+    "product_name_field": "completed",
+    "name_suggestions": "completed",
+    "ai_suggestion_actions": "completed",
+    "drag_drop_validation": "completed",
+    "section_tooltips": "completed",
+    "ai_project_plan": "completed"
   },
-  "spec_path": "docs/BuildRunnerSaaS-spec.md",
-  "calculation_method": "auto_from_change_history",
-  "last_updated": "2025-10-31T23:18:29Z"
+  "execution_plan": {
+    "current_feature": "ai_project_plan",
+    "current_microstep": 9,
+    "microsteps": {
+      "collapsible_product_idea": {
+        "description": "Add collapsible display for product idea in PRD header",
+        "file": "apps/web/app/(app)/create/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Add state for collapse/expand",
+            "details": "Add useState hook for controlling prompt expansion state",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Extract first line of prompt",
+            "details": "Create function to extract first sentence/line from productIdea",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Add chevron icon and click handler",
+            "details": "Add dropdown chevron with onClick to toggle expansion",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Implement conditional rendering",
+            "details": "Show first line when collapsed, full prompt when expanded",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Add smooth animation",
+            "details": "Add CSS transition for expand/collapse animation",
+            "status": "completed"
+          }
+        ]
+      },
+      "product_name_field": {
+        "description": "Add dedicated product name input in Executive Summary",
+        "file": "apps/web/app/(app)/create/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Add productName to state",
+            "details": "Add productName state variable and setter",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Auto-populate from existing data",
+            "details": "Extract name from prdSections.executiveSummary on load if available",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Add name input UI in ExecutiveSummary",
+            "details": "Add one-row input box at top of ExecutiveSummary section",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Link to name suggestion system",
+            "details": "Connect productName state to suggestion acceptance flow",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Update save logic",
+            "details": "Include productName in project save/load operations",
+            "status": "completed"
+          }
+        ]
+      },
+      "name_suggestions": {
+        "description": "Add AI-powered name suggestions to suggestion panel",
+        "file": "apps/web/app/(app)/create/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Update suggestion type definitions",
+            "details": "Add 'name' as new suggestion type in TypeScript interfaces",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Modify AI prompt for names",
+            "details": "Update extractSections prompt to generate product name suggestions",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Add reasoning field",
+            "details": "Include why name was suggested and significance in response",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Create name card component",
+            "details": "Build draggable name suggestion card with expand/collapse",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Implement drag-to-name-field",
+            "details": "Make name suggestions draggable to product name input",
+            "status": "completed"
+          },
+          {
+            "id": 6,
+            "action": "Add expandable details",
+            "details": "Show reasoning and significance when name card is expanded",
+            "status": "completed"
+          }
+        ]
+      },
+      "ai_suggestion_actions": {
+        "description": "Add Delete, Shelve, Future Version buttons to suggestions",
+        "file": "apps/web/app/(app)/create/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Add action button UI",
+            "details": "Add Delete, Shelve, Future buttons to each suggestion card",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Create shelved state",
+            "details": "Add shelvedSuggestions state to store shelved items",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Create future state",
+            "details": "Add futureSuggestions state for future version items",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Implement delete handler",
+            "details": "Remove suggestion from allSuggestions on delete",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Implement shelve handler",
+            "details": "Move suggestion to shelvedSuggestions on shelve",
+            "status": "completed"
+          },
+          {
+            "id": 6,
+            "action": "Implement future handler",
+            "details": "Move suggestion to futureSuggestions on future version",
+            "status": "completed"
+          },
+          {
+            "id": 7,
+            "action": "Add shelved/future UI sections",
+            "details": "Create collapsible sections to view shelved and future items",
+            "status": "completed"
+          },
+          {
+            "id": 8,
+            "action": "Add restore functionality",
+            "details": "Allow moving items back from shelved/future to active",
+            "status": "completed"
+          }
+        ]
+      },
+      "drag_drop_validation": {
+        "description": "Validate suggestion types match target PRD sections",
+        "file": "apps/web/app/(app)/create/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Create section-type mapping",
+            "details": "Map PRD section names to valid suggestion types",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Add validation in handleDragEnd",
+            "details": "Check if suggestion type matches target section before accepting drop",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Add error toast on invalid drop",
+            "details": "Show user-friendly error message when types don't match",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Add visual drop zone indicators",
+            "details": "Highlight compatible zones green, incompatible zones red during drag",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Prevent drop on incompatible zones",
+            "details": "Disable drop functionality on incompatible sections",
+            "status": "completed"
+          }
+        ]
+      },
+      "section_tooltips": {
+        "description": "Fix and enhance tooltips on PRD section titles",
+        "file": "apps/web/app/(app)/create/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Debug existing tooltip implementation",
+            "details": "Investigate why current title attributes aren't showing",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Install tooltip library if needed",
+            "details": "Consider using @radix-ui/react-tooltip or similar for reliability",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Create tooltip content",
+            "details": "Write comprehensive explanations for each PRD section",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Implement custom tooltip component",
+            "details": "Build or integrate proper tooltip component with hover behavior",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Apply tooltips to all sections",
+            "details": "Add tooltips to Scope, Features, Architecture, etc.",
+            "status": "completed"
+          },
+          {
+            "id": 6,
+            "action": "Test tooltip visibility",
+            "details": "Verify tooltips appear correctly on hover across browsers",
+            "status": "completed"
+          }
+        ]
+      },
+      "ai_project_plan": {
+        "description": "Build AI-generated project plan page with Milestones/Steps/Microsteps",
+        "file": "apps/web/app/(app)/plan/page.tsx",
+        "steps": [
+          {
+            "id": 1,
+            "action": "Create project plan data structure",
+            "details": "Define TypeScript interfaces for Milestone, Step, Microstep hierarchy",
+            "status": "completed"
+          },
+          {
+            "id": 2,
+            "action": "Build AI prompt for plan generation",
+            "details": "Create prompt that generates structured plan from PRD sections",
+            "status": "completed"
+          },
+          {
+            "id": 3,
+            "action": "Add API call to generate plan",
+            "details": "Call OpenRouter API with PRD data to generate project plan",
+            "status": "completed"
+          },
+          {
+            "id": 4,
+            "action": "Parse and structure AI response",
+            "details": "Convert AI-generated plan into typed data structure",
+            "status": "completed"
+          },
+          {
+            "id": 5,
+            "action": "Build collapsible tree UI",
+            "details": "Create hierarchical tree component for Milestones → Steps → Microsteps",
+            "status": "completed"
+          },
+          {
+            "id": 6,
+            "action": "Add expand/collapse functionality",
+            "details": "Implement click handlers to expand/collapse each level",
+            "status": "completed"
+          },
+          {
+            "id": 7,
+            "action": "Add detail view panel",
+            "details": "Show detailed information when clicking on any item",
+            "status": "completed"
+          },
+          {
+            "id": 8,
+            "action": "Add time estimates",
+            "details": "Include estimated duration for each milestone/step/microstep",
+            "status": "completed"
+          },
+          {
+            "id": 9,
+            "action": "Add dependencies visualization",
+            "details": "Show which items depend on others",
+            "status": "completed"
+          },
+          {
+            "id": 10,
+            "action": "Make plan editable",
+            "details": "Allow users to edit, add, remove items from generated plan",
+            "status": "pending"
+          },
+          {
+            "id": 11,
+            "action": "Link back to PRD sections",
+            "details": "Add navigation links from plan items to related PRD sections",
+            "status": "pending"
+          },
+          {
+            "id": 12,
+            "action": "Add save/load functionality",
+            "details": "Persist project plan with project data in localStorage",
+            "status": "pending"
+          }
+        ]
+      }
+    }
+  },
+  "last_finalized": "2025-11-01T06:00:00Z"
 }

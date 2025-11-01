@@ -352,7 +352,8 @@ Return a JSON array of suggestions with this exact schema:
     "fullDescription": "Detailed explanation with specific data and insights",
     "citations": ["Source 1: Specific study or report", "Source 2: Another credible source"],
     "priority": "high|medium|low",
-    "section": "which PRD section this applies to"
+    "section": "which PRD section this applies to",
+    "reasoning": "Optional: for product names, explain why this name and its significance"
   }
 ]
 
@@ -361,6 +362,9 @@ IMPORTANT:
 - Include real citations for any statistics or claims
 - All numbers must have sources cited
 - Generate 3-5 specific, actionable suggestions that align with the current phase and user's message
+${phase === 1 ? '\n- For Phase 1, ALWAYS include 2-3 PRODUCT NAME suggestions with type "product_name" and section "executive_summary"' : ''}
+${phase === 1 ? '- Product name suggestions should have the "reasoning" field explaining why the name fits and its significance' : ''}
+${phase === 1 ? '- Product names should be creative, memorable, and reflect the product\'s value proposition' : ''}
 - For features section: Create INDIVIDUAL feature suggestions, not combined lists
 - Each feature should be a separate suggestion with its own clear name and detailed description
 - DO NOT suggest features that are already mentioned in the product idea or current PRD

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   SparklesIcon,
   ArrowRightIcon,
@@ -15,8 +16,15 @@ import {
   TrashIcon,
   ArchiveBoxIcon,
   ClockIcon,
-  BookmarkIcon
+  BookmarkIcon,
 } from '@heroicons/react/24/outline';
+
+// Store
+import { useOrchestrationStore } from '@/lib/stores/orchestration-store';
+
+// Import components
+import { ProjectImportWizard } from '@/components/import/ProjectImportWizard';
+import { ProjectSetupWizard } from '@/components/project/ProjectSetupWizard';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -29,6 +37,7 @@ interface Suggestion {
   citations: string[];
   section: string;
   priority: 'high' | 'medium' | 'low';
+  reasoning?: string; // For name suggestions: why this name and its significance
 }
 
 interface PRDItem {
@@ -93,17 +102,27 @@ function PhaseNavigation({
 function DraggableSuggestion({
   suggestion,
   onDragStart,
+  onDelete,
+  onShelve,
+  onMoveToFuture,
 }: {
   suggestion: Suggestion;
   onDragStart: (suggestion: Suggestion) => void;
+  onDelete?: (id: string) => void;
+  onShelve?: (id: string) => void;
+  onMoveToFuture?: (id: string) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const isProductName = suggestion.type === 'product_name';
 
   const priorityColors = {
     high: 'border-red-200 bg-red-50',
     medium: 'border-yellow-200 bg-yellow-50',
     low: 'border-green-200 bg-green-50',
   };
+
+  const productNameColors = 'border-purple-300 bg-gradient-to-r from-purple-50 to-pink-50';
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/json', JSON.stringify(suggestion));
@@ -125,15 +144,16 @@ function DraggableSuggestion({
     'analytics': 'Analytics',
     'monetization': 'Monetization',
     'rollout': 'Rollout',
-    'open_questions': 'Open Questions'
+    'open_questions': 'Open Questions',
+    'product_name': '✨ Product Name'
   };
 
   return (
     <div
       draggable
       onDragStart={handleDragStart}
-      className={`rounded-lg border cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
-        priorityColors[suggestion.priority]
+      className={`rounded-lg border-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-all ${
+        isProductName ? productNameColors : priorityColors[suggestion.priority]
       }`}
     >
       {/* ONE ROW ONLY - as requested */}
@@ -155,10 +175,14 @@ function DraggableSuggestion({
 
           {/* Clear section targeting */}
           <div className="flex items-center space-x-2 flex-1 min-w-0">
-            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full flex-shrink-0">
+            <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
+              isProductName ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+            }`}>
               {sectionLabels[suggestion.section as keyof typeof sectionLabels] || suggestion.section}
             </span>
-            <span className="text-sm text-gray-900 truncate">{suggestion.shortDescription}</span>
+            <span className="text-sm text-gray-900 truncate">
+              {isProductName ? `"${suggestion.title}"` : suggestion.shortDescription}
+            </span>
           </div>
         </div>
         <span className="text-xs text-gray-500 ml-2 flex-shrink-0">Drag →</span>
@@ -167,6 +191,17 @@ function DraggableSuggestion({
       {/* EXPANDED DETAILS only when arrow clicked */}
       {isExpanded && (
         <div className="px-3 pb-3 ml-6 space-y-3 border-t border-gray-200 pt-3">
+          {isProductName && suggestion.reasoning && (
+            <div className="bg-purple-50 border border-purple-100 rounded p-3 mb-3">
+              <h5 className="text-xs font-semibold text-purple-900 uppercase tracking-wide mb-2">
+                💡 Why This Name
+              </h5>
+              <p className="text-sm text-purple-800 leading-relaxed">
+                {suggestion.reasoning}
+              </p>
+            </div>
+          )}
+
           <div>
             <p className="text-sm text-gray-700 leading-relaxed">
               {suggestion.fullDescription}
@@ -188,6 +223,49 @@ function DraggableSuggestion({
               </ul>
             </div>
           )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-2 pt-2 border-t border-gray-200">
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(suggestion.id);
+                }}
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Delete this suggestion"
+              >
+                <TrashIcon className="h-3 w-3" />
+                <span>Delete</span>
+              </button>
+            )}
+            {onShelve && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShelve(suggestion.id);
+                }}
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                title="Shelve for later review"
+              >
+                <ArchiveBoxIcon className="h-3 w-3" />
+                <span>Shelve</span>
+              </button>
+            )}
+            {onMoveToFuture && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveToFuture(suggestion.id);
+                }}
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="Move to future version"
+              >
+                <ClockIcon className="h-3 w-3" />
+                <span>Future</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -436,6 +514,8 @@ function PRDSectionPanel({
   onShelveItem,
   onMoveToFuture,
   onSuggestName,
+  productName,
+  onProductNameChange,
 }: {
   phase: number;
   sections: PRDSection[];
@@ -445,6 +525,8 @@ function PRDSectionPanel({
   onShelveItem: (sectionId: string, itemId: string) => void;
   onMoveToFuture: (sectionId: string, itemId: string) => void;
   onSuggestName?: (itemId: string) => void;
+  productName?: string;
+  onProductNameChange?: (name: string) => void;
 }) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -466,6 +548,22 @@ function PRDSectionPanel({
     4: 'Launch'
   };
 
+  const sectionDescriptions: Record<string, string> = {
+    'executive_summary': 'A high-level overview of your product, its purpose, and key value. This helps stakeholders quickly understand what you\'re building.',
+    'problem_statement': 'Define the specific problem your product solves. Articulating the pain point helps align the team on why this matters.',
+    'target_audience': 'Identify who will use your product. Understanding your users ensures you build the right features for the right people.',
+    'value_proposition': 'Explain why users should choose your product. This differentiates you from competitors and clarifies your unique benefits.',
+    'objectives': 'Set measurable goals and success metrics. These help track progress and determine if your product is achieving its intended impact.',
+    'scope': 'Define what\'s included in this version and what\'s not. Clear boundaries prevent scope creep and keep the team focused.',
+    'features': 'List the specific functionality your product will have. Detailed requirements ensure everyone understands what needs to be built.',
+    'non_functional': 'Specify performance, security, and quality requirements. These ensure your product is reliable, scalable, and secure.',
+    'dependencies': 'Identify external factors your product relies on. Recognizing dependencies helps with planning and risk mitigation.',
+    'risks': 'Anticipate potential problems and plan mitigations. Proactive risk management prevents surprises and keeps the project on track.',
+    'analytics': 'Plan how you\'ll measure user behavior and product performance. Data-driven insights enable continuous improvement.',
+    'monetization': 'Define your pricing strategy and revenue model. Clear monetization plans ensure business viability.',
+    'rollout': 'Plan how you\'ll launch and market your product. A strategic rollout maximizes adoption and user engagement.',
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-xl">
@@ -477,10 +575,25 @@ function PRDSectionPanel({
         {sections.map((section) => (
           <div key={section.id} className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <DocumentTextIcon className="h-5 w-5 text-blue-600 mr-2" />
-                {section.name}
-              </h3>
+              <div className="flex items-center group relative">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <DocumentTextIcon className="h-5 w-5 text-blue-600 mr-2" />
+                  {section.name}
+                </h3>
+                <div className="ml-2 relative">
+                  <span className="text-sm text-blue-500 cursor-help">
+                    ℹ️
+                  </span>
+                  {/* Custom Tooltip */}
+                  <div className="absolute left-0 top-6 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="relative">
+                      {sectionDescriptions[section.id] || 'No description available'}
+                      {/* Arrow */}
+                      <div className="absolute -top-4 left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               {section.completed && (
                 <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                   ✓ Complete
@@ -493,6 +606,25 @@ function PRDSectionPanel({
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, section.id)}
             >
+              {/* Product Name Input for Executive Summary */}
+              {section.id === 'executive_summary' && productName !== undefined && onProductNameChange && (
+                <div className="p-4 pb-0">
+                  <div className="mb-4">
+                    <label htmlFor="productName" className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Name
+                    </label>
+                    <input
+                      id="productName"
+                      type="text"
+                      value={productName}
+                      onChange={(e) => onProductNameChange(e.target.value)}
+                      placeholder="Enter your product name..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
+
               {section.items.length > 0 ? (
                 <div className="p-4">
                   {section.items.filter(item => item.status === 'active').map((item) => (
@@ -560,47 +692,154 @@ function PRDSectionPanel({
   );
 }
 
-function OnboardingFlow({ onStart }: { onStart: (idea: string) => void }) {
-  const [idea, setIdea] = useState('');
+function OnboardingFlow({ onStart, onImport }: { onStart: (idea: string) => void; onImport: () => void }) {
+  const [productIdea, setProductIdea] = useState('');
+  const [examples, setExamples] = useState<string[]>([]);
+  const [isLoadingExamples, setIsLoadingExamples] = useState(true);
+
+  useEffect(() => {
+    // Generate AI examples on component mount
+    generateExamples();
+  }, []);
+
+  const generateExamples = async () => {
+    setIsLoadingExamples(true);
+    try {
+      const response = await fetch('/api/generate-examples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExamples(data.examples || []);
+      } else {
+        // Fallback to default examples if API fails
+        setExamples([
+          'A mobile app that helps remote teams coordinate lunch orders with automated group delivery',
+          'An AI-powered study companion that creates personalized flashcards from lecture notes and textbooks',
+          'A marketplace connecting local farmers directly with restaurants for same-day produce delivery',
+        ]);
+      }
+    } catch (error) {
+      // Fallback to default examples
+      setExamples([
+        'A mobile app that helps remote teams coordinate lunch orders with automated group delivery',
+        'An AI-powered study companion that creates personalized flashcards from lecture notes and textbooks',
+        'A marketplace connecting local farmers directly with restaurants for same-day produce delivery',
+      ]);
+    } finally {
+      setIsLoadingExamples(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (productIdea.trim()) {
+      onStart(productIdea.trim());
+    }
+  };
+
+  const handleExampleClick = (example: string) => {
+    setProductIdea(example);
+  };
+
+  const placeholderText = `Be specific about your target audience and their pain points
+Describe the core features and functionality you envision
+Mention any technical requirements or constraints
+Include business goals and success metrics if known`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Card aligned to top */}
-      <div className="pt-8 px-6">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LightBulbIcon className="w-8 h-8 text-blue-600" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+      <div className="max-w-3xl w-full mx-auto px-4">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          {/* Header with title and import button */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Start Your Project</h1>
+                <p className="text-gray-600 mt-1">
+                  Describe your product idea and we'll help you build a comprehensive PRD
+                </p>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">What do you want to build?</h1>
-            <p className="text-gray-600 text-lg">
-              Describe your product idea and I'll help you create a comprehensive PRD
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <textarea
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-              placeholder="e.g., An AI agent that follows up on leads and schedules appointments automatically..."
-              className="w-full h-32 p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-gray-900"
-              autoFocus
-            />
-
             <button
-              onClick={() => idea.trim() && onStart(idea.trim())}
-              disabled={!idea.trim()}
-              className="w-full py-4 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              type="button"
+              onClick={onImport}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm flex items-center space-x-2"
             >
-              Start Building My PRD
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Import</span>
             </button>
           </div>
 
-          <div className="mt-8 text-sm text-gray-500">
-            <p>I'll guide you through creating a professional Product Requirements Document</p>
-          </div>
-        </div>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label htmlFor="productIdea" className="block text-sm font-medium text-gray-700 mb-2">
+                What do you want to build?
+              </label>
+              <textarea
+                id="productIdea"
+                value={productIdea}
+                onChange={(e) => setProductIdea(e.target.value)}
+                placeholder={placeholderText}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-400"
+                rows={6}
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={!productIdea.trim()}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium mb-6"
+            >
+              Start Building PRD
+            </button>
+
+            {/* AI-Generated Examples */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                💡 Need inspiration? Try one of these AI-generated examples:
+              </p>
+
+              {isLoadingExamples ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {examples.map((example, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleExampleClick(example)}
+                      className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors text-sm text-gray-700"
+                    >
+                      {example}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={generateExamples}
+                    className="w-full text-center p-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    🔄 Generate new examples
+                  </button>
+                </div>
+              )}
+            </div>
+          </form>
         </div>
       </div>
     </div>
@@ -608,15 +847,97 @@ function OnboardingFlow({ onStart }: { onStart: (idea: string) => void }) {
 }
 
 function CreatePage() {
+  const router = useRouter();
+
+  // Orchestration store integration
+  const {
+    productIdea: storeProductIdea,
+    currentPhase: storeCurrentPhase,
+    sections: storeSections,
+    suggestions: storeSuggestions,
+    setProductIdea: setStoreProductIdea,
+    setCurrentPhase: setStoreCurrentPhase,
+    addSuggestion,
+    removeSuggestion,
+  } = useOrchestrationStore();
+
+  const [projectId, setProjectId] = useState<string>('');
   const [productIdea, setProductIdea] = useState<string>('');
   const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<number>(1);
   const [allSuggestions, setAllSuggestions] = useState<Record<number, Suggestion[]>>({});
+  const [shelvedSuggestions, setShelvedSuggestions] = useState<Record<number, Suggestion[]>>({});
+  const [futureSuggestions, setFutureSuggestions] = useState<Record<number, Suggestion[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draggedSuggestion, setDraggedSuggestion] = useState<Suggestion | null>(null);
   const [isGeneratingNames, setIsGeneratingNames] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [productName, setProductName] = useState<string>('');
+
+  // Helper function to extract first line/sentence
+  const getFirstLine = (text: string): string => {
+    if (!text) return '';
+    // Split by sentence ending or newline, whichever comes first
+    const firstSentence = text.split(/[.!?\n]/)[0];
+    // Limit to 100 characters for display
+    return firstSentence.length > 100
+      ? firstSentence.substring(0, 100) + '...'
+      : firstSentence + (text.includes('.') || text.includes('!') || text.includes('?') ? '.' : '');
+  };
+
+  // Check if resuming a project
+  useEffect(() => {
+    const resumingProject = sessionStorage.getItem('resuming_project');
+    if (resumingProject) {
+      try {
+        const project = JSON.parse(resumingProject);
+
+        // Load project data
+        setProjectId(project.id);
+        setProductIdea(project.productIdea);
+        setStoreProductIdea(project.productIdea);
+        setPrdSections(project.prdSections || prdSections);
+        setAllSuggestions(project.allSuggestions || {});
+        setCurrentPhase(project.currentPhase || 1);
+        setLastSaved(project.updatedAt);
+
+        // Auto-populate product name from saved data
+        if (project.productName) {
+          setProductName(project.productName);
+        } else if (project.name) {
+          setProductName(project.name);
+        } else if (project.prdSections) {
+          // Try to extract from Executive Summary items
+          const execSummary = project.prdSections[1]?.find((s: PRDSection) => s.id === 'executive_summary');
+          if (execSummary?.items?.length > 0) {
+            const nameItem = execSummary.items.find((item: PRDItem) =>
+              item.title && !item.title.includes('[Name]')
+            );
+            if (nameItem) {
+              setProductName(nameItem.title);
+            }
+          }
+        }
+
+        // Skip onboarding since we're resuming
+        setShowOnboarding(false);
+
+        // Clear the resuming flag
+        sessionStorage.removeItem('resuming_project');
+
+        console.log('Resumed project:', project.name);
+      } catch (error) {
+        console.error('Failed to resume project:', error);
+      }
+    }
+  }, []);
+
+  // Always start fresh - user must go through onboarding workflow (unless resuming)
+  // Removed auto-load from store to ensure clean start
 
   // PRD sections by phase
   const [prdSections, setPrdSections] = useState<Record<number, PRDSection[]>>({
@@ -645,14 +966,68 @@ function CreatePage() {
   });
 
   async function handleStart(idea: string) {
+    // Generate a new project ID
+    const newProjectId = `project_${Date.now()}`;
+    setProjectId(newProjectId);
     setProductIdea(idea);
+    setStoreProductIdea(idea); // Sync with orchestration store
     setShowOnboarding(false);
 
-    // Auto-fill PRD based on user input
-    autoFillPRD(idea);
+    // Show project setup wizard
+    setShowSetupWizard(true);
+  }
 
-    // Generate suggestions for all phases at once
-    await generateAllPhaseSuggestions(idea);
+  async function handleSetupComplete(projectId: string) {
+    console.log('Project setup complete:', projectId);
+
+    // Close setup wizard
+    setShowSetupWizard(false);
+
+    // Auto-fill PRD with initial content
+    autoFillPRD(productIdea);
+
+    // Generate AI suggestions for all phases automatically
+    await generateAllPhaseSuggestions(productIdea);
+  }
+
+  async function generateSuggestionsForPhase(idea: string, phase: number): Promise<Suggestion[]> {
+    try {
+      // Get API keys from localStorage
+      const savedKeys = localStorage.getItem('buildrunner_api_keys');
+      const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
+
+      // Call the real AI API
+      const response = await fetch('/api/prd/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-keys': JSON.stringify(apiKeys),
+        },
+        body: JSON.stringify({
+          action: 'generate_suggestions',
+          product_idea: idea,
+          user_message: `Generate initial suggestions for Phase ${phase}`,
+          phase: phase,
+          current_prd: prdSections
+        }),
+      });
+
+      if (!response.ok) {
+        console.error(`Failed to generate suggestions for phase ${phase}`);
+        return [];
+      }
+
+      const data = await response.json();
+
+      if (data.result && Array.isArray(data.result)) {
+        return data.result;
+      }
+
+      return [];
+    } catch (error) {
+      console.error(`Error generating suggestions for phase ${phase}:`, error);
+      return [];
+    }
   }
 
   async function generateAllPhaseSuggestions(idea: string) {
@@ -927,13 +1302,16 @@ function CreatePage() {
         console.log('AI Suggestions received:', JSON.stringify(data.result, null, 2));
 
         // ADD new suggestions to existing ones, don't replace
-        setSuggestions(prev => {
+        setAllSuggestions(prev => {
           // Filter out duplicates based on title/shortDescription
-          const existingTitles = prev.map(s => s.title.toLowerCase());
+          const existingTitles = (prev[phase] || []).map(s => s.title.toLowerCase());
           const newSuggestions = data.result.filter((newSugg: Suggestion) =>
             !existingTitles.includes(newSugg.title.toLowerCase())
           );
-          return [...prev, ...newSuggestions];
+          return {
+            ...prev,
+            [phase]: [...(prev[phase] || []), ...newSuggestions]
+          };
         });
 
         // Show if using mock data
@@ -948,7 +1326,10 @@ function CreatePage() {
         // Fallback to smart suggestions if API fails
         console.warn('API returned unexpected format:', data);
         const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
-        setSuggestions(phaseSuggestions);
+        setAllSuggestions(prev => ({
+          ...prev,
+          [phase]: phaseSuggestions
+        }));
         setError('Using fallback suggestions');
       }
 
@@ -958,7 +1339,10 @@ function CreatePage() {
 
       // Use research-based fallback suggestions (better than showing error)
       const phaseSuggestions = generateSmartSuggestions(productIdea, phase);
-      setSuggestions(phaseSuggestions);
+      setAllSuggestions(prev => ({
+        ...prev,
+        [phase]: phaseSuggestions
+      }));
 
       // Don't show error to user, just use fallback
       setError(null);
@@ -1178,7 +1562,43 @@ function CreatePage() {
     setDraggedSuggestion(suggestion);
   }
 
+  // Section-type mapping for drag-drop validation
+  const sectionTypeMapping: Record<string, string[]> = {
+    'executive_summary': ['executive_summary', 'product_name'],
+    'problem_statement': ['problem_statement'],
+    'target_audience': ['target_audience'],
+    'value_proposition': ['value_proposition'],
+    'objectives': ['objectives'],
+    'scope': ['scope'],
+    'features': ['features'],
+    'non_functional': ['non_functional'],
+    'dependencies': ['dependencies'],
+    'risks': ['risks'],
+    'analytics': ['analytics'],
+    'monetization': ['monetization'],
+    'rollout': ['rollout'],
+  };
+
   function handleDrop(sectionId: string, suggestion: Suggestion) {
+    // Handle product name suggestions specially
+    if (suggestion.type === 'product_name') {
+      setProductName(suggestion.title);
+      // Remove from suggestions
+      setAllSuggestions(prev => ({
+        ...prev,
+        [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestion.id)
+      }));
+      return;
+    }
+
+    // Validate suggestion type matches target section
+    const validTypes = sectionTypeMapping[sectionId] || [];
+    if (!validTypes.includes(suggestion.type)) {
+      setError(`Cannot add "${suggestion.type}" suggestion to "${sectionId}" section. Type mismatch.`);
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
     // Convert suggestion to PRD item
     const newItem: PRDItem = {
       id: `item-${Date.now()}`,
@@ -1205,7 +1625,76 @@ function CreatePage() {
     }));
 
     // Remove the suggestion from the list
-    setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    setAllSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestion.id)
+    }));
+  }
+
+  function handleDeleteSuggestion(suggestionId: string) {
+    setAllSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestionId)
+    }));
+  }
+
+  function handleShelveSuggestion(suggestionId: string) {
+    const suggestion = allSuggestions[currentPhase]?.find(s => s.id === suggestionId);
+    if (!suggestion) return;
+
+    // Move to shelved
+    setShelvedSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: [...(prev[currentPhase] || []), suggestion]
+    }));
+
+    // Remove from active
+    setAllSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestionId)
+    }));
+  }
+
+  function handleMoveSuggestionToFuture(suggestionId: string) {
+    const suggestion = allSuggestions[currentPhase]?.find(s => s.id === suggestionId);
+    if (!suggestion) return;
+
+    // Move to future
+    setFutureSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: [...(prev[currentPhase] || []), suggestion]
+    }));
+
+    // Remove from active
+    setAllSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestionId)
+    }));
+  }
+
+  function handleRestoreSuggestion(suggestionId: string, from: 'shelved' | 'future') {
+    const sourceSuggestions = from === 'shelved' ? shelvedSuggestions : futureSuggestions;
+    const suggestion = sourceSuggestions[currentPhase]?.find(s => s.id === suggestionId);
+    if (!suggestion) return;
+
+    // Move back to active
+    setAllSuggestions(prev => ({
+      ...prev,
+      [currentPhase]: [...(prev[currentPhase] || []), suggestion]
+    }));
+
+    // Remove from source
+    if (from === 'shelved') {
+      setShelvedSuggestions(prev => ({
+        ...prev,
+        [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestionId)
+      }));
+    } else {
+      setFutureSuggestions(prev => ({
+        ...prev,
+        [currentPhase]: (prev[currentPhase] || []).filter(s => s.id !== suggestionId)
+      }));
+    }
   }
 
   function handleEditItem(sectionId: string, itemId: string, newContent: { title: string; shortDescription: string; fullDescription: string }) {
@@ -1291,18 +1780,60 @@ function CreatePage() {
   }
 
   function handleSaveProgress() {
-    // Save PRD progress to localStorage
-    const progressData = {
+    // Get project name - prioritize productName field
+    let projectName = productIdea.substring(0, 100); // Limit length
+
+    // First check if productName is set
+    if (productName && productName.trim()) {
+      projectName = productName;
+    } else {
+      // Fall back to extracting from executive summary items
+      const execSummarySection = prdSections[1]?.find(s => s.id === 'executive_summary');
+      if (execSummarySection && execSummarySection.items.length > 0) {
+        const firstItem = execSummarySection.items[0];
+        if (firstItem.title && firstItem.title !== 'Executive Summary' && !firstItem.title.includes('[Name]')) {
+          projectName = firstItem.title;
+        }
+      }
+    }
+
+    // Create project data
+    const projectData = {
+      id: projectId || `project_${Date.now()}`,
+      name: projectName,
+      productName,  // Save the productName field
       productIdea,
       prdSections,
       allSuggestions,
       currentPhase,
-      timestamp: new Date().toISOString()
+      createdAt: lastSaved || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    localStorage.setItem('buildrunner_prd_progress', JSON.stringify(progressData));
+    // If no project ID yet, set it
+    if (!projectId) {
+      setProjectId(projectData.id);
+    }
+
+    // Get existing projects list
+    const existingProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
+
+    // Check if project already exists
+    const existingIndex = existingProjects.findIndex((p: any) => p.id === projectData.id);
+
+    if (existingIndex >= 0) {
+      // Update existing project
+      existingProjects[existingIndex] = projectData;
+    } else {
+      // Add new project
+      existingProjects.push(projectData);
+    }
+
+    // Save projects list
+    localStorage.setItem('buildrunner_projects', JSON.stringify(existingProjects));
+
     setLastSaved(new Date().toISOString());
-    console.log('Progress saved successfully');
+    console.log('Progress saved successfully:', projectData.name);
   }
 
   function handleNextStage() {
@@ -1310,47 +1841,77 @@ function CreatePage() {
     handleSaveProgress();
 
     // Navigate to project plan overview
-    // TODO: Implement navigation to project plan stage
     console.log('Moving to Project Plan Overview stage');
-    alert('Project Plan Overview stage coming soon! Progress has been saved.');
+    router.push('/plan');
+  }
+
+  function handleImportComplete(result: any) {
+    console.log('Import completed:', result);
+    // Set product idea from imported project
+    setProductIdea(result.projectName);
+    setStoreProductIdea(result.projectName);
+    // Hide onboarding since we have a project
+    setShowOnboarding(false);
+    // Show success message
+    alert(`✅ Successfully imported ${result.projectName}!\n\nFeatures imported: ${result.featuresImported}\nCompleted: ${result.completedFeatures}\nIn Progress: ${result.inProgressFeatures}\nPlanned: ${result.plannedFeatures}`);
   }
 
   if (showOnboarding) {
-    return <OnboardingFlow onStart={handleStart} />;
+    return <OnboardingFlow onStart={handleStart} onImport={() => setShowImportWizard(true)} />;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">PRD Builder</h1>
-              <p className="text-gray-600">{productIdea}</p>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900">PRD Builder</h1>
             <button
               onClick={() => setShowOnboarding(true)}
-              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              Change Idea
+              Update Prompt
             </button>
           </div>
+
+          {/* Collapsible Product Idea Display */}
+          {productIdea && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <button
+                onClick={() => setPromptExpanded(!promptExpanded)}
+                className="flex items-start space-x-2 w-full text-left hover:bg-gray-50 p-2 rounded-lg transition-colors"
+              >
+                {promptExpanded ? (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <ChevronRightIcon className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-700 mb-1">Product Idea</div>
+                  <div
+                    className={`text-sm text-gray-600 transition-all duration-300 ${
+                      promptExpanded ? '' : 'line-clamp-1'
+                    }`}
+                  >
+                    {promptExpanded ? productIdea : getFirstLine(productIdea)}
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Phase Navigation */}
-      <PhaseNavigation currentPhase={currentPhase} onPhaseChange={handlePhaseChange} />
-
       {/* Progress Actions */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={handleSaveProgress}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium"
             >
-              Save Progress
+              💾 Save Progress
             </button>
             <span className="text-sm text-gray-600">
               Last saved: {lastSaved ? new Date(lastSaved).toLocaleTimeString() : 'Never'}
@@ -1358,13 +1919,16 @@ function CreatePage() {
           </div>
           <button
             onClick={handleNextStage}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center space-x-2"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center space-x-2 font-medium"
           >
             <span>Next: Project Plan Overview</span>
             <ArrowRightIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {/* Phase Navigation */}
+      <PhaseNavigation currentPhase={currentPhase} onPhaseChange={handlePhaseChange} />
 
       {/* Main Content - Two Column Layout */}
       <div className="max-w-7xl mx-auto p-6">
@@ -1381,6 +1945,8 @@ function CreatePage() {
               onShelveItem={handleShelveItem}
               onMoveToFuture={handleMoveToFuture}
               onSuggestName={handleSuggestName}
+              productName={productName}
+              onProductNameChange={setProductName}
             />
           </div>
 
@@ -1400,21 +1966,80 @@ function CreatePage() {
 
               {/* Suggestions Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {isLoading ? (
+                {(allSuggestions[currentPhase] || []).length > 0 ? (
+                  <>
+                    {(allSuggestions[currentPhase] || []).map((suggestion) => (
+                      <DraggableSuggestion
+                        key={suggestion.id}
+                        suggestion={suggestion}
+                        onDragStart={handleDragStart}
+                        onDelete={handleDeleteSuggestion}
+                        onShelve={handleShelveSuggestion}
+                        onMoveToFuture={handleMoveSuggestionToFuture}
+                      />
+                    ))}
+                    {isLoading && (
+                      <div className="flex items-center justify-center py-6 border-t border-gray-200 mt-3 pt-3">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                          <p className="text-gray-600 text-xs">Generating more suggestions...</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shelved Suggestions */}
+                    {(shelvedSuggestions[currentPhase] || []).length > 0 && (
+                      <div className="mt-4 pt-4 border-t-2 border-gray-300">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <ArchiveBoxIcon className="h-4 w-4 mr-1" />
+                          Shelved ({(shelvedSuggestions[currentPhase] || []).length})
+                        </h4>
+                        <div className="space-y-2">
+                          {(shelvedSuggestions[currentPhase] || []).map((suggestion) => (
+                            <div key={suggestion.id} className="opacity-60">
+                              <DraggableSuggestion
+                                suggestion={suggestion}
+                                onDragStart={handleDragStart}
+                                onDelete={handleDeleteSuggestion}
+                                onMoveToFuture={handleMoveSuggestionToFuture}
+                                onShelve={() => handleRestoreSuggestion(suggestion.id, 'shelved')}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Future Version Suggestions */}
+                    {(futureSuggestions[currentPhase] || []).length > 0 && (
+                      <div className="mt-4 pt-4 border-t-2 border-gray-300">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <ClockIcon className="h-4 w-4 mr-1" />
+                          Future Version ({(futureSuggestions[currentPhase] || []).length})
+                        </h4>
+                        <div className="space-y-2">
+                          {(futureSuggestions[currentPhase] || []).map((suggestion) => (
+                            <div key={suggestion.id} className="opacity-60">
+                              <DraggableSuggestion
+                                suggestion={suggestion}
+                                onDragStart={handleDragStart}
+                                onDelete={handleDeleteSuggestion}
+                                onShelve={handleShelveSuggestion}
+                                onMoveToFuture={() => handleRestoreSuggestion(suggestion.id, 'future')}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-3"></div>
                       <p className="text-gray-600 text-sm">Generating suggestions...</p>
                     </div>
                   </div>
-                ) : (allSuggestions[currentPhase] || []).length > 0 ? (
-                  (allSuggestions[currentPhase] || []).map((suggestion) => (
-                    <DraggableSuggestion
-                      key={suggestion.id}
-                      suggestion={suggestion}
-                      onDragStart={handleDragStart}
-                    />
-                  ))
                 ) : (
                   <div className="text-center py-12">
                     <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1446,6 +2071,21 @@ function CreatePage() {
           </div>
         </div>
       )}
+
+      {/* Project Import Wizard */}
+      <ProjectImportWizard
+        isOpen={showImportWizard}
+        onClose={() => setShowImportWizard(false)}
+        onComplete={handleImportComplete}
+      />
+
+      {/* Project Setup Wizard */}
+      <ProjectSetupWizard
+        isOpen={showSetupWizard}
+        onClose={() => setShowSetupWizard(false)}
+        onComplete={handleSetupComplete}
+        projectName={productIdea}
+      />
     </div>
   );
 }
