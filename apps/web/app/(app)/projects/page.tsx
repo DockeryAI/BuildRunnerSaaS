@@ -9,6 +9,17 @@ import {
   TrashIcon,
   ArrowRightIcon,
 } from '@heroicons/react/24/outline';
+import RecentBuilds from '@/components/RecentBuilds';
+
+interface BuildMetadata {
+  buildId: string;
+  timestamp: string;
+  componentCount: number;
+  fileCount: number;
+  status: 'completed' | 'failed' | 'partial';
+  buildDirectory: string;
+  duration?: number;
+}
 
 interface SavedProject {
   id: string;
@@ -19,12 +30,14 @@ interface SavedProject {
   updatedAt: string;
   prdSections?: any;
   allSuggestions?: any;
+  builds?: BuildMetadata[];
 }
 
 export default function ProjectsLibraryPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<SavedProject[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -44,6 +57,49 @@ export default function ProjectsLibraryPage() {
   }
 
   function handleResumeProject(project: SavedProject) {
+    // Auto-redirect based on project phase and status
+    const currentPhase = (project as any).currentPhase;
+    const lastBuildId = (project as any).lastBuildId;
+
+    // If project is complete and has a last build, open that build
+    if (currentPhase === 'complete' && lastBuildId) {
+      localStorage.setItem('currentProjectId', project.id);
+      router.push(`/workbench?buildId=${lastBuildId}&restore=true`);
+      return;
+    }
+
+    // If in build phase, check for in-progress build
+    if (currentPhase === 'build') {
+      // Check for in-progress build autosave
+      const buildProgressKeys = Object.keys(localStorage).filter(key =>
+        key.startsWith('build_progress_') && key.includes(project.id)
+      );
+
+      if (buildProgressKeys.length > 0) {
+        // Ask user if they want to resume
+        const resumeBuild = confirm('You have an in-progress build. Do you want to resume it?');
+        if (resumeBuild) {
+          const buildId = buildProgressKeys[0].replace('build_progress_', '');
+          localStorage.setItem('currentProjectId', project.id);
+          router.push(`/workbench?buildId=${buildId}&resume=true`);
+          return;
+        }
+      }
+
+      // Otherwise, go to workbench for new build
+      localStorage.setItem('currentProjectId', project.id);
+      router.push('/workbench');
+      return;
+    }
+
+    // If in plan phase, go to plan page
+    if (currentPhase === 'plan') {
+      localStorage.setItem('currentProjectId', project.id);
+      router.push('/plan');
+      return;
+    }
+
+    // Default: go to PRD builder (handles 'prd' phase and no phase set)
     // Store project data in a temporary location for the create page to load
     sessionStorage.setItem('resuming_project', JSON.stringify(project));
     router.push('/create');
@@ -54,6 +110,25 @@ export default function ProjectsLibraryPage() {
     localStorage.setItem('buildrunner_projects', JSON.stringify(updatedProjects));
     setProjects(updatedProjects);
     setShowDeleteConfirm(null);
+  }
+
+  function handleRestoreBuild(projectId: string, buildId: string) {
+    localStorage.setItem('currentProjectId', projectId);
+    router.push(`/workbench?buildId=${buildId}&restore=true`);
+  }
+
+  function handleDeleteBuild(projectId: string, buildId: string) {
+    const updatedProjects = projects.map(p => {
+      if (p.id === projectId && p.builds) {
+        return {
+          ...p,
+          builds: p.builds.filter(b => b.buildId !== buildId),
+        };
+      }
+      return p;
+    });
+    localStorage.setItem('buildrunner_projects', JSON.stringify(updatedProjects));
+    setProjects(updatedProjects);
   }
 
   function formatDate(dateString: string) {
@@ -73,6 +148,12 @@ export default function ProjectsLibraryPage() {
   }
 
   const phaseNames = ['', 'Context', 'Shape', 'Evidence', 'Launch'];
+  const phaseLabels: Record<string, string> = {
+    'prd': 'PRD Phase',
+    'plan': 'Planning',
+    'build': 'Building',
+    'complete': 'Complete',
+  };
 
   return (
     <div>
@@ -134,9 +215,19 @@ export default function ProjectsLibraryPage() {
                     <span>Updated {formatDate(project.updatedAt)}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                      Phase {project.currentPhase}: {phaseNames[project.currentPhase] || 'Unknown'}
-                    </span>
+                    {(project as any).currentPhase ? (
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                        (project as any).currentPhase === 'complete'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {phaseLabels[(project as any).currentPhase] || phaseLabels['prd']}
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                        Phase {project.currentPhase}: {phaseNames[project.currentPhase] || 'Unknown'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -149,6 +240,14 @@ export default function ProjectsLibraryPage() {
                     <span>Resume</span>
                     <ArrowRightIcon className="h-4 w-4" />
                   </button>
+                  {project.builds && project.builds.length > 0 && (
+                    <button
+                      onClick={() => setSelectedProjectId(selectedProjectId === project.id ? null : project.id)}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      {project.builds.length} Builds
+                    </button>
+                  )}
                   <button
                     onClick={() => setShowDeleteConfirm(project.id)}
                     className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
@@ -157,6 +256,18 @@ export default function ProjectsLibraryPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Recent Builds (expanded) */}
+              {selectedProjectId === project.id && project.builds && project.builds.length > 0 && (
+                <div className="border-t border-gray-200 p-4 bg-gray-50">
+                  <RecentBuilds
+                    projectId={project.id}
+                    builds={project.builds}
+                    onRestore={(buildId) => handleRestoreBuild(project.id, buildId)}
+                    onDelete={(buildId) => handleDeleteBuild(project.id, buildId)}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

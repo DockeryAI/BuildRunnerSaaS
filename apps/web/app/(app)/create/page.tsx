@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   SparklesIcon,
@@ -17,6 +17,8 @@ import {
   ArchiveBoxIcon,
   ClockIcon,
   BookmarkIcon,
+  CloudArrowUpIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
 // Store
@@ -25,6 +27,15 @@ import { useOrchestrationStore } from '@/lib/stores/orchestration-store';
 // Import components
 import { ProjectImportWizard } from '@/components/import/ProjectImportWizard';
 import { ProjectSetupWizard } from '@/components/project/ProjectSetupWizard';
+
+// Import autosave
+import {
+  savePRDDraft,
+  loadPRDDraft,
+  clearPRDDraft,
+  debounce,
+  updateProjectStatus
+} from '@/lib/autosave';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -878,6 +889,46 @@ function CreatePage() {
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [productName, setProductName] = useState<string>('');
 
+  // Check for existing project on mount
+  useEffect(() => {
+    const currentProjectId = localStorage.getItem('currentProjectId');
+    if (currentProjectId) {
+      // Load project from localStorage
+      const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
+      const project = savedProjects.find((p: any) => p.id === currentProjectId);
+
+      if (project && project.prdSections) {
+        // Load the existing project
+        setProjectId(currentProjectId);
+        setProductIdea(project.productIdea || '');
+        setProductName(project.productName || project.name || '');
+        setPrdSections(project.prdSections || {});
+        setAllSuggestions(project.allSuggestions || {});
+        setCurrentPhase(project.currentPhase || 1);
+        setShowOnboarding(false);
+        console.log('✅ Loaded existing project:', currentProjectId);
+      }
+    }
+  }, []);
+
+  // Autosave state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+
+  // Debounced autosave function
+  const debouncedSave = useRef(
+    debounce((projectId: string, data: any) => {
+      const success = savePRDDraft(projectId, data);
+      setIsSaving(false);
+      if (success) {
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 2000);
+      } else {
+        setSaveStatus('error');
+      }
+    }, 500)
+  ).current;
+
   // Helper function to extract first line/sentence
   const getFirstLine = (text: string): string => {
     if (!text) return '';
@@ -936,9 +987,6 @@ function CreatePage() {
     }
   }, []);
 
-  // Always start fresh - user must go through onboarding workflow (unless resuming)
-  // Removed auto-load from store to ensure clean start
-
   // PRD sections by phase
   const [prdSections, setPrdSections] = useState<Record<number, PRDSection[]>>({
     1: [
@@ -964,6 +1012,79 @@ function CreatePage() {
       { id: 'open_questions', name: 'Open Questions', items: [], completed: false },
     ],
   });
+
+  // Autosave effect - restores PRD data on first load
+  useEffect(() => {
+    // Don't autosave if we're on onboarding or no project ID yet
+    if (showOnboarding || !projectId) {
+      return;
+    }
+
+    // Try to restore from autosave on first load
+    const restored = loadPRDDraft(projectId);
+
+    if (restored && !lastSaved) {
+      console.log('📥 Restored PRD from autosave:', `prd_draft_${projectId}`);
+      // Restore the data
+      if (restored.prdSections) setPrdSections(restored.prdSections);
+      if (restored.allSuggestions) setAllSuggestions(restored.allSuggestions);
+      if (restored.productName) setProductName(restored.productName);
+      if (restored.currentPhase) setCurrentPhase(restored.currentPhase);
+    }
+  }, [projectId, showOnboarding]);
+
+  // Autosave on data changes (debounced)
+  useEffect(() => {
+    if (showOnboarding || !projectId) {
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus('saving');
+
+    const autosaveData = {
+      projectId,
+      productIdea,
+      productName,
+      prdSections,
+      allSuggestions,
+      currentPhase,
+      timestamp: new Date().toISOString(),
+    };
+
+    debouncedSave(projectId, autosaveData);
+    setIsSaving(true);
+  }, [
+    projectId,
+    productName,
+    prdSections,
+    allSuggestions,
+    currentPhase,
+    showOnboarding,
+  ]);
+
+  // Add beforeunload handler to warn user before leaving with unsaved changes
+  useEffect(() => {
+    if (showOnboarding || !projectId) {
+      return;
+    }
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Check if there are unsaved changes (autosave exists but not saved to project)
+      const autosaveExists = loadPRDDraft(projectId);
+      if (autosaveExists && !lastSaved) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [projectId, lastSaved, showOnboarding]);
 
   async function handleStart(idea: string) {
     // Generate a new project ID
@@ -1834,11 +1955,31 @@ function CreatePage() {
 
     setLastSaved(new Date().toISOString());
     console.log('Progress saved successfully:', projectData.name);
+
+    // Update project status to 'prd' phase
+    updateProjectStatus(projectData.id, {
+      status: 'active',
+      currentPhase: 'prd',
+      phaseProgress: { prd: false, plan: false, build: false },
+    });
+    console.log('✅ Updated project status to prd phase');
+
+    // Clear autosave since we've saved to project
+    clearPRDDraft(projectData.id);
   }
 
   function handleNextStage() {
     // Save current progress
     handleSaveProgress();
+
+    // Update project status to 'plan' phase
+    const currentProjectId = projectId || `project_${Date.now()}`;
+    updateProjectStatus(currentProjectId, {
+      status: 'active',
+      currentPhase: 'plan',
+      phaseProgress: { prd: true, plan: false, build: false },
+    });
+    console.log('✅ Updated project status to plan phase');
 
     // Navigate to project plan overview
     console.log('Moving to Project Plan Overview stage');
@@ -1913,9 +2054,31 @@ function CreatePage() {
             >
               💾 Save Progress
             </button>
-            <span className="text-sm text-gray-600">
-              Last saved: {lastSaved ? new Date(lastSaved).toLocaleTimeString() : 'Never'}
-            </span>
+            <div className="flex items-center space-x-2">
+              {saveStatus === 'saving' && (
+                <div className="flex items-center space-x-2 text-sm text-blue-600">
+                  <CloudArrowUpIcon className="h-4 w-4 animate-pulse" />
+                  <span>Autosaving...</span>
+                </div>
+              )}
+              {saveStatus === 'saved' && (
+                <div className="flex items-center space-x-2 text-sm text-green-600">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  <span>Autosaved</span>
+                </div>
+              )}
+              {saveStatus === 'error' && (
+                <div className="flex items-center space-x-2 text-sm text-red-600">
+                  <ExclamationTriangleIcon className="h-4 w-4" />
+                  <span>Autosave failed</span>
+                </div>
+              )}
+              {!saveStatus && lastSaved && (
+                <span className="text-sm text-gray-600">
+                  Last saved: {new Date(lastSaved).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={handleNextStage}

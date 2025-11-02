@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ChevronDownIcon,
@@ -9,8 +9,11 @@ import {
   CheckCircleIcon,
   ArrowLeftIcon,
   SparklesIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import ApiKeySetupWizard from '@/components/ApiKeySetupWizard';
+import PlanAssistantChat from '@/components/PlanAssistantChat';
+import { updateProjectStatus } from '@/lib/autosave';
 
 interface Microstep {
   id: string;
@@ -41,6 +44,13 @@ interface Milestone {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
+interface EasierAlternative {
+  name: string;
+  reasoning: string;
+  difficulty: string;
+  tradeoffs: string;
+}
+
 interface Technology {
   name: string;
   category: 'frontend' | 'backend' | 'database' | 'infrastructure' | 'service';
@@ -51,6 +61,9 @@ interface Technology {
   statusNote?: string;
   setupGuideUrl?: string;
   signupUrl?: string;
+  canIntegrateInApp?: boolean;
+  easierAlternative?: EasierAlternative;
+  usingAlternative?: boolean; // Track if user accepted the alternative
 }
 
 interface Architecture {
@@ -78,6 +91,8 @@ export default function PlanPage() {
   } | null>(null);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedTechnology, setSelectedTechnology] = useState<Technology | null>(null);
+  const [generationStage, setGenerationStage] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     generateProjectPlan();
@@ -90,14 +105,55 @@ export default function PlanPage() {
 
   const handleWizardComplete = (apiKey: string) => {
     console.log('API key saved for', selectedTechnology?.name);
-    // Optionally refresh the plan to update technology status
+    // Clear cache and refresh the plan to update technology status
+    const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+    localStorage.removeItem(`project_plan_${currentProjectId}`);
     generateProjectPlan();
+  };
+
+  // Function to clear plan cache (call when PRD changes)
+  const clearPlanCache = () => {
+    const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+    localStorage.removeItem(`project_plan_${currentProjectId}`);
+    console.log('🗑️ Cleared plan cache for project:', currentProjectId);
   };
 
   async function generateProjectPlan() {
     try {
       setIsLoading(true);
       setError(null);
+      setGenerationStage('Loading...');
+
+      // Get current project ID
+      const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+      const cacheKey = `project_plan_${currentProjectId}`;
+      const progressKey = `plan_progress_${currentProjectId}`;
+
+      // Check cache first and show cached data immediately
+      const cachedPlan = localStorage.getItem(cacheKey);
+      if (cachedPlan) {
+        try {
+          const parsedCache = JSON.parse(cachedPlan);
+          setProjectPlan(parsedCache);
+          console.log('✅ Loaded cached plan for project:', currentProjectId);
+
+          // Expand first milestone by default
+          if (parsedCache.milestones && parsedCache.milestones.length > 0) {
+            setExpandedMilestones(new Set([parsedCache.milestones[0].id]));
+          }
+        } catch (cacheError) {
+          console.warn('Failed to parse cached plan, will fetch fresh data');
+        }
+      }
+
+      // Check for interrupted plan generation
+      const savedProgressData = localStorage.getItem(progressKey);
+      const savedProgress = savedProgressData ? JSON.parse(savedProgressData) : null;
+      if (savedProgress && !cachedPlan) {
+        console.log('📥 Restored interrupted plan generation:', savedProgress);
+        setProjectPlan(savedProgress.partialPlan);
+        setGenerationStage(savedProgress.currentStage || 'Resuming...');
+      }
 
       // Get PRD data from localStorage
       const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
@@ -116,7 +172,17 @@ export default function PlanPage() {
       const savedKeys = localStorage.getItem('buildrunner_api_keys');
       const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
 
-      // Call API to generate project plan
+      setGenerationStage('Generating architecture...');
+      setIsSaving(true);
+
+      // Autosave initial generation state
+      localStorage.setItem(progressKey, JSON.stringify({
+        partialPlan: null,
+        currentStage: 'Generating architecture...',
+        timestamp: new Date().toISOString(),
+      }));
+
+      // Call API to generate project plan (fetch fresh data in background)
       const response = await fetch('/api/prd/generate-plan', {
         method: 'POST',
         headers: {
@@ -135,15 +201,57 @@ export default function PlanPage() {
       }
 
       const data = await response.json();
+
+      setGenerationStage('Finalizing plan...');
+
+      // Autosave partial plan before finalizing
+      localStorage.setItem(progressKey, JSON.stringify({
+        partialPlan: data.plan,
+        currentStage: 'Finalizing plan...',
+        timestamp: new Date().toISOString(),
+      }));
+
+      // Update with fresh data
       setProjectPlan(data.plan);
 
-      // Expand first milestone by default
-      if (data.plan.milestones.length > 0) {
+      // Update cache with fresh data
+      localStorage.setItem(cacheKey, JSON.stringify(data.plan));
+
+      // Also save to legacy key for workbench access
+      localStorage.setItem(`buildrunner_plan_${currentProjectId}`, JSON.stringify(data.plan));
+      console.log('✅ Saved fresh plan to cache for project:', currentProjectId);
+
+      // Update project status to 'plan' phase complete
+      updateProjectStatus(currentProjectId, {
+        status: 'active',
+        currentPhase: 'plan',
+        phaseProgress: { prd: true, plan: true, build: false },
+      });
+      console.log('✅ Updated project status - plan phase complete');
+
+      // Clear progress since generation is complete
+      localStorage.removeItem(progressKey);
+
+      // Expand first milestone by default (only if we didn't have cache)
+      if (!cachedPlan && data.plan.milestones.length > 0) {
         setExpandedMilestones(new Set([data.plan.milestones[0].id]));
       }
+
+      setGenerationStage('');
+      setIsSaving(false);
     } catch (err) {
       console.error('Error generating project plan:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate project plan');
+
+      // Keep autosaved progress so user can retry
+      const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+      const progressKey = `plan_progress_${currentProjectId}`;
+      const savedProgressData = localStorage.getItem(progressKey);
+      const savedProgress = savedProgressData ? JSON.parse(savedProgressData) : null;
+      if (savedProgress?.partialPlan) {
+        setProjectPlan(savedProgress.partialPlan);
+        console.log('📥 Restored partial plan from autosave after error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +287,15 @@ export default function PlanPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Generating your project plan...</p>
-          <p className="text-sm text-gray-500 mt-2">This may take a moment</p>
+          {generationStage && (
+            <p className="text-sm text-blue-600 mt-2 flex items-center justify-center gap-2">
+              <CloudArrowUpIcon className="h-4 w-4 animate-pulse" />
+              {generationStage}
+            </p>
+          )}
+          {!generationStage && (
+            <p className="text-sm text-gray-500 mt-2">This may take a moment</p>
+          )}
         </div>
       </div>
     );
@@ -232,7 +348,10 @@ export default function PlanPage() {
             </div>
           </div>
           <button
-            onClick={generateProjectPlan}
+            onClick={() => {
+              clearPlanCache();
+              generateProjectPlan();
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
             Regenerate Plan
@@ -248,7 +367,25 @@ export default function PlanPage() {
               <SparklesIcon className="h-6 w-6 text-blue-600 mr-2" />
               Recommended Architecture & Technology Stack
             </h2>
-            <p className="text-gray-700 mb-6">{projectPlan.architecture.recommendedStack}</p>
+            <p className="text-gray-700 mb-4">{projectPlan.architecture.recommendedStack}</p>
+
+            {/* Start Building Now Button */}
+            <div className="bg-white border-2 border-blue-300 rounded-lg p-4 mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-blue-900 mb-1">Ready to Start Building?</h3>
+                  <p className="text-xs text-gray-700">
+                    You can set up API keys later. Start building your project now and add integrations as you go.
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push('/workbench')}
+                  className="ml-4 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg text-sm font-semibold whitespace-nowrap"
+                >
+                  Start Building Now →
+                </button>
+              </div>
+            </div>
 
             {/* Group technologies by status */}
             {(() => {
@@ -439,7 +576,9 @@ export default function PlanPage() {
                         {needsAccount.map((tech, i) => (
                           <div
                             key={i}
-                            className="bg-white border-2 border-orange-300 rounded-lg p-3 group hover:shadow-md transition-all relative"
+                            className={`bg-white border-2 rounded-lg p-3 group hover:shadow-md transition-all relative ${
+                              tech.canIntegrateInApp ? 'border-green-300' : 'border-orange-300'
+                            }`}
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center space-x-2">
@@ -448,7 +587,9 @@ export default function PlanPage() {
                               </div>
                             </div>
                             <div className="flex items-center space-x-2 mb-2">
-                              <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                tech.canIntegrateInApp ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                              }`}>
                                 {tech.category}
                               </span>
                               <span
@@ -459,24 +600,98 @@ export default function PlanPage() {
                                 {tech.difficulty}
                               </span>
                             </div>
+                            {tech.canIntegrateInApp && (
+                              <p className="text-xs text-green-700 mb-2 font-medium">
+                                ✨ Can be connected without leaving this app
+                              </p>
+                            )}
                             <div className="mt-3 flex items-center space-x-2">
-                              <button
-                                onClick={() => handleOpenWizard(tech)}
-                                className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
-                              >
-                                Setup Guide
-                              </button>
-                              {tech.setupGuideUrl && (
-                                <a
-                                  href={tech.setupGuideUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
-                                >
-                                  Docs
-                                </a>
+                              {tech.canIntegrateInApp ? (
+                                <>
+                                  <button
+                                    onClick={() => handleOpenWizard(tech)}
+                                    className="flex-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-center font-medium"
+                                  >
+                                    Connect Now
+                                  </button>
+                                  {tech.setupGuideUrl && (
+                                    <a
+                                      href={tech.setupGuideUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 text-xs px-3 py-1.5 border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors text-center font-medium"
+                                    >
+                                      Docs
+                                    </a>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleOpenWizard(tech)}
+                                    className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
+                                  >
+                                    Add API Key
+                                  </button>
+                                  {tech.setupGuideUrl && (
+                                    <a
+                                      href={tech.setupGuideUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
+                                    >
+                                      Setup Guide
+                                    </a>
+                                  )}
+                                </>
                               )}
                             </div>
+
+                            {/* Easier Alternative Suggestion */}
+                            {tech.easierAlternative && !tech.usingAlternative && (
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-start justify-between mb-2">
+                                  <p className="text-xs font-semibold text-blue-900">💡 Easier Alternative</p>
+                                  <button
+                                    onClick={() => {
+                                      // Dismiss the alternative
+                                      const updated = { ...projectPlan };
+                                      const techIndex = updated.architecture!.technologies.findIndex(
+                                        (t) => t.name === tech.name
+                                      );
+                                      updated.architecture!.technologies[techIndex].easierAlternative = undefined;
+                                      setProjectPlan(updated);
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 text-xs"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                                <p className="text-xs text-blue-900 font-medium mb-1">
+                                  {tech.easierAlternative.name}
+                                </p>
+                                <p className="text-xs text-blue-800 mb-2">{tech.easierAlternative.reasoning}</p>
+                                <p className="text-xs text-blue-700 mb-3">
+                                  <strong>Trade-offs:</strong> {tech.easierAlternative.tradeoffs}
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    // Accept the alternative
+                                    const updated = { ...projectPlan };
+                                    const techIndex = updated.architecture!.technologies.findIndex(
+                                      (t) => t.name === tech.name
+                                    );
+                                    updated.architecture!.technologies[techIndex].usingAlternative = true;
+                                    updated.architecture!.technologies[techIndex].name = tech.easierAlternative!.name;
+                                    setProjectPlan(updated);
+                                  }}
+                                  className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                  Use {tech.easierAlternative.name} Instead
+                                </button>
+                              </div>
+                            )}
+
                             {/* Tooltip on hover */}
                             <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
                               <p className="font-semibold mb-1">Why {tech.name}?</p>
@@ -725,6 +940,9 @@ export default function PlanPage() {
           onComplete={handleWizardComplete}
         />
       )}
+
+      {/* Plan Assistant Chat */}
+      <PlanAssistantChat technologies={projectPlan?.architecture?.technologies || []} />
     </div>
   );
 }
