@@ -1,80 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ListTemplatesRequestSchema, CreateTemplateDefSchema } from '../../../lib/templates/schemas';
-import { TemplateStorage } from '../../../lib/templates/storage';
+import { PRDTemplate } from '@/components/templates/PRDTemplateLibrary';
+
+const mockTemplates: PRDTemplate[] = [
+  {
+    id: 'saas-mvp',
+    name: 'SaaS MVP Template',
+    category: 'saas',
+    description: 'Complete PRD template for building a SaaS MVP with authentication, billing, and core features',
+    industry: ['B2B SaaS', 'Enterprise Software'],
+    estimatedTime: '8-12 weeks',
+    complexity: 'moderate',
+    rating: 4.8,
+    usageCount: 1247,
+    isFavorite: false,
+    tags: ['saas', 'mvp', 'authentication', 'billing', 'stripe'],
+    techStack: ['React', 'Node.js', 'PostgreSQL', 'Stripe', 'Auth0'],
+    sections: [
+      { id: '1', title: 'Executive Summary', content: 'High-level overview of the SaaS product vision and market opportunity', order: 1 },
+      { id: '2', title: 'User Authentication', content: 'Email/password login, OAuth, SSO integration, role-based access control', order: 2 },
+      { id: '3', title: 'Subscription Management', content: 'Tiered pricing, Stripe integration, usage tracking, billing portal', order: 3 },
+    ],
+  },
+];
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    
-    // Parse query parameters
-    const queryParams = {
-      tags: searchParams.get('tags')?.split(',').filter(Boolean),
-      featured: searchParams.get('featured') === 'true' ? true : undefined,
-      public: searchParams.get('public') === 'true' ? true : undefined,
-      author_id: searchParams.get('author_id') || undefined,
-      limit: parseInt(searchParams.get('limit') || '20'),
-      offset: parseInt(searchParams.get('offset') || '0'),
-      sort: searchParams.get('sort') as 'created_at' | 'installs_count' | 'title' || 'created_at',
-      order: searchParams.get('order') as 'asc' | 'desc' || 'desc',
-    };
-
-    // Validate request
-    const validationResult = ListTemplatesRequestSchema.safeParse(queryParams);
-    if (!validationResult.success) {
-      return NextResponse.json({
-        error: 'Invalid query parameters',
-        details: validationResult.error.errors,
-      }, { status: 400 });
-    }
-
-    const options = validationResult.data;
-    
-    // Get templates
-    const result = await TemplateStorage.listTemplates(options);
-    
-    return NextResponse.json({
-      templates: result.templates,
-      total: result.total,
-      limit: options.limit,
-      offset: options.offset,
-    });
-
-  } catch (error) {
-    console.error('[TEMPLATES_LIST] Error:', error);
-    
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+  const { searchParams } = new URL(request.url);
+  const category = searchParams.get('category');
+  let filtered = mockTemplates;
+  if (category && category !== 'all') {
+    filtered = filtered.filter((t) => t.category === category);
   }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    
-    // Validate request
-    const validationResult = CreateTemplateDefSchema.safeParse(body);
-    if (!validationResult.success) {
-      return NextResponse.json({
-        error: 'Invalid template data',
-        details: validationResult.error.errors,
-      }, { status: 400 });
-    }
-
-    const templateData = validationResult.data;
-    
-    // Create template
-    const template = await TemplateStorage.createTemplate(templateData);
-    
-    return NextResponse.json(template, { status: 201 });
-
-  } catch (error) {
-    console.error('[TEMPLATES_CREATE] Error:', error);
-    
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
-  }
+  return NextResponse.json(filtered);
 }
