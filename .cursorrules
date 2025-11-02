@@ -1,0 +1,134 @@
+# Build Runner 3.0 Governance - Cursor Rules
+# Auto-loaded when Cursor opens in this project root
+# Version: 3.0.0
+
+## MANDATORY: Read These Files First
+
+Before writing any code, you MUST read these files in order:
+
+1. `.buildrunner/STATUS.md` - Project overview and feature list (2 min read)
+2. `.buildrunner/features.json` - Detailed feature tracking (source of truth)
+3. `.buildrunner/standards/CODING_STANDARDS.md` - Universal coding standards (ALL AI builders)
+4. `git log -10` - Recent commit history
+
+## Build Runner 3.0 Overview
+
+This project uses **feature-based tracking** (not phase/step):
+- **Source of truth:** `.buildrunner/features.json`
+- **Auto-generated docs:** `.buildrunner/STATUS.md` (never edit manually)
+- **Version-based progress:** "Version X.Y.Z - N% complete"
+- **Git-backed state:** All governance files tracked in repo
+
+## Core Workflow
+
+### 1. Starting Work
+```bash
+# Get project context
+cat .buildrunner/STATUS.md
+cat .buildrunner/features.json
+git log -10 --oneline
+git status
+```
+
+### 2. During Development
+- Follow `.buildrunner/standards/CODING_STANDARDS.md` for all coding practices
+- Test code before committing
+- Write clear, semantic commit messages
+- Keep STATUS.md and features.json in sync
+
+### 3. When You Complete a Feature
+
+**Edit features.json:**
+```json
+{
+  "id": "feature-id",
+  "status": "complete",  // Change from "in_progress"
+  "version": "1.0.0",
+  "components": ["list/of/files.ts"],
+  "apis": ["POST /api/endpoint"],
+  "tests": "unit, integration"
+}
+```
+
+**Regenerate STATUS.md:**
+```bash
+node .buildrunner/scripts/generate-status.mjs  # or .js for CommonJS
+```
+
+**Commit:**
+```bash
+git add .buildrunner/
+git commit -m "feat: Complete feature name"
+git push
+```
+
+## File Structure
+
+```
+.buildrunner/
+├── features.json          # Source of truth - edit this
+├── STATUS.md              # Auto-generated - DO NOT edit manually
+├── scripts/
+│   ├── generate-status.js     # CommonJS version
+│   └── generate-status.mjs    # ES module version
+└── standards/
+    └── CODING_STANDARDS.md    # Universal standards for ALL AI
+
+.runner/gpt/
+└── chatgpt-governance.yaml    # ChatGPT-specific rules (not for Cursor)
+```
+
+## Key Principles
+
+1. **Git is source of truth** - All state lives in tracked files
+2. **Feature-based tracking** - Not phase/step (old Build Runner 2.0 is gone)
+3. **Auto-generated docs** - STATUS.md regenerates from features.json
+4. **Universal standards** - CODING_STANDARDS.md applies to ALL AI builders
+5. **Version-based progress** - Report as "Version X.Y.Z - N% complete"
+
+## Coding Standards Summary
+
+Read full standards in `.buildrunner/standards/CODING_STANDARDS.md`, but key points:
+
+- **Git workflow:** Feature branches, semantic commits, always pull before push
+- **Code quality:** TypeScript strict mode, ESLint, proper error handling
+- **Testing:** Unit tests for logic, integration tests for APIs, E2E for critical flows
+- **Security:** Input validation, no secrets in code, sanitize user input
+- **Documentation:** JSDoc for functions, README updates, inline comments for complex logic
+
+## Feature Status Values
+
+- `complete` - Feature is done, tested, and deployed
+- `in_progress` - Currently being worked on
+- `planned` - In backlog, not started yet
+
+## Progress Reporting
+
+Always report progress as:
+```
+Version X.Y.Z - N% complete
+X of Y features complete
+```
+
+Never use old phase/step format like "Phase 2 of 5 - Step 8 of 43"
+
+## Pre-commit Hook
+
+A git pre-commit hook automatically:
+1. Regenerates STATUS.md from features.json
+2. Stages the updated STATUS.md
+3. Ensures docs are always in sync
+
+## Need Help?
+
+- `br-status` - Show current project status
+- `br-features` - List all features
+- `br-update` - Manually regenerate STATUS.md
+- `br-help` - Show all Build Runner commands
+
+## Remember
+
+- STATUS.md is READ-ONLY (auto-generated)
+- features.json is the SOURCE OF TRUTH (edit this)
+- Follow CODING_STANDARDS.md for all development
+- Feature-based tracking keeps you in sync with reality

@@ -1,0 +1,99 @@
+Get familiar with this project by syncing with GitHub and reading the governance files
+
+**Project:** BuildRunnerSaaS
+**Version:** 1.0.0
+**Status:** production_ready
+**Progress:** 7 of 10 features complete (85%)
+**Description:** AI-powered platform that transforms product development through intelligent brainstorming and automated PRD generation
+
+**Repository:** https://github.com/DockeryAI/BuildRunnerSaaS.git
+**Current Branch:** feat/p0-brainstorm-strategy
+**Last Commit:** 1611b2e - chore: Remove all legacy Build Runner 2.0 and Auggie code (9 minutes ago)
+
+**Build Runner 3.0 Governance:**
+This project uses Build Runner 3.0 feature registry system. You MUST follow these steps:
+
+**STEP 1: Sync with GitHub (REQUIRED FIRST)**
+```zsh
+# Check repo status and recent activity
+gh repo view
+gh pr list --limit 5
+gh issue list --limit 5
+git log -10 --oneline
+git status
+```
+
+**STEP 2: Read Governance Files**
+Read these files IN ORDER to understand the project:
+
+1. `.buildrunner/STATUS.md` - Project overview and feature list (2 min read)
+2. `.buildrunner/features.json` - Detailed feature tracking (source of truth)
+3. `docs/BuildRunnerSaaS-spec.md` - Full specification (if available)
+4. `.buildrunner/standards/CODING_STANDARDS.md` - Universal coding standards (ALL AI builders must follow)
+5. `.runner/gpt/chatgpt-governance.yaml` - ChatGPT-specific communication rules (ONLY for you)
+
+**STEP 3: Follow ChatGPT Governance Rules**
+Read `.runner/gpt/chatgpt-governance.yaml` for your specific rules including:
+- Command output format (one command at a time)
+- Progress reporting style
+- How to communicate with the user
+- Keyboard Maestro integration
+
+**STEP 4: Update Features When You Ship**
+When you complete a feature:
+
+1. Edit `.buildrunner/features.json`:
+   ```json
+   {
+     "id": "feature-name",
+     "status": "complete",  // Change from "in_progress"
+     "version": "1.0.0",
+     "components": ["list/of/files.ts"],
+     "tests": "unit, integration"
+   }
+   ```
+
+2. Regenerate STATUS.md:
+   ```zsh
+   node .buildrunner/scripts/generate-status.mjs  # or .js
+   ```
+
+3. Commit and push:
+   ```zsh
+   git add .buildrunner/
+   git commit -m "feat: Complete [feature name]"
+   git push origin feat/p0-brainstorm-strategy
+   ```
+
+**Key Principles:**
+- Git is the source of truth
+- Always sync with GitHub first using `gh` commands
+- Feature-based tracking (not phase/step)
+- STATUS.md is auto-generated (never edit manually)
+- Version-based progress reporting: "Version 1.0.0 - 85% complete"
+- Universal standards apply to ALL AI builders
+- ChatGPT-specific rules in .runner/gpt/chatgpt-governance.yaml
+
+**File Structure:**
+```
+.buildrunner/
+├── features.json          # Source of truth
+├── STATUS.md              # Auto-generated
+├── scripts/
+│   ├── generate-status.js     # CommonJS version
+│   └── generate-status.mjs    # ES module version
+└── standards/
+    └── CODING_STANDARDS.md    # Universal standards
+
+.runner/gpt/
+└── chatgpt-governance.yaml    # ChatGPT-only rules
+```
+
+**Current Features:**
+- Complete: 7
+- In Progress: 0
+- Planned: 3
+
+Ready to build! Start by running `gh repo view` to sync with GitHub. 🚀
+HANDOFF_END
+
