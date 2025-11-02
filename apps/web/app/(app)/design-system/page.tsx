@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Palette, Type, Spacing, CornerDownRight, Zap, Download, ExternalLink } from 'lucide-react';
+import { Palette, Type, Maximize2 as Spacing, CornerDownRight, Zap, Download, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';

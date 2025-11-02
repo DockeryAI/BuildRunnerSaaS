@@ -302,7 +302,7 @@ function generateMockTrendData(days: number, min: number, max: number) {
 
 function generateMockCostData(days: number) {
   const providers = ['openai', 'supabase', 'vercel', 'github'];
-  const data = [];
+  const data: { date: string; value: number; provider: string }[] = [];
   
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date();

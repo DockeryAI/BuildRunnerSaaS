@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { StatusCard, ProjectInfo, ProvisionStep } from '../../../components/provision/StatusCard';
+import { StatusCard, ProjectInfo, ProvisionStep } from '@/components/provision/StatusCard';
 
 export default function BackendSettingsPage() {
   const [isProvisioning, setIsProvisioning] = useState(false);

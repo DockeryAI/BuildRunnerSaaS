@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, Download, AlertTriangle, CheckCircle, TrendingUp, Users } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
-import plans from '../../../../../billing/plans.json';
+import plans from '../../../../billing/plans.json';
 
 interface BillingAccount {
   id: string;

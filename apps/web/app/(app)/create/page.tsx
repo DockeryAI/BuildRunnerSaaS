@@ -1626,7 +1626,9 @@ function CreatePage() {
             id: `${baseId}-8`,
             type: 'non_functional',
             title: 'Performance Requirements',
-            content: '99.9% uptime, <2 second response time, handle 10,000+ leads per day, SOC 2 compliance for enterprise customers.',
+            shortDescription: '99.9% uptime, <2 second response time',
+            fullDescription: '99.9% uptime, <2 second response time, handle 10,000+ leads per day, SOC 2 compliance for enterprise customers.',
+            citations: [],
             section: 'non_functional',
             priority: 'medium'
           },
@@ -1634,7 +1636,9 @@ function CreatePage() {
             id: `${baseId}-9`,
             type: 'risks',
             title: 'Technical Risks',
-            content: 'Email deliverability issues, CRM integration complexity, AI model accuracy for lead scoring, and data privacy compliance.',
+            shortDescription: 'Email deliverability, CRM integration complexity',
+            fullDescription: 'Email deliverability issues, CRM integration complexity, AI model accuracy for lead scoring, and data privacy compliance.',
+            citations: [],
             section: 'risks',
             priority: 'high'
           },
@@ -1642,7 +1646,9 @@ function CreatePage() {
             id: `${baseId}-10`,
             type: 'analytics',
             title: 'Key Metrics',
-            content: 'Track: email open rates, response rates, meetings scheduled, conversion to opportunity, and time saved per rep.',
+            shortDescription: 'Track email rates and conversions',
+            fullDescription: 'Track: email open rates, response rates, meetings scheduled, conversion to opportunity, and time saved per rep.',
+            citations: [],
             section: 'analytics',
             priority: 'medium'
           }
@@ -1654,7 +1660,9 @@ function CreatePage() {
             id: `${baseId}-11`,
             type: 'monetization',
             title: 'Pricing Strategy',
-            content: 'Freemium model: Free for 100 leads/month, Pro at $49/user/month, Enterprise at $99/user/month with custom features.',
+            shortDescription: 'Freemium model with tiered pricing',
+            fullDescription: 'Freemium model: Free for 100 leads/month, Pro at $49/user/month, Enterprise at $99/user/month with custom features.',
+            citations: [],
             section: 'monetization',
             priority: 'high'
           },
@@ -1662,7 +1670,9 @@ function CreatePage() {
             id: `${baseId}-12`,
             type: 'rollout',
             title: 'Go-to-Market',
-            content: 'Beta with 10 pilot customers, then gradual rollout: SMB first, then mid-market, with sales team training and onboarding.',
+            shortDescription: 'Beta with pilot customers, gradual rollout',
+            fullDescription: 'Beta with 10 pilot customers, then gradual rollout: SMB first, then mid-market, with sales team training and onboarding.',
+            citations: [],
             section: 'rollout',
             priority: 'medium'
           }

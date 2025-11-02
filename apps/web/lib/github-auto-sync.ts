@@ -48,7 +48,7 @@ export interface CommitOptions {
 export class GitHubAutoSyncService {
   private config: GitHubConfig;
   private syncInterval: NodeJS.Timeout | null = null;
-  private statusCallbacks: Set<(status: SyncStatus)> = new Set();
+  private statusCallbacks: Set<(status: SyncStatus) => void> = new Set();
   private currentStatus: SyncStatus = {
     lastSync: null,
     nextSync: null,

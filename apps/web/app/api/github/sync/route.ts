@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       commitHash: Math.random().toString(36).substring(7),
-      filesSync ed: files?.length || 0,
+      filesSynced: files?.length || 0,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

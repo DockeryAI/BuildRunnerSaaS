@@ -24,16 +24,24 @@ import {
   Lightbulb,
   FolderOpen,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BookTemplate,
+  DollarSign,
+  Sparkles,
+  GitBranch
 } from 'lucide-react';
+import { SyncStatusWidget } from '../../components/github-sync/SyncStatusWidget';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
 
 const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderOpen, description: 'Project library' },
   { name: 'Create', href: '/create', icon: Lightbulb, description: 'Build PRD with AI' },
+  { name: 'Templates', href: '/templates', icon: BookTemplate, description: 'PRD templates' },
   { name: 'Plan', href: '/plan', icon: Edit3, description: 'Project plan & timeline' },
   { name: 'Build', href: '/workbench', icon: Wrench, description: 'Code & tests' },
+  { name: 'Coordination', href: '/coordination', icon: Sparkles, description: 'AI coordination' },
+  { name: 'Cost', href: '/cost', icon: DollarSign, description: 'Cost optimization' },
   { name: 'Analytics', href: '/analytics', icon: TrendingUp, description: 'Metrics & insights' },
   { name: 'Settings', href: '/settings', icon: Settings, description: 'API keys & governance' },
 ];
@@ -225,6 +233,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="flex items-center space-x-4">
+                  <SyncStatusWidget
+                    status={{ lastSync: null, nextSync: null, status: 'idle', message: 'Not configured' }}
+                    compact={true}
+                  />
                   <div className="text-sm text-gray-500">
                     Phase 4 - UI MVP
                   </div>
