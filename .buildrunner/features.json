@@ -1,0 +1,51 @@
+{
+  "project": "BuildRunnerSaaS",
+  "version": "v0.1.0-strategy",
+  "status": "production_ready",
+  "last_updated": "2025-11-02T12:12:41Z",
+  "description": "TODO: Add project description",
+
+  "features": [
+    {
+      "id": "example-feature",
+      "name": "Example Feature",
+      "status": "complete",
+      "version": "v0.1.0-strategy",
+      "description": "TODO: Describe this feature",
+      "components": [],
+      "priority": "high",
+      "tests": "working",
+      "docs": []
+    }
+  ],
+
+  "planned_features": [
+    {
+      "id": "future-feature",
+      "name": "Future Feature",
+      "status": "planned",
+      "version": "v0.2.0",
+      "description": "TODO: Describe planned feature",
+      "priority": "medium"
+    }
+  ],
+
+  "metrics": {
+    "features_complete": 0,
+    "features_in_progress": 0,
+    "features_planned": 1,
+    "completion_percentage": 80,
+    "components_count": 0,
+    "api_endpoints_count": 0,
+    "python_files": 0,
+    "typescript_files": 8,
+    "total_commits": 192
+  },
+
+  "tech_stack": {
+    "languages": ["TODO"],
+    "frameworks": ["TODO"],
+    "infrastructure": ["TODO"],
+    "tools": ["Git"]
+  }
+}
