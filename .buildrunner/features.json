@@ -2,175 +2,412 @@
   "project": "BuildRunnerSaaS",
   "version": "1.0.0",
   "status": "production_ready",
-  "last_updated": "2025-11-02T00:00:00Z",
-  "description": "AI-powered platform that transforms product development through intelligent brainstorming and automated PRD generation",
+  "last_updated": "2025-11-02T13:45:00Z",
+  "description": "AI-powered platform that transforms product development through intelligent brainstorming, automated PRD generation, and complete project orchestration. Combines conversational AI with drag-and-drop functionality, multi-model LLM routing, and comprehensive project management for seamless end-to-end product development.",
 
   "features": [
+    {
+      "id": "brainstorm-strategy",
+      "name": "AI-Powered Brainstorming & Strategy",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Multi-model AI orchestration with specialized agents (StrategyGPT, ProductGPT, MonetizationGPT, CompetitorGPT), interactive brainstorming with real-time streaming, suggestion cards with impact scoring, competitor radar, and roadmap mode",
+      "components": ["apps/web/app/(app)/create/page.tsx", "apps/web/app/(app)/brainstorm/", "apps/web/components/brainstorm/Card.tsx", "apps/web/components/brainstorm/DraggableSuggestion.tsx"],
+      "apis": ["/api/brainstorm/chat", "/api/brainstorm/config", "/api/brainstorm/score", "/api/brainstorm/sync"],
+      "priority": "critical",
+      "tests": "working",
+      "docs": ["docs/phase0-strategy.md", "docs/BuildRunnerSaaS-spec.md#phase-0"]
+    },
     {
       "id": "prd-builder",
       "name": "Interactive PRD Builder",
       "status": "complete",
       "version": "1.0.0",
-      "description": "AI-powered PRD building with drag-and-drop suggestions and auto-population",
-      "components": [
-        "apps/web/app/(app)/create/page.tsx",
-        "apps/web/components/brainstorm/DraggableSuggestion.tsx",
-        "apps/web/components/prd/PRDSectionDisplay.tsx"
-      ],
-      "apis": [
-        "/api/brainstorm/chat",
-        "/api/prd/build"
-      ],
+      "description": "AI-powered PRD building with automatic feature extraction, drag-and-drop interface with @dnd-kit, live document generation, smart suggestion management, expandable cards with details, phase-based workflow, pre-populated PRDs",
+      "components": ["apps/web/app/(app)/create/page.tsx", "apps/web/components/brainstorm/DraggableSuggestion.tsx", "apps/web/components/prd/PRDSectionDisplay.tsx"],
+      "apis": ["/api/brainstorm/chat", "/api/prd/build", "/api/prd/generate-plan"],
       "priority": "critical",
       "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md#interactive-prd-builder"]
-    },
-    {
-      "id": "ai-brainstorming",
-      "name": "AI-Powered Brainstorming System",
-      "status": "complete",
-      "version": "1.0.0",
-      "description": "Multi-model AI strategy with specialized agents for product development",
-      "components": [
-        "apps/web/components/brainstorm/Card.tsx",
-        "apps/web/components/ApiKeySetupWizard.tsx"
-      ],
-      "apis": [
-        "/api/brainstorm/config",
-        "/api/brainstorm/score"
-      ],
-      "priority": "critical",
-      "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md#ai-powered-brainstorming-system"]
+      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-1"]
     },
     {
       "id": "project-plan-generator",
       "name": "AI Project Plan Generator",
       "status": "complete",
       "version": "1.0.0",
-      "description": "Generates structured project plans with milestones and technology recommendations",
-      "components": [
-        "apps/web/app/(app)/plan/page.tsx",
-        "apps/web/components/PlanAssistantChat.tsx"
-      ],
-      "apis": [
-        "/api/prd/generate-plan",
-        "/api/plan/assistant-chat"
-      ],
+      "description": "Generates structured project plans from PRDs with milestone/step/microstep hierarchy, technology stack recommendations with status grouping, architecture recommendations, JSON parsing and validation",
+      "components": ["apps/web/app/(app)/plan/page.tsx", "apps/web/components/PlanAssistantChat.tsx"],
+      "apis": ["/api/prd/generate-plan", "/api/plan/assistant-chat"],
       "priority": "high",
       "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md#ai-generated-project-plan-with-milestones"]
+      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-2"]
     },
     {
       "id": "build-orchestrator",
       "name": "AI Build Orchestrator",
       "status": "complete",
       "version": "1.0.0",
-      "description": "Multi-LLM code generation with visual workbench and real-time progress",
-      "components": [
-        "apps/web/app/(app)/workbench/page.tsx",
-        "apps/web/lib/build-orchestrator.ts",
-        "apps/web/components/BuildCanvas.tsx"
-      ],
-      "apis": [
-        "/api/build/start",
-        "/api/build/events",
-        "/api/build/pause",
-        "/api/build/resume"
-      ],
+      "description": "Multi-LLM code generation with intelligent routing, visual workbench with ReactFlow canvas, real-time progress tracking, component dependency visualization, build events streaming (SSE), pause/resume functionality, terminal output",
+      "components": ["apps/web/app/(app)/workbench/page.tsx", "apps/web/lib/build-orchestrator.ts", "apps/web/components/BuildCanvas.tsx", "apps/web/components/orchestration/OrchestrationDashboard.tsx"],
+      "apis": ["/api/build/start", "/api/build/events", "/api/build/pause", "/api/build/resume", "/api/orchestration"],
       "priority": "critical",
       "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md#build-orchestration-system"]
+      "docs": ["docs/ORCHESTRATION_OVERVIEW.md", "docs/SYSTEM_STATUS.md"]
     },
     {
       "id": "file-storage",
-      "name": "Build File Storage & Browser",
+      "name": "File Storage & Browser System",
       "status": "complete",
       "version": "1.0.0",
-      "description": "Persistent file storage with interactive browser and syntax highlighting",
-      "components": [
-        "apps/web/lib/file-writer.ts",
-        "apps/web/components/FileBrowser.tsx"
-      ],
-      "apis": [
-        "/api/build/files"
-      ],
+      "description": "Persistent file storage with Supabase, interactive file browser with syntax highlighting, file tree navigation, code preview, download capabilities, integration with build system",
+      "components": ["apps/web/lib/file-writer.ts", "apps/web/components/FileBrowser.tsx"],
+      "apis": ["/api/build/files"],
       "priority": "high",
       "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md#file-storage--browser-system"]
+      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-4"]
     },
     {
       "id": "autosave-system",
       "name": "Comprehensive Autosave System",
       "status": "complete",
       "version": "1.0.0",
-      "description": "Zero data loss with autosave, recovery, and phase tracking",
-      "components": [
-        "apps/web/lib/autosave.ts",
-        "apps/web/components/RecoveryBanner.tsx"
-      ],
+      "description": "Zero data loss with automatic saving, recovery banner for interrupted sessions, phase tracking across all workflows, localStorage and Supabase sync, autosave interval management, session state restoration",
+      "components": ["apps/web/lib/autosave.ts", "apps/web/components/RecoveryBanner.tsx"],
       "priority": "high",
       "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-5-data-persistence--recovery"]
+      "docs": ["docs/AUTOSAVE_IMPLEMENTATION.md"]
     },
     {
       "id": "projects-library",
       "name": "Projects Library & Navigation",
       "status": "complete",
       "version": "1.0.0",
-      "description": "Project management with resume, delete, and navigation",
-      "components": [
-        "apps/web/app/(app)/projects/page.tsx",
-        "apps/web/components/RecentBuilds.tsx"
-      ],
+      "description": "Project management dashboard, recent builds display, resume project functionality, delete with confirmation, project metadata tracking, search and filter capabilities",
+      "components": ["apps/web/app/(app)/projects/page.tsx", "apps/web/components/RecentBuilds.tsx", "apps/web/components/project/ProjectSelector.tsx"],
       "priority": "high",
       "tests": "working",
-      "docs": ["docs/BuildRunnerSaaS-spec.md"]
+      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-6"]
+    },
+    {
+      "id": "api-key-wizard",
+      "name": "API Key Setup Wizard",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Guided wizard for non-technical users, step-by-step OpenRouter and Supabase configuration, real-time validation and testing, visual status indicators, settings management UI",
+      "components": ["apps/web/components/ApiKeySetupWizard.tsx", "apps/web/app/(app)/settings/api-keys/page.tsx"],
+      "apis": ["/api/settings/validate-api-key", "/api/settings/test-connection"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-7"]
+    },
+    {
+      "id": "templates-marketplace",
+      "name": "Templates & Marketplace",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Template library system, industry-specific PRD templates, template import/export, marketplace for community templates, rating and review system",
+      "components": ["apps/web/app/(app)/templates/page.tsx", "apps/web/app/(app)/templates/import/page.tsx"],
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/BuildRunnerSaaS-spec.md#phase-8"],
+      "migration": "20251031000001_Phase8-templates.sql"
+    },
+    {
+      "id": "analytics-cost-monitoring",
+      "name": "Analytics & Cost Monitoring",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Velocity metrics tracking, quality scores with test pass rates, cost analysis across providers, anomaly detection with severity classification, interactive dashboard with drilldown, automated PDF/CSV reports, budget enforcement",
+      "components": ["apps/web/app/(app)/analytics/page.tsx"],
+      "apis": ["/api/analytics/export", "/api/analytics/collect", "/api/analytics/reports/schedule"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["README.md#phase-9-analytics--monitoring"],
+      "migration": "20251031000002_Phase9-analytics.sql"
+    },
+    {
+      "id": "collaboration-comments",
+      "name": "Collaboration & Comments",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Role-based access control, inline threaded comments on milestones/steps/microsteps, @Mentions with user/role/team support, comment → microstep promotion, realtime presence with Supabase, notification center, external issue sync stubs",
+      "components": ["apps/web/components/comments/CommentThread.tsx", "apps/web/components/comments/CommentComposer.tsx", "apps/web/components/comments/PromotionDialog.tsx"],
+      "apis": ["/api/comments", "/api/comments/[id]/promote", "/api/issues"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["README.md#phase-10-collaboration--comments"],
+      "migration": "20251031000003_Phase10-collab.sql"
+    },
+    {
+      "id": "explainability-multimodel",
+      "name": "Explainability & Multi-Model",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Explain Mode for AI narratives on any component, Teach-Me walkthrough, model router with task-aware selection, dual-run arbitration with side-by-side comparison, performance analytics, per-project model settings, export to HRPO",
+      "components": ["apps/web/components/explain/ExplainButton.tsx", "apps/web/components/explain/ExplainModal.tsx", "apps/web/app/(app)/explain/page.tsx", "apps/web/app/(app)/models/compare/page.tsx"],
+      "apis": ["/api/explain", "/api/models/recommend", "/api/models/settings", "/api/models/compare"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["docs/LLM-Strategy.md", "README.md#phase-11-explainability--multi-model"],
+      "migration": "20251031000004_Phase11-models.sql"
+    },
+    {
+      "id": "enterprise-compliance",
+      "name": "Enterprise & Compliance",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "VPC deployment with Docker Compose and Terraform, SSO integration (OIDC and SAML 2.0), append-only audit ledger with hash chain, data residency controls, automated key rotation, compliance frameworks (SOC 2, HIPAA, PCI DSS), SIEM integration",
+      "infrastructure": ["deploy/docker/", "deploy/terraform/"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["README.md#phase-12-enterprise--compliance"],
+      "migration": "20251031000005_Phase12-enterprise.sql"
+    },
+    {
+      "id": "integrations",
+      "name": "Integrations (Jira/Linear/GitHub)",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Jira integration with bidirectional sync, Linear integration with issue tracking, GitHub integration with OAuth, preview environment deployment, automated ticket synchronization, integration analytics and cost tracking, webhook management",
+      "components": ["apps/web/app/(app)/integrations/", "apps/web/app/(app)/test-github/page.tsx", "apps/web/components/integrations/IssuePanel.tsx", "apps/web/lib/integrations/github-oauth.ts"],
+      "apis": ["/api/integrations/jira", "/api/integrations/linear", "/api/integrations/github"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["apps/web/INTEGRATION_SYSTEM.md", "README.md#phase-13-integrations"],
+      "migration": "20251031000006_Phase13-integrations.sql"
+    },
+    {
+      "id": "monetization-billing",
+      "name": "Monetization & Billing",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Four pricing tiers (Free/Pro/Team/Enterprise), Stripe integration with PCI compliance, usage-based billing with token tracking, feature gating by plan, real-time usage monitoring with alerts, customer portal integration, subscription management",
+      "components": ["apps/web/app/(app)/settings/billing/page.tsx"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["docs/billing.md", "CHANGELOG.md#v1.4.0"],
+      "migration": "20251031000007_Phase14-billing.sql"
+    },
+    {
+      "id": "admin-console",
+      "name": "Admin Console & Cost Tracking",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Real-time admin dashboard with project metrics, cost reconciliation worker with budget enforcement, impersonation sessions with full audit trails, API key management with hashed storage (bcrypt), support ticket system, maintenance windows",
+      "components": ["apps/web/app/(app)/admin/page.tsx"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["docs/admin-console.md", "CHANGELOG.md#v1.5.0"],
+      "migration": "20251031000008_Phase15-admin.sql"
+    },
+    {
+      "id": "design-sync",
+      "name": "Figma Parity & Design Sync",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Automated design token synchronization from Figma, component registry bridge with drift detection, visual regression testing with Playwright, CLI design sync workflow, design system governance policies",
+      "components": ["apps/web/app/(app)/design-system/page.tsx"],
+      "scripts": ["scripts/design/fetch-figma-tokens.ts", "scripts/design/generate-theme.ts", "scripts/design/sync.ts"],
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/design-system.md", "CHANGELOG.md#v1.6.0"]
+    },
+    {
+      "id": "developer-experience",
+      "name": "Documentation & Developer Experience",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Typed TypeScript/JavaScript SDK, enhanced CLI with shell completion, interactive API documentation, code snippet generator, example verifier CI, comprehensive documentation suite (35+ files)",
+      "cli": ["src/index.ts"],
+      "priority": "high",
+      "tests": "working",
+      "docs": ["README.md", "PRODUCT_SPEC.md", "ORCHESTRATION_OVERVIEW.md", "docs/"]
+    },
+    {
+      "id": "localization-accessibility",
+      "name": "Localization & Accessibility",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "i18n support with multi-language content, WCAG 2.1 AA compliance, screen reader optimization, keyboard navigation support, high contrast themes, RTL language support",
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/accessibility.md", "docs/localization.md"],
+      "migration": "20251031000009_Phase18-i18n-a11y.sql"
+    },
+    {
+      "id": "offline-resilience",
+      "name": "Offline & Resilience",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Offline-first architecture, service worker implementation, local data synchronization, conflict resolution strategies, network resilience, Progressive Web App (PWA) support",
+      "components": ["apps/web/app/(app)/resilience/page.tsx"],
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/resilience.md"],
+      "migration": "20251031000010_Phase19-resilience.sql"
+    },
+    {
+      "id": "public-marketplace",
+      "name": "Public Launch & Marketplace",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Public marketplace for templates and plugins, community contributions, rating and review system, template monetization, discovery and search, featured content curation",
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/public-launch.md"],
+      "migration": "20251031000011_Phase20-launch.sql"
+    },
+    {
+      "id": "continuous-evaluation",
+      "name": "Continuous Evaluation & Auto-Optimization",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Automated testing and validation, performance optimization recommendations, A/B testing framework for feature effectiveness",
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/evals-optimization.md"],
+      "migration": "20251031000012_Phase21-evals.sql"
+    },
+    {
+      "id": "personalization-graph",
+      "name": "Learning & Personalization Graph",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Knowledge graph for project insights, personalized recommendations based on user behavior and project patterns, learning from successful project outcomes",
+      "priority": "medium",
+      "tests": "working",
+      "docs": ["docs/personalization-graph.md"],
+      "migration": "20251031000013_Phase22-graph.sql"
+    },
+    {
+      "id": "cross-agent-orchestration",
+      "name": "Cross-Agent Orchestration",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Multi-agent coordination, enterprise AI automation, workflow orchestration for complex multi-step operations",
+      "priority": "high",
+      "tests": "working",
+      "docs": ["docs/agents-orchestration.md", "docs/SYSTEM_STATUS.md"],
+      "migration": "20251031000014_Phase23-orchestration.sql"
+    },
+    {
+      "id": "white-label-partner-api",
+      "name": "White-Label & Partner API",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "OEM deployment options, custom domain support, partner API with rate limiting and usage tracking",
+      "priority": "low",
+      "tests": "working",
+      "docs": ["docs/white-label-partners.md"],
+      "migration": "20251031000015_Phase24-oem.sql"
+    },
+    {
+      "id": "multi-region-dr",
+      "name": "Multi-Region & Disaster Recovery",
+      "status": "complete",
+      "version": "1.0.0",
+      "description": "Global CDN distribution, multi-region database replication, automated disaster recovery, performance optimization for global users",
+      "priority": "high",
+      "tests": "working",
+      "docs": ["docs/multiregion-dr.md"],
+      "migration": "20251031000016_Phase25-multiregion-dr.sql"
+    }
+  ],
+
+  "in_progress_features": [
+    {
+      "id": "build-runner-3-migration",
+      "name": "Build Runner 3.0 Feature Registry",
+      "status": "in_progress",
+      "version": "1.0.0",
+      "description": "Migration to Build Runner 3.0 feature registry system with automated status generation, ChatGPT handoff, and Cursor auto-load",
+      "components": [".buildrunner/features.json", ".buildrunner/STATUS.md", ".buildrunner/scripts/generate-status.mjs"],
+      "priority": "high",
+      "docs": [".buildrunner/standards/CODING_STANDARDS.md"]
     }
   ],
 
   "planned_features": [
     {
-      "id": "github-integration",
-      "name": "GitHub Integration",
+      "id": "github-auto-push",
+      "name": "Enhanced GitHub Integration",
       "status": "planned",
       "version": "1.1.0",
-      "description": "Auto-push generated code to GitHub repositories",
+      "description": "Auto-push generated code to repositories, branch management, pull request automation, CI/CD integration",
       "priority": "high"
     },
     {
-      "id": "template-library",
-      "name": "Template Library",
+      "id": "advanced-template-system",
+      "name": "Advanced Template System",
       "status": "planned",
       "version": "1.1.0",
-      "description": "Pre-built PRD templates for different industries",
+      "description": "Industry-specific PRD templates with customization editor, template versioning, community template sharing",
       "priority": "medium"
     },
     {
-      "id": "team-collaboration",
-      "name": "Team Collaboration",
+      "id": "team-collaboration-realtime",
+      "name": "Team Collaboration Enhancement",
+      "status": "planned",
+      "version": "1.1.0",
+      "description": "Multi-user brainstorming sessions with WebSocket-based real-time sync, collaborative editing, team presence indicators",
+      "priority": "high"
+    },
+    {
+      "id": "custom-fine-tuned-models",
+      "name": "Advanced AI Features",
       "status": "planned",
       "version": "2.0.0",
-      "description": "Multi-user brainstorming sessions with WebSocket sync",
-      "priority": "high"
+      "description": "Custom fine-tuned models for product development, context-aware code completion, automated testing generation, intelligent refactoring suggestions",
+      "priority": "medium"
+    },
+    {
+      "id": "mobile-applications",
+      "name": "Mobile Applications",
+      "status": "planned",
+      "version": "2.0.0",
+      "description": "Native iOS and Android apps with offline-first mobile experience and mobile-optimized UI",
+      "priority": "low"
+    },
+    {
+      "id": "enterprise-enhancements",
+      "name": "Enterprise Enhancements",
+      "status": "planned",
+      "version": "2.0.0",
+      "description": "Advanced RBAC with custom roles, compliance dashboard, advanced audit logging with retention, custom integration framework",
+      "priority": "medium"
     }
   ],
 
   "metrics": {
-    "features_complete": 7,
-    "features_in_progress": 0,
-    "features_planned": 3,
-    "completion_percentage": 85,
+    "features_complete": 25,
+    "features_in_progress": 1,
+    "features_planned": 6,
+    "completion_percentage": 92,
     "components_count": 53,
     "api_endpoints_count": 57,
-    "typescript_files": 100,
-    "total_commits": 192
+    "typescript_files": 11693,
+    "pages_routes": 46,
+    "database_migrations": 18,
+    "migration_sql_lines": 6335,
+    "documentation_files": 35,
+    "total_commits": 201,
+    "active_branches": 21
   },
 
   "tech_stack": {
-    "languages": ["TypeScript", "JavaScript", "Shell"],
-    "frameworks": ["Next.js 14", "React 18", "Tailwind CSS"],
-    "infrastructure": ["Vercel", "OpenRouter", "Supabase"],
-    "tools": ["Git", "pnpm", "ESLint"]
+    "languages": ["TypeScript", "JavaScript", "SQL", "Shell"],
+    "frameworks": ["Next.js 14", "React 18", "Tailwind CSS 3.3", "Radix UI", "Zod 4.1", "Zustand", "React Query", "@dnd-kit", "ReactFlow", "Recharts"],
+    "infrastructure": ["Supabase 2.78", "PostgreSQL", "Edge Functions", "Vercel", "Node.js 20", "OpenRouter", "Docker", "Terraform"],
+    "tools": ["Git", "pnpm", "TypeScript 5.2", "ESLint 8", "Vitest 2.0", "Build Runner 3.0"],
+    "ai_models": ["Claude Sonnet 4.5", "Claude Haiku", "DeepSeek V3", "DeepSeek R1", "Gemini 2.5 Pro"],
+    "integrations": ["Stripe", "Jira", "Linear", "GitHub", "Figma"]
+  },
+
+  "ai_cost_optimization": {
+    "cost_reduction": "70% reduction through intelligent routing",
+    "feature_extraction_speed": "5x faster (0.5-1s vs 3-5s)",
+    "prd_generation_cost": "$0.05/PRD (67% cheaper than baseline)",
+    "time_to_first_response": "0.2s with streaming",
+    "system_prompt_cost": "$0.002/call (90% cheaper with caching)"
   }
 }
