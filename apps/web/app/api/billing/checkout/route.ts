@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate plan
-    const planConfig = plans.plans[plan as keyof typeof plans.plans];
+    const planConfig = plans[plan as keyof typeof plans];
     if (!planConfig) {
       return NextResponse.json({
         error: 'Invalid plan selected',
@@ -78,13 +78,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Get price ID for the plan and billing cycle
-    const priceId = planConfig.stripe_price_ids[billing_cycle as keyof typeof planConfig.stripe_price_ids];
-    if (!priceId) {
-      return NextResponse.json({
-        error: 'Price not available for selected billing cycle',
-      }, { status: 400 });
-    }
+    // Get price ID for the plan and billing cycle (using mock price IDs for demo)
+    const priceId = `price_${plan}_${billing_cycle}`;
 
     // Create Stripe Checkout session
     const session = await mockStripe.checkout.sessions.create({
@@ -173,7 +168,7 @@ export async function GET(request: NextRequest) {
       billing_account: billingAccount,
       subscription,
       usage_summary: usageSummary,
-      available_plans: plans.plans,
+      available_plans: plans,
     });
 
   } catch (error) {

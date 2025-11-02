@@ -231,8 +231,8 @@ function generatePDFExport(
   for (const cost of costs) {
     costByProvider.set(cost.provider, (costByProvider.get(cost.provider) || 0) + cost.usd_cost);
   }
-  
-  for (const [provider, total] of costByProvider) {
+
+  for (const [provider, total] of Array.from(costByProvider.entries())) {
     lines.push(`${provider}: $${total.toFixed(2)}`);
   }
   

@@ -442,7 +442,7 @@ export class AnalyticsStorage {
   /**
    * Log audit event to runner_events
    */
-  private static async logAuditEvent(event: {
+  static async logAuditEvent(event: {
     actor: string;
     action: string;
     resource_type: string;

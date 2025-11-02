@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Test error:', error);
     return NextResponse.json({ 
-      error: error.message 
+      error: error instanceof Error ? error.message : String(error) 
     }, { status: 500 });
   }
 }

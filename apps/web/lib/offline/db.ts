@@ -45,6 +45,15 @@ export interface StateCacheItem {
   isDirty: boolean;
 }
 
+export interface ProjectDataItem {
+  id?: number;
+  projectId: string;
+  key: string;
+  data: any;
+  updatedAt: string;
+  tabId?: string;
+}
+
 export interface ConflictItem {
   id: string;
   projectId: string;
@@ -79,16 +88,27 @@ export class OfflineDatabase extends Dexie {
   stateCache!: Table<StateCacheItem>;
   conflicts!: Table<ConflictItem>;
   healthSnapshots!: Table<HealthSnapshot>;
+  projectData!: Table<ProjectDataItem>;
 
   constructor() {
     super('BuildRunnerOfflineDB');
-    
+
     this.version(1).stores({
       outbox: 'id, projectId, kind, status, nextRunAt, createdAt',
       planCache: 'id, projectId, lastModified, isDirty',
       stateCache: 'id, projectId, lastModified, isDirty',
       conflicts: 'id, projectId, entity, entityId, createdAt, resolvedAt',
       healthSnapshots: 'id, target, takenAt, ok'
+    });
+
+    // Version 2: Add projectData table for multi-tab support
+    this.version(2).stores({
+      outbox: 'id, projectId, kind, status, nextRunAt, createdAt',
+      planCache: 'id, projectId, lastModified, isDirty',
+      stateCache: 'id, projectId, lastModified, isDirty',
+      conflicts: 'id, projectId, entity, entityId, createdAt, resolvedAt',
+      healthSnapshots: 'id, target, takenAt, ok',
+      projectData: '++id, [projectId+key], projectId, key, updatedAt, tabId'
     });
 
     // Hooks for automatic timestamp updates

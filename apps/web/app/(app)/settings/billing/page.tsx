@@ -183,7 +183,7 @@ export default function BillingPage() {
                 </div>
                 <div className="text-center p-4 bg-gray-50 rounded-lg">
                   <div className="text-2xl font-bold text-gray-900">
-                    ${plans.plans[billingAccount.plan].price.monthly}
+                    ${plans[billingAccount.plan as keyof typeof plans].priceMonthly}
                   </div>
                   <div className="text-sm text-gray-600">Monthly Cost</div>
                 </div>
@@ -262,7 +262,7 @@ export default function BillingPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Plans</h3>
             <div className="space-y-3">
-              {Object.entries(plans.plans).map(([planId, plan]) => (
+              {Object.entries(plans).map(([planId, plan]) => (
                 <div
                   key={planId}
                   className={`p-4 border rounded-lg cursor-pointer transition-colors ${
@@ -274,13 +274,13 @@ export default function BillingPage() {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-medium text-gray-900">{plan.name}</h4>
-                    {plan.popular && (
+                    {planId === 'pro' && (
                       <Badge className="bg-blue-100 text-blue-800 text-xs">Popular</Badge>
                     )}
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{plan.description}</p>
                   <div className="text-lg font-bold text-gray-900">
-                    ${plan.price.monthly}
+                    ${plan.priceMonthly}
                     <span className="text-sm font-normal text-gray-600">/month</span>
                   </div>
                   {selectedPlan === planId && planId !== billingAccount?.plan && (

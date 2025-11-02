@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import { useProject } from '../../lib/project';
+import { useTabSafeProject } from '../../lib/project-context';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 
 export function ProjectSelector() {
-  const { currentProject, projects, setCurrentProject } = useProject();
+  const { currentProject, projects, setCurrentProject } = useTabSafeProject();
   const [isOpen, setIsOpen] = useState(false);
 
   if (!currentProject) {

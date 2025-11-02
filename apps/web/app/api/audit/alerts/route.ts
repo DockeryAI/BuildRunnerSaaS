@@ -65,7 +65,7 @@ function determineAlertChannels(event: any): string[] {
     channels.push('email');
   }
 
-  return [...new Set(channels)]; // Remove duplicates
+  return Array.from(new Set(channels)); // Remove duplicates
 }
 
 async function sendAlert(channel: string, event: any): Promise<void> {

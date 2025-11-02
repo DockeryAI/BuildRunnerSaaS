@@ -27,7 +27,7 @@ export default function TestAIPage() {
       console.log('Test result:', data);
     } catch (error) {
       console.error('Test error:', error);
-      setResult({ error: error.message });
+      setResult({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoading(false);
     }

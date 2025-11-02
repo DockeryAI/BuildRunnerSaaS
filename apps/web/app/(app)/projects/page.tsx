@@ -10,6 +10,7 @@ import {
   ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 import RecentBuilds from '@/components/RecentBuilds';
+import { setProjectContext } from '@/lib/multi-tab-manager';
 
 interface BuildMetadata {
   buildId: string;
@@ -63,8 +64,8 @@ export default function ProjectsLibraryPage() {
 
     // If project is complete and has a last build, open that build
     if (currentPhase === 'complete' && lastBuildId) {
-      localStorage.setItem('currentProjectId', project.id);
-      router.push(`/workbench?buildId=${lastBuildId}&restore=true`);
+      setProjectContext(project.id, 'build');
+      router.push(`/workbench?projectId=${project.id}&buildId=${lastBuildId}&restore=true`);
       return;
     }
 
@@ -80,29 +81,30 @@ export default function ProjectsLibraryPage() {
         const resumeBuild = confirm('You have an in-progress build. Do you want to resume it?');
         if (resumeBuild) {
           const buildId = buildProgressKeys[0].replace('build_progress_', '');
-          localStorage.setItem('currentProjectId', project.id);
-          router.push(`/workbench?buildId=${buildId}&resume=true`);
+          setProjectContext(project.id, 'build');
+          router.push(`/workbench?projectId=${project.id}&buildId=${buildId}&resume=true`);
           return;
         }
       }
 
       // Otherwise, go to workbench for new build
-      localStorage.setItem('currentProjectId', project.id);
-      router.push('/workbench');
+      setProjectContext(project.id, 'build');
+      router.push(`/workbench?projectId=${project.id}`);
       return;
     }
 
     // If in plan phase, go to plan page
     if (currentPhase === 'plan') {
-      localStorage.setItem('currentProjectId', project.id);
-      router.push('/plan');
+      setProjectContext(project.id, 'plan');
+      router.push(`/plan?projectId=${project.id}`);
       return;
     }
 
     // Default: go to PRD builder (handles 'prd' phase and no phase set)
     // Store project data in a temporary location for the create page to load
     sessionStorage.setItem('resuming_project', JSON.stringify(project));
-    router.push('/create');
+    setProjectContext(project.id, 'prd');
+    router.push(`/create?projectId=${project.id}`);
   }
 
   function handleDeleteProject(projectId: string) {
@@ -113,8 +115,8 @@ export default function ProjectsLibraryPage() {
   }
 
   function handleRestoreBuild(projectId: string, buildId: string) {
-    localStorage.setItem('currentProjectId', projectId);
-    router.push(`/workbench?buildId=${buildId}&restore=true`);
+    setProjectContext(projectId, 'build');
+    router.push(`/workbench?projectId=${projectId}&buildId=${buildId}&restore=true`);
   }
 
   function handleDeleteBuild(projectId: string, buildId: string) {

@@ -409,7 +409,7 @@ async function recordSyncStart(integrationId: string, direction: string, dryRun:
     .single();
 
   if (error) {
-    throw new Error(`Failed to record sync start: ${error.message}`);
+    throw new Error(`Failed to record sync start: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   return data.id;

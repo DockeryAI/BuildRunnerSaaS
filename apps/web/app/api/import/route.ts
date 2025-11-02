@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Import API error:', error);
     return NextResponse.json(
-      { error: error.message || 'Import failed' },
+      { error: error instanceof Error ? error.message : String(error) || 'Import failed' },
       { status: 500 }
     );
   }

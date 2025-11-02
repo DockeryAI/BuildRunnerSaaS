@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useProject } from '../../../lib/project';
+import { useTabSafeProject } from '../../../lib/project-context';
 import { extractBuildComponents, calculateComponentPositions } from '../../../lib/plan-to-components';
 import BuildCanvas from '../../../components/BuildCanvas';
 import ComponentDetailsModal from '../../../components/ComponentDetailsModal';
@@ -197,7 +197,7 @@ const DependencyLines = ({ components }: { components: BuildComponent[] }) => {
 export default function WorkbenchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentProject } = useProject();
+  const { currentProject } = useTabSafeProject();
   const [buildStatus, setBuildStatus] = useState<BuildStatus>('idle');
   const [components, setComponents] = useState<BuildComponent[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<BuildComponent | null>(null);

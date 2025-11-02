@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 import { ProjectProvider, useProject } from '../../lib/project';
+import { TabSafeProjectProvider, useTabSafeProject } from '../../lib/project-context';
 import { ProjectSelector } from '../../components/project/ProjectSelector';
 import {
   FileText,
@@ -53,7 +54,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarHidden, setSidebarHidden] = useState(false);
 
   const { user, signOut } = useAuth();
-  const { currentProject } = useProject();
+  const { currentProject } = useTabSafeProject();
 
   // Load sidebar states from localStorage on mount
   useEffect(() => {
@@ -270,9 +271,9 @@ export default function AppLayout({
 }) {
   return (
     <ProtectedRoute>
-      <ProjectProvider>
+      <TabSafeProjectProvider>
         <AppLayoutContent>{children}</AppLayoutContent>
-      </ProjectProvider>
+      </TabSafeProjectProvider>
     </ProtectedRoute>
   );
 }

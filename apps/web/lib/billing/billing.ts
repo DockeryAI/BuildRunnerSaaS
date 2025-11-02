@@ -123,7 +123,7 @@ export class BillingManager {
         org_id: orgId,
         plan,
         billing_email: billingEmail,
-        seats_included: plans.plans[plan as keyof typeof plans.plans]?.limits.seats || 1,
+        seats_included: plans[plan as keyof typeof plans]?.limits.seats || 1,
         seats_used: 1,
       }])
       .select()
@@ -209,7 +209,7 @@ export class BillingManager {
     stripeSubscriptionId?: string,
     stripePriceId?: string
   ): Promise<Subscription> {
-    const planConfig = plans.plans[plan as keyof typeof plans.plans];
+    const planConfig = plans[plan as keyof typeof plans];
     if (!planConfig) {
       throw new Error(`Invalid plan: ${plan}`);
     }
@@ -403,7 +403,7 @@ export class BillingManager {
    * Create default quotas for a plan
    */
   private static async createDefaultQuotas(billingAccountId: string, plan: string): Promise<void> {
-    const planConfig = plans.plans[plan as keyof typeof plans.plans];
+    const planConfig = plans[plan as keyof typeof plans];
     if (!planConfig) return;
 
     const quotas = [
