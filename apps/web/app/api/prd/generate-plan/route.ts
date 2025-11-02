@@ -89,7 +89,13 @@ Return a JSON object with this exact schema:
         "category": "frontend|backend|database|infrastructure|service",
         "reasoning": "Why this technology is recommended for this project",
         "difficulty": "easy|medium|advanced",
-        "setupRequired": true
+        "setupRequired": true,
+        "easierAlternative": {
+          "name": "Alternative technology name (ONLY if original is medium/advanced difficulty)",
+          "reasoning": "Why this is easier and achieves same goal",
+          "difficulty": "easy",
+          "tradeoffs": "What you give up by using the easier option"
+        }
       }
     ]
   },
@@ -146,14 +152,34 @@ PROJECT PLANNING RULES:
 
 TECHNOLOGY RECOMMENDATIONS:
 - For each technology, explain WHY it is recommended for THIS specific project
+- RESPECT THE PRD: If the PRD mentions specific technologies (e.g., "Outlook integration"), include those technologies
 - Consider difficulty level for non-technical users
 - Mark setupRequired=true if user needs to create account or install
 - Mark setupRequired=false if its a standard development tool
 - Reasoning should be specific to the project requirements (max 150 chars)
-- Prefer technologies with good documentation and community support
-- For databases, consider Supabase (PostgreSQL) as it provides auth, storage, and API
-- For email/SMS, suggest services with simple signup (Twilio, SendGrid, Resend)
-- For deployment, prefer platforms with free tiers (Vercel, Netlify, Railway)`
+
+EASIER ALTERNATIVES SYSTEM:
+- If a technology has difficulty="medium" or "advanced", MUST include an easierAlternative
+- The easierAlternative should achieve the same goal with less complexity
+- Include name, reasoning (why its easier), difficulty (always "easy"), and tradeoffs
+- Example: Microsoft Graph (advanced) → easierAlternative: Gmail API (easy)
+- Example: AWS S3 (medium) → easierAlternative: Supabase Storage (easy)
+- Example: Auth0 (medium) → easierAlternative: Supabase Auth (easy)
+- Example: OpenAI API (medium) → easierAlternative: OpenRouter (easy)
+- DO NOT replace requested technologies - show BOTH the requested tech AND the easier alternative
+- User can choose to accept the alternative or proceed with the original
+- Tradeoffs should be honest (e.g., "Less enterprise features, but sufficient for most use cases")
+
+SPECIFIC ALTERNATIVE MAPPINGS:
+- Microsoft Graph/Outlook → Gmail API or Resend
+- AWS S3 → Supabase Storage
+- Auth0 → Supabase Auth
+- OpenAI/Anthropic direct → OpenRouter
+- SendGrid → Resend
+- Twilio → Avoid recommending (too complex)
+- Custom PostgreSQL → Supabase (includes auth, storage, API)
+
+Prioritize services with easy=difficulty and setupRequired=true only for cloud services`
           },
           {
             role: 'user',
@@ -255,7 +281,7 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       const existingServices = new Set();
 
       // Check if Supabase is setup (from API keys)
-      if (apiKeys.supabase) {
+      if (apiKeys.supabase || apiKeys.supabase_url) {
         existingServices.add('Supabase');
         existingServices.add('PostgreSQL');
       }
@@ -264,33 +290,48 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       if (apiKeys.openrouter) existingServices.add('OpenRouter');
       if (apiKeys.anthropic) existingServices.add('Anthropic');
       if (apiKeys.openai) existingServices.add('OpenAI');
-      if (apiKeys.twilio) existingServices.add('Twilio');
+      if (apiKeys.resend) existingServices.add('Resend');
       if (apiKeys.sendgrid) existingServices.add('SendGrid');
+      if (apiKeys.vercel) existingServices.add('Vercel');
+      if (apiKeys.railway) existingServices.add('Railway');
+
+      // Services that can be fully integrated in-app (account/project creation via API)
+      // Currently only Supabase supports full programmatic setup
+      const inAppIntegrations = new Set(['Supabase', 'PostgreSQL']);
+
+      // Services that could potentially support OAuth (future enhancement)
+      const oauthCapable = new Set(['Vercel', 'Railway', 'Stripe']);
 
       // Enrich each technology with status
       plan.architecture.technologies = plan.architecture.technologies.map((tech: any) => {
         const techName = tech.name || '';
         let status = 'needs_account'; // Default status
+        let canIntegrateInApp = inAppIntegrations.has(techName);
 
         // Check if already setup
         if (existingServices.has(techName)) {
           status = 'already_setup';
-          tech.statusNote = 'Already configured in your account';
+          tech.statusNote = canIntegrateInApp
+            ? 'Integrated with your account'
+            : 'Already configured in your account';
         }
         // Check if it's a standard dev tool (no account needed)
         else if (['Node.js', 'npm', 'React', 'Next.js', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'Tailwind CSS'].includes(techName)) {
           status = 'standard_tool';
-          tech.statusNote = 'Standard development tool';
+          tech.statusNote = 'Already included';
+          canIntegrateInApp = false;
         }
         // Check if it's already installed locally
         else if (['VS Code', 'Git', 'Docker'].includes(techName)) {
           status = 'likely_installed';
           tech.statusNote = 'Commonly pre-installed';
+          canIntegrateInApp = false;
         }
 
         return {
           ...tech,
           status,
+          canIntegrateInApp,
           setupGuideUrl: getSetupGuideUrl(techName),
           signupUrl: getSignupUrl(techName)
         };

@@ -252,7 +252,7 @@ export class LLMGateway {
     const consensusModels: LLMModel[] = [
       'anthropic/claude-sonnet-3.5',
       'openai/gpt-4',
-      'google/gemini-pro',
+      'google/gemini-2.5-flash',
     ];
 
     const multiResponse = await this.consultMultiple(request, consensusModels);
@@ -507,7 +507,7 @@ Output format (JSON):
       'anthropic/claude-haiku': { input: 0.25, output: 1.25 },
       'openai/gpt-4': { input: 30.0, output: 60.0 },
       'openai/o1-mini': { input: 3.0, output: 12.0 },
-      'google/gemini-pro': { input: 0.5, output: 1.5 },
+      'google/gemini-2.5-flash': { input: 0.5, output: 1.5 },
       'google/gemini-flash-2.0': { input: 0.075, output: 0.3 },
       'deepseek/deepseek-chat': { input: 0.14, output: 0.28 },
     };

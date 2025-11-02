@@ -392,7 +392,7 @@ export class OrchestratorAgent {
           success_metrics: {
             time_to_resolve: intervention.resolution.time_taken,
             attempts_needed: 1,
-            llms_consulted: ['anthropic/claude-sonnet-3.5', 'openai/gpt-4', 'google/gemini-pro'],
+            llms_consulted: ['anthropic/claude-sonnet-3.5', 'openai/gpt-4', 'google/gemini-2.5-flash'],
           },
           created_at: intervention.timestamp,
         };

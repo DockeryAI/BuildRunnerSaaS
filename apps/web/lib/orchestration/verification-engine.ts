@@ -27,7 +27,7 @@ export class VerificationEngine {
   private verificationModels: LLMModel[] = [
     'anthropic/claude-sonnet-3.5',
     'openai/gpt-4',
-    'google/gemini-pro',
+    'google/gemini-2.5-flash',
   ];
 
   private constructor() {}

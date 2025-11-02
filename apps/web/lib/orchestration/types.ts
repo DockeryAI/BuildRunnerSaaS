@@ -84,7 +84,7 @@ export type LLMModel =
   | 'anthropic/claude-haiku'
   | 'openai/gpt-4'
   | 'openai/o1-mini'
-  | 'google/gemini-pro'
+  | 'google/gemini-2.5-flash'
   | 'google/gemini-flash-2.0'
   | 'deepseek/deepseek-chat';
 
