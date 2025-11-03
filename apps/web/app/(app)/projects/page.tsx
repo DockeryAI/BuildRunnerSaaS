@@ -107,7 +107,42 @@ export default function ProjectsLibraryPage() {
     router.push(`/create?projectId=${project.id}`);
   }
 
-  function handleDeleteProject(projectId: string) {
+  async function handleDeleteProject(projectId: string) {
+    // Call cleanup API to delete build files
+    try {
+      const response = await fetch('/api/build/cleanup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ projectId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Build cleanup successful:', data);
+
+        // Clean up localStorage keys
+        localStorage.removeItem(`last_build_${projectId}`);
+        localStorage.removeItem(`buildrunner_plan_${projectId}`);
+        localStorage.removeItem(`buildrunner_prd_${projectId}`);
+
+        // Remove all build progress keys for this project
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith(`build_progress_`) ||
+              key.startsWith(`showPreviewButton_${projectId}`) ||
+              key.startsWith(`appType_${projectId}`)) {
+            localStorage.removeItem(key);
+          }
+        });
+      } else {
+        console.error('Failed to cleanup builds:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error calling cleanup API:', error);
+    }
+
+    // Remove project from localStorage
     const updatedProjects = projects.filter(p => p.id !== projectId);
     localStorage.setItem('buildrunner_projects', JSON.stringify(updatedProjects));
     setProjects(updatedProjects);
@@ -119,7 +154,19 @@ export default function ProjectsLibraryPage() {
     router.push(`/workbench?projectId=${projectId}&buildId=${buildId}&restore=true`);
   }
 
-  function handleDeleteBuild(projectId: string, buildId: string) {
+  async function handleDeleteBuild(projectId: string, buildId: string) {
+    // Clean up localStorage for this specific build
+    localStorage.removeItem(`build_progress_${buildId}`);
+    localStorage.removeItem(`showPreviewButton_${projectId}_${buildId}`);
+    localStorage.removeItem(`appType_${projectId}_${buildId}`);
+
+    // If this was the last build, also remove the last_build key
+    const lastBuildKey = `last_build_${projectId}`;
+    if (localStorage.getItem(lastBuildKey) === buildId) {
+      localStorage.removeItem(lastBuildKey);
+    }
+
+    // Update projects list
     const updatedProjects = projects.map(p => {
       if (p.id === projectId && p.builds) {
         return {

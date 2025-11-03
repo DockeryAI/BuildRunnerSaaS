@@ -14,6 +14,8 @@ import { BuildFileWriter, inferFilePath } from './file-writer';
 import { AppTypeDetector } from './app-type-detector';
 import { DependencyAnalyzer } from './dependency-analyzer';
 import { ParallelBuilder } from './parallel-builder';
+import { DesignSystemGenerator, type DesignSpec } from './design-system-generator';
+import { getTemplateForComponent } from './component-templates';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -98,6 +100,7 @@ export interface BuildState {
   endTime?: Date;
   errors: BuildError[];
   interventions: Intervention[];
+  designSpec?: DesignSpec; // Beautiful design system for UI components
   loopDetections: LoopDetection[];
   projectMetadata?: {
     prd?: string;
@@ -271,7 +274,9 @@ export class BuildOrchestrator extends EventEmitter {
   private appTypeDetector: AppTypeDetector;
   private dependencyAnalyzer: DependencyAnalyzer;
   private parallelBuilder: ParallelBuilder;
+  private designSystemGenerator: DesignSystemGenerator;
   private appConfig: any;
+  private productIdea: string = ''; // Store product idea for design generation
 
   constructor(apiKey?: string, config?: Partial<OrchestrationConfig>, projectId?: string) {
     super();
@@ -279,6 +284,7 @@ export class BuildOrchestrator extends EventEmitter {
     this.state = this.initializeState();
     this.apiKey = apiKey || '';
     this.projectId = projectId || '1';
+    this.designSystemGenerator = new DesignSystemGenerator();
 
     // Initialize new components
     this.appTypeDetector = new AppTypeDetector();
@@ -358,6 +364,41 @@ export class BuildOrchestrator extends EventEmitter {
         // Continue build even if file writer fails
       }
 
+      // Generate design system (Phase 1: Design-First Approach)
+      if (!this.state.designSpec) {
+        this.emit('log', {
+          level: 'info',
+          message: '🎨 Generating beautiful design system...'
+        });
+
+        try {
+          const appType = this.appConfig?.appType || 'web';
+          this.state.designSpec = await this.designSystemGenerator.generateDesignSystem(
+            this.productIdea || 'Modern web application',
+            appType,
+            this.apiKey
+          );
+
+          this.emit('log', {
+            level: 'success',
+            message: `✨ Design system created: ${this.state.designSpec.visualStyle} style`
+          });
+
+          console.log('🎨 Design Spec:', {
+            style: this.state.designSpec.visualStyle,
+            colors: this.state.designSpec.colorPalette.primary,
+            fonts: this.state.designSpec.typography.fontFamily.sans,
+          });
+        } catch (error) {
+          console.error('Failed to generate design system:', error);
+          this.emit('log', {
+            level: 'warning',
+            message: '⚠️ Using fallback design system'
+          });
+          // Continue with default design
+        }
+      }
+
       // Start loop detection monitoring
       if (this.config.loop_detection.enabled) {
         this.startLoopDetection();
@@ -373,17 +414,72 @@ export class BuildOrchestrator extends EventEmitter {
       await this.executePhase('building', async () => {
         await this.buildComponents();
 
+        // Check pause before assembly
+        if (this.isPaused) {
+          await this.waitForResume();
+        }
+
         // NEW: Assemble into working application
         await this.assembleApplication();
       });
 
-      // Phase 3: Verification
+      // Check pause after building
+      if (this.isPaused) {
+        this.emit('log', {
+          level: 'info',
+          message: '⏸️  Build paused after component building'
+        });
+        await this.waitForResume();
+      }
+
+      // Calculate metadata for preview
+      const completedComponents = this.state.components.filter(c => c.status === 'completed');
+      const isWebApp = this.appConfig?.appType === 'web' ||
+                       this.appConfig?.framework?.toLowerCase().includes('next') ||
+                       this.appConfig?.framework?.toLowerCase().includes('react') ||
+                       completedComponents.some(c => c.type === 'frontend');
+      const isMobileApp = this.appConfig?.appType === 'mobile' ||
+                          this.appConfig?.appType === 'ios' ||
+                          this.appConfig?.framework?.toLowerCase().includes('expo') ||
+                          this.appConfig?.framework?.toLowerCase().includes('react native') ||
+                          this.appConfig?.framework?.toLowerCase().includes('swift');
+
+      // Emit early completion for preview (before verification/testing)
+      this.emit('build:preview_ready', {
+        buildId: this.state.id,
+        timestamp: new Date().toISOString(),
+        componentCount: completedComponents.length,
+        buildDirectory: `builds/${this.projectId}/${this.state.id}`,
+        isWebApp,
+        isMobileApp,
+        message: 'Build complete! Preview available while verification runs in background.'
+      });
+
+      // Check pause before verification
+      if (this.isPaused) {
+        this.emit('log', {
+          level: 'info',
+          message: '⏸️  Build paused before verification phase'
+        });
+        await this.waitForResume();
+      }
+
+      // Phase 3: Verification (runs in background after preview is available)
       this.state.status = 'verifying';
       await this.executePhase('verification', async () => {
         await this.verifyBuild();
       });
 
-      // Phase 4: Testing
+      // Check pause before testing
+      if (this.isPaused) {
+        this.emit('log', {
+          level: 'info',
+          message: '⏸️  Build paused before testing phase'
+        });
+        await this.waitForResume();
+      }
+
+      // Phase 4: Testing (runs in background after preview is available)
       this.state.status = 'testing';
       await this.executePhase('testing', async () => {
         await this.testBuild();
@@ -395,22 +491,14 @@ export class BuildOrchestrator extends EventEmitter {
       this.state.progress = 100;
       this.stopLoopDetection();
 
-      // Calculate build metadata
-      const completedComponents = this.state.components.filter(c => c.status === 'completed');
+      // Calculate build metadata (reuse completedComponents, isWebApp, isMobileApp from earlier)
       const duration = this.state.endTime.getTime() - (this.state.startTime?.getTime() || 0);
 
-      // Check if this is a web app based on detected app type
-      const isWebApp = this.appConfig?.appType === 'web' ||
-                       this.appConfig?.framework?.toLowerCase().includes('next') ||
-                       this.appConfig?.framework?.toLowerCase().includes('react') ||
-                       completedComponents.some(c => c.type === 'frontend');
-
-      // Check if this is a mobile app
-      const isMobileApp = this.appConfig?.appType === 'mobile' ||
-                          this.appConfig?.appType === 'ios' ||
-                          this.appConfig?.framework?.toLowerCase().includes('expo') ||
-                          this.appConfig?.framework?.toLowerCase().includes('react native') ||
-                          this.appConfig?.framework?.toLowerCase().includes('swift');
+      // Emit completion message to terminal
+      this.emit('log', {
+        level: 'success',
+        message: `\n✅ ========================================\n✅ BUILD COMPLETED SUCCESSFULLY!\n✅ ========================================\n✨ Generated ${completedComponents.length} components\n⏱️  Build time: ${Math.round(duration / 1000)}s\n📁 Location: builds/${this.projectId}/${this.state.id}\n${isWebApp ? '🌐 Web app ready for preview\n' : ''}${isMobileApp ? '📱 Mobile app code generated\n' : ''}🎉 Your project is ready!`
+      });
 
       this.emit('build:completed', {
         buildId: this.state.id,
@@ -449,6 +537,24 @@ export class BuildOrchestrator extends EventEmitter {
       this.startLoopDetection();
     }
     this.emit('build:resumed', { buildId: this.state.id });
+  }
+
+  /**
+   * Stop/Cancel the build process completely
+   */
+  public stopBuild(): void {
+    this.isPaused = false; // Unpause so build can complete
+    this.state.status = 'failed';
+    this.stopLoopDetection();
+    this.emit('build:stopped', {
+      buildId: this.state.id,
+      message: 'Build stopped by user'
+    });
+    this.emit('build:error', {
+      buildId: this.state.id,
+      error: 'Build cancelled by user',
+      phase: this.state.currentPhase
+    });
   }
 
   /**
@@ -551,6 +657,32 @@ export class BuildOrchestrator extends EventEmitter {
   }
 
   private async buildComponent(component: BuildComponent): Promise<void> {
+    // Check if paused before starting
+    if (this.isPaused) {
+      this.emit('log', {
+        level: 'info',
+        message: `⏸️  Build paused before starting ${component.name}`
+      });
+      await this.waitForResume();
+    }
+
+    // Mark component as building and emit started event
+    component.status = 'building';
+    component.progress = 0;
+
+    this.emit('component:started', {
+      componentId: component.id,
+      componentName: component.name,
+      componentType: component.type
+    });
+
+    // Emit initial progress
+    this.emit('progress:updated', {
+      componentId: component.id,
+      componentName: component.name,
+      progress: 0
+    });
+
     // Step 1: Generate prompt
     this.emit('log', {
       level: 'info',
@@ -594,6 +726,13 @@ export class BuildOrchestrator extends EventEmitter {
     component.code = code;
     component.progress = 80;
 
+    // Emit progress update
+    this.emit('progress:updated', {
+      componentId: component.id,
+      componentName: component.name,
+      progress: 80
+    });
+
     // Step 3: Write file to disk
     if (this.fileWriter && code) {
       try {
@@ -630,6 +769,21 @@ export class BuildOrchestrator extends EventEmitter {
     }
 
     component.progress = 100;
+    component.status = 'completed';
+
+    // Emit progress update
+    this.emit('progress:updated', {
+      componentId: component.id,
+      componentName: component.name,
+      progress: 100
+    });
+
+    // Emit completed event
+    this.emit('component:completed', {
+      componentId: component.id,
+      componentName: component.name,
+      codeLength: code?.length || 0
+    });
 
     // Track action
     this.trackAction(`build_component_${component.id}`);
@@ -679,22 +833,52 @@ export class BuildOrchestrator extends EventEmitter {
   private async installDependencies(): Promise<void> {
     console.log('📦 Installing dependencies...');
 
+    this.emit('log', {
+      level: 'info',
+      message: '📦 Installing npm dependencies (this may take 1-2 minutes)...'
+    });
+
     if (!this.fileWriter) {
-      console.error('File writer not initialized');
+      const error = 'File writer not initialized';
+      console.error(error);
+      this.emit('log', {
+        level: 'error',
+        message: `❌ ${error}`
+      });
       return;
     }
 
     try {
       const buildDir = this.fileWriter.getBuildDir();
-      await execAsync('npm install', {
+
+      // Run npm install with proper error handling
+      const { stdout, stderr } = await execAsync('npm install --legacy-peer-deps', {
         cwd: buildDir,
         timeout: 300000, // 5 minutes
+        maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large dependency trees
       });
 
-      console.log('✅ Dependencies installed');
-    } catch (error) {
-      console.error('Failed to install dependencies:', error);
-      // Don't throw - allow build to continue
+      if (stderr && !stderr.includes('npm WARN')) {
+        console.warn('npm install warnings:', stderr);
+      }
+
+      console.log('✅ Dependencies installed successfully');
+      this.emit('log', {
+        level: 'success',
+        message: '✅ All dependencies installed successfully'
+      });
+    } catch (error: any) {
+      const errorMsg = error.message || 'Unknown error';
+      console.error('❌ Failed to install dependencies:', errorMsg);
+      this.emit('log', {
+        level: 'error',
+        message: `❌ Dependency installation failed: ${errorMsg}`
+      });
+      this.emit('log', {
+        level: 'warning',
+        message: '⚠️  Build may not run correctly without dependencies. You can manually run "npm install" in the build directory.'
+      });
+      // Don't throw - allow build to continue so user can manually install
     }
   }
 
@@ -703,52 +887,70 @@ export class BuildOrchestrator extends EventEmitter {
 
     let verifiedCount = 0;
     let skippedCount = 0;
+    const componentsToVerify = this.state.components.filter(c => c.status === 'completed' && c.code);
+    let currentIndex = 0;
 
-    for (const component of this.state.components) {
-      if (component.status === 'completed' && component.code) {
-        const criticality = this.classifyComponentCriticality(component);
-        const strategy = this.config.verification.component_verification_strategy[criticality];
-
+    for (const component of componentsToVerify) {
+      // Check if paused
+      if (this.isPaused) {
         this.emit('log', {
           level: 'info',
-          message: `Verifying ${component.name} [${criticality}] using ${strategy} strategy`
+          message: `⏸️  Verification paused at component ${currentIndex}/${componentsToVerify.length}`
         });
+        await this.waitForResume();
+      }
 
-        if (strategy === 'none') {
-          skippedCount++;
-          continue;
+      currentIndex++;
+      const criticality = this.classifyComponentCriticality(component);
+      const strategy = this.config.verification.component_verification_strategy[criticality];
+
+      // Emit phase progress
+      this.emit('phase:progress', {
+        phase: 'verification',
+        current: currentIndex,
+        total: componentsToVerify.length,
+        percentage: Math.round((currentIndex / componentsToVerify.length) * 100)
+      });
+
+      this.emit('log', {
+        level: 'info',
+        message: `Verifying ${component.name} [${criticality}] using ${strategy} strategy`
+      });
+
+      if (strategy === 'none') {
+        skippedCount++;
+        continue;
+      }
+
+      if (strategy === 'full_consensus') {
+        // Multi-model consensus for critical components
+        const verification = await this.getMultiLLMConsensus(
+          'verify_component',
+          `Verify this ${criticality} component code is correct, follows best practices, and has no security vulnerabilities:\n\nComponent: ${component.name}\nCode:\n${component.code}`
+        );
+
+        if (!verification.agreed) {
+          this.emit('verification:failed', { component: component.id });
+          await this.triggerIntervention('critical_error', `Critical component ${component.name} failed multi-LLM verification`);
+        } else {
+          verifiedCount++;
         }
+      } else if (strategy === 'single_model') {
+        // Single model verification for important components
+        const model = this.config.verification.verification_models[0];
+        const result = await this.callLLM(
+          model,
+          `Verify this component code is correct and follows best practices:\n\nComponent: ${component.name}\nCode:\n${component.code}\n\nRespond with "PASS" if correct, or list issues.`
+        );
 
-        if (strategy === 'full_consensus') {
-          // Multi-model consensus for critical components
-          const verification = await this.getMultiLLMConsensus(
-            'verify_component',
-            `Verify this ${criticality} component code is correct, follows best practices, and has no security vulnerabilities:\n\nComponent: ${component.name}\nCode:\n${component.code}`
-          );
-
-          if (!verification.agreed) {
-            this.emit('verification:failed', { component: component.id });
-            await this.triggerIntervention('critical_error', `Critical component ${component.name} failed multi-LLM verification`);
-          } else {
-            verifiedCount++;
-          }
-        } else if (strategy === 'single_model') {
-          // Single model verification for important components
-          const model = this.config.verification.verification_models[0];
-          const result = await this.callLLM(
-            model,
-            `Verify this component code is correct and follows best practices:\n\nComponent: ${component.name}\nCode:\n${component.code}\n\nRespond with "PASS" if correct, or list issues.`
-          );
-
-          if (result.includes('PASS')) {
-            verifiedCount++;
-          } else {
-            this.emit('verification:failed', { component: component.id });
-            this.emit('log', {
-              level: 'warning',
-              message: `Component ${component.name} has potential issues: ${result.substring(0, 200)}`
-            });
-          }
+        if (result.includes('PASS')) {
+          verifiedCount++;
+        } else {
+          this.emit('verification:failed', { component: component.id });
+          this.emit('log', {
+            level: 'warning',
+            message: `Component ${component.name} has potential issues: ${result.substring(0, 200)}`
+          });
         }
       }
     }
@@ -787,11 +989,43 @@ export class BuildOrchestrator extends EventEmitter {
   private async testBuild(): Promise<void> {
     this.emit('testing:started');
 
-    // Generate and run tests for each component
-    for (const component of this.state.components) {
-      if (component.status === 'completed' && component.code) {
+    let testedCount = 0;
+    let skippedCount = 0;
+    const componentsToTest = this.state.components.filter(c => c.status === 'completed' && c.code);
+    let currentIndex = 0;
+
+    // Generate and run tests for critical and important components only
+    for (const component of componentsToTest) {
+      // Check if paused
+      if (this.isPaused) {
+        this.emit('log', {
+          level: 'info',
+          message: `⏸️  Testing paused at component ${currentIndex}/${componentsToTest.length}`
+        });
+        await this.waitForResume();
+      }
+
+      currentIndex++;
+      const criticality = this.classifyComponentCriticality(component);
+
+      // Emit phase progress
+      this.emit('phase:progress', {
+        phase: 'testing',
+        current: currentIndex,
+        total: componentsToTest.length,
+        percentage: Math.round((currentIndex / componentsToTest.length) * 100)
+      });
+
+      // Only generate tests for critical & important components
+      if (criticality === 'critical' || criticality === 'important') {
+        this.emit('log', {
+          level: 'info',
+          message: `Generating tests for ${component.name} [${criticality}]`
+        });
+
         const tests = await this.generateTests(component);
         component.tests = tests;
+        testedCount++;
 
         // Write test file to disk
         if (this.fileWriter && tests) {
@@ -806,8 +1040,20 @@ export class BuildOrchestrator extends EventEmitter {
             // Continue build even if file write fails
           }
         }
+      } else {
+        // Skip standard (UI) components - not worth auto-generating tests
+        skippedCount++;
+        this.emit('log', {
+          level: 'info',
+          message: `Skipping test generation for ${component.name} [${criticality}] - UI tests written manually`
+        });
       }
     }
+
+    this.emit('log', {
+      level: 'info',
+      message: `Testing complete: ${testedCount} tested, ${skippedCount} skipped (UI components)`
+    });
 
     this.emit('testing:completed');
   }
@@ -1197,6 +1443,52 @@ export class BuildOrchestrator extends EventEmitter {
     const framework = this.appConfig?.framework || 'react';
     const appType = this.appConfig?.appType || 'web';
 
+    // Get reference template if available
+    const referenceTemplate = getTemplateForComponent(component.name, component.type);
+
+    // Build design system guidance
+    let designGuidance = '';
+    if (this.state.designSpec && component.type === 'frontend') {
+      const ds = this.state.designSpec;
+      designGuidance = `
+🎨 DESIGN SYSTEM (FOLLOW EXACTLY):
+
+Visual Style: ${ds.visualStyle}
+Inspiration: ${ds.inspiration.join(', ')}
+
+Color Palette (use these exact colors):
+- Primary: ${ds.colorPalette.primary}
+- Secondary: ${ds.colorPalette.secondary}
+- Accent: ${ds.colorPalette.accent}
+- Background: ${ds.colorPalette.background}
+- Border: ${ds.colorPalette.border}
+
+Typography:
+- Font: ${ds.typography.fontFamily.sans}
+- Use font weights: ${ds.typography.weights.medium} (medium), ${ds.typography.weights.semibold} (semibold), ${ds.typography.weights.bold} (bold)
+
+Component Style: ${ds.componentPatterns.cardStyle} cards with ${ds.componentPatterns.navigation} navigation
+
+**CRITICAL DESIGN REQUIREMENTS:**
+1. Use shadcn/ui components from @/components/ui (Button, Card, Input, Label, etc.)
+2. Import icons from lucide-react
+3. Apply the color palette consistently
+4. Add smooth transitions (transition-all duration-200)
+5. Include hover states (hover:scale-105, hover:shadow-lg)
+6. Ensure responsive design (responsive grid, mobile-first)
+7. Add loading states and micro-animations
+8. Use proper spacing from design tokens
+
+**shadcn/ui IMPORTS (USE THESE):**
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+// Import icons:
+import { Sparkles, ArrowRight, Plus, Search, MoreVertical } from 'lucide-react';
+`;
+    }
+
     // Build framework-specific constraints based on app type
     let frameworkConstraints = '';
 
@@ -1221,16 +1513,137 @@ CRITICAL FRAMEWORK CONSTRAINTS:
 `;
     } else if (framework.toLowerCase().includes('next')) {
       frameworkConstraints = `
-CRITICAL FRAMEWORK CONSTRAINTS:
-- This is a Next.js web application
-- ONLY use Next.js compatible libraries and patterns
+CRITICAL FRAMEWORK CONSTRAINTS FOR NEXT.JS:
+- This is a Next.js 14+ web application using the App Router
+- ABSOLUTELY DO NOT use 'react-router-dom' - it is NOT compatible with Next.js
+- NAVIGATION: Use 'next/navigation' (useRouter, usePathname, Link from next/link)
+- ROUTING: Use Next.js file-based routing in app/ directory, NOT React Router
+- CLIENT COMPONENTS: Add 'use client' directive at top of files that use hooks or browser APIs
+- SERVER COMPONENTS: Default to server components, only use client when needed
 - DO NOT use iOS/Swift/SwiftUI code or syntax
 - DO NOT use React Native or mobile-specific libraries
-- DO NOT import non-existent services or utilities
-- Use React components with TypeScript
-- Use Next.js App Router patterns ('use client' for client components)
-- Stick to standard React hooks and Next.js APIs only
-- Only use libraries that exist in package.json
+
+⚠️ CRITICAL: ZERO EXTERNAL IMPORTS ⚠️
+
+YOU MUST GENERATE COMPLETELY SELF-CONTAINED CODE.
+
+✅ ALLOWED IMPORTS (ONLY THESE):
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+
+❌ ABSOLUTELY FORBIDDEN (WILL BREAK BUILD):
+- import anything from '../services/' (WeatherAPI, AuthService, etc.)
+- import anything from '../utils/' (helpers, formatters, etc.)
+- import anything from '../hooks/' (useAuth, useFetch, etc.)
+- import anything from '../types/' (interfaces, types)
+- import anything from '../lib/' (API clients, utilities)
+- import { Navigate, useParams } from 'react-router-dom' (wrong framework!)
+- import './styles.css' or '../styles/something.css'
+
+⚠️ USE MOCK DATA - NOT EXTERNAL SERVICES ⚠️
+
+WRONG (will break):
+  import { WeatherAPI } from '../services/WeatherAPI';
+  const weather = await WeatherAPI.getWeather(city);
+
+RIGHT (works):
+  // Mock data - replace with real API call later
+  const mockWeather = {
+    city: 'San Francisco',
+    temp: 72,
+    condition: 'Sunny',
+    humidity: 60
+  };
+
+  // OR if you need to fetch real data:
+  const response = await fetch(\`https://api.openweathermap.org/data/2.5/weather?q=\${city}\`);
+  const weather = await response.json();
+
+⚠️ DEFINE TYPES INLINE - NOT IN SEPARATE FILES ⚠️
+
+WRONG (will break):
+  import { Trip, Weather } from '../types';
+
+RIGHT (works):
+  interface Trip {
+    id: string;
+    destination: string;
+    startDate: string;
+    endDate: string;
+  }
+
+  interface Weather {
+    temp: number;
+    condition: string;
+  }
+
+⚠️ USE TAILWIND OR INLINE STYLES - NO SEPARATE CSS ⚠️
+
+WRONG (will break):
+  <div className="trip-dashboard">  // custom class not defined
+
+RIGHT (works):
+  <div className="p-4 max-w-6xl mx-auto bg-white rounded-lg shadow">
+
+⚠️ EXAMPLE: COMPLETE WORKING COMPONENT ⚠️
+
+// ✅ GOOD - Self-contained, uses mock data, no external imports
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+interface Trip {
+  id: string;
+  destination: string;
+  startDate: string;
+}
+
+export default function TripList() {
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Mock data - replace with API call later
+    const mockTrips: Trip[] = [
+      { id: '1', destination: 'Paris', startDate: '2024-01-15' },
+      { id: '2', destination: 'Tokyo', startDate: '2024-02-20' }
+    ];
+    setTrips(mockTrips);
+    setLoading(false);
+
+    // TODO: Replace with real API call:
+    // fetch('/api/trips')
+    //   .then(res => res.json())
+    //   .then(data => setTrips(data));
+  }, []);
+
+  if (loading) {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">My Trips</h1>
+      <div className="space-y-4">
+        {trips.map(trip => (
+          <div key={trip.id} className="p-4 border rounded-lg hover:shadow-lg transition">
+            <h2 className="text-xl font-semibold">{trip.destination}</h2>
+            <p className="text-gray-600">{trip.startDate}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+⚠️ IMPORTANT OUTPUT FORMATTING ⚠️
+- Output ONLY the TypeScript/TSX code
+- DO NOT wrap code in markdown fences (no \`\`\`typescript or \`\`\`tsx)
+- DO NOT include CSS in the same file
+- DO NOT add explanatory text before or after code
 `;
     } else if (framework.toLowerCase().includes('react')) {
       frameworkConstraints = `
@@ -1243,8 +1656,29 @@ CRITICAL FRAMEWORK CONSTRAINTS:
 `;
     }
 
+    // Add reference template if available
+    let templateGuidance = '';
+    if (referenceTemplate && component.type === 'frontend') {
+      templateGuidance = `
+📋 REFERENCE TEMPLATE (MATCH THIS QUALITY LEVEL):
+
+This is an example of the design quality expected. Generate code at this visual polish level:
+
+\`\`\`tsx
+${referenceTemplate}
+\`\`\`
+
+Your component should have:
+- Same level of visual polish and attention to detail
+- Similar use of gradients, shadows, and hover effects
+- Consistent spacing and typography
+- Professional color choices
+- Smooth transitions and animations
+`;
+    }
+
     return `
-Generate complete, production-ready code for this component:
+Generate complete, production-ready, BEAUTIFUL code for this component:
 
 Component: ${component.name}
 Type: ${component.type}
@@ -1255,6 +1689,10 @@ App Type: ${appType}
 Dependencies:
 ${dependencies.map(dep => `- ${dep?.name} (${dep?.id})`).join('\n')}
 
+${designGuidance}
+
+${templateGuidance}
+
 ${frameworkConstraints}
 
 Requirements:
@@ -1264,8 +1702,45 @@ Requirements:
 - Use modern ES6+ features
 - Ensure type safety
 - ONLY use libraries and APIs compatible with ${framework}
+- Use Tailwind CSS classes for styling (no custom CSS)
+- Define all TypeScript interfaces inline in the component
+- Use mock data with TODO comments for future API integration
+${component.type === 'frontend' ? '- Use shadcn/ui components and lucide-react icons\n- Follow the design system colors and typography EXACTLY\n- Add smooth transitions and hover effects\n- Ensure responsive, mobile-first design' : ''}
 
-Provide only the code, no explanations.
+CRITICAL OUTPUT INSTRUCTIONS:
+1. Output RAW TypeScript code ONLY - no markdown, no explanations
+2. DO NOT wrap code in \`\`\`typescript or \`\`\`tsx fences
+3. Start directly with 'use client'; or import statements
+4. DO NOT include any CSS, HTML, or other languages
+5. Use mock data arrays/objects - no external API calls yet
+6. Add TODO comments where real APIs should be integrated later
+${component.type === 'frontend' ? '7. Make it BEAUTIFUL - this should look professional and modern\n8. Use the design system colors and components\n9. Add micro-interactions (hover effects, transitions)' : ''}
+
+Example output structure:
+'use client';
+
+import { useState } from 'react';
+${component.type === 'frontend' ? "import { Button } from '@/components/ui/button';\nimport { Card } from '@/components/ui/card';" : ''}
+
+interface Item {
+  id: string;
+  name: string;
+}
+
+export default function ComponentName() {
+  // Mock data - TODO: Replace with API call
+  const [items] = useState<Item[]>([
+    { id: '1', name: 'Example' }
+  ]);
+
+  return (
+    <div className="p-4${component.type === 'frontend' ? ' max-w-6xl mx-auto' : ''}">
+      {items.map(item => (
+        <div key={item.id}>{item.name}</div>
+      ))}
+    </div>
+  );
+}
     `.trim();
   }
 
@@ -1414,11 +1889,23 @@ Provide only the code, no explanations.
 
     let cleaned = content.trim();
 
-    // Remove opening fence (```typescript, ```tsx, ```javascript, ```jsx, ```json, or just ```)
+    // Remove opening fence at start (```typescript, ```tsx, etc.)
     cleaned = cleaned.replace(/^```(?:typescript|tsx|javascript|jsx|json|ts|js)?\s*\n/i, '');
 
-    // Remove closing fence
+    // Remove closing fence at end
     cleaned = cleaned.replace(/\n```\s*$/, '');
+
+    // CRITICAL: Stop at first non-TypeScript code fence (like ```css, ```html, etc.)
+    // This prevents AI from including CSS or other languages in the same file
+    const nonTsCodeFenceMatch = cleaned.match(/\n```(?:css|html|scss|sass|less|json|yaml|yml|markdown|md)\b/i);
+    if (nonTsCodeFenceMatch) {
+      cleaned = cleaned.substring(0, nonTsCodeFenceMatch.index);
+      console.log('⚠️  Truncated code at non-TypeScript fence');
+    }
+
+    // Remove any remaining inline code fences (shouldn't be there but clean anyway)
+    cleaned = cleaned.replace(/```(?:typescript|tsx|javascript|jsx|ts|js)?\s*\n/gi, '');
+    cleaned = cleaned.replace(/\n```/g, '');
 
     return cleaned.trim();
   }

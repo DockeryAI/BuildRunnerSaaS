@@ -18,8 +18,17 @@ interface Architecture {
   technologies: Technology[];
 }
 
+interface BuildComponent {
+  id: string;
+  name: string;
+  status: 'pending' | 'building' | 'completed' | 'error';
+  progress: number;
+  type: 'frontend' | 'backend' | 'database' | 'api' | 'service';
+}
+
 interface ArchitectureFlowDiagramProps {
   architecture?: Architecture;
+  components?: BuildComponent[];
 }
 
 interface ArchComponent {
@@ -368,7 +377,50 @@ const DEFAULT_CONNECTIONS: ArchConnection[] = [
   { from: 'service', to: 'external', type: 'async', label: 'Queue' },
 ];
 
-export default function ArchitectureFlowDiagram({ architecture }: ArchitectureFlowDiagramProps) {
+// Helper function to update node progress based on build components
+function updateNodeProgress(nodes: ArchNode[], buildComponents?: BuildComponent[]): ArchNode[] {
+  if (!buildComponents || buildComponents.length === 0) {
+    return nodes;
+  }
+
+  console.log('📊 updateNodeProgress: Processing', buildComponents.length, 'components');
+  console.log('📊 Component types:', buildComponents.map(c => `${c.name}:${c.type}:${c.progress}%`));
+
+  return nodes.map(node => {
+    // Map node types to component types
+    let relevantComponents: BuildComponent[] = [];
+
+    switch (node.type) {
+      case 'webapp':
+        relevantComponents = buildComponents.filter(c => c.type === 'frontend');
+        break;
+      case 'gateway':
+      case 'service':
+        relevantComponents = buildComponents.filter(c => c.type === 'backend' || c.type === 'api' || c.type === 'service');
+        break;
+      case 'database':
+        relevantComponents = buildComponents.filter(c => c.type === 'database');
+        break;
+      case 'user':
+      case 'cache':
+      case 'external':
+        // These don't map to build components
+        return node;
+    }
+
+    // Calculate average progress for this node
+    if (relevantComponents.length > 0) {
+      const totalProgress = relevantComponents.reduce((sum, c) => sum + c.progress, 0);
+      const avgProgress = Math.round(totalProgress / relevantComponents.length);
+      console.log(`  ✓ Node "${node.name}" (${node.type}): ${relevantComponents.length} components, ${avgProgress}% progress`);
+      return { ...node, progress: avgProgress };
+    }
+
+    return node;
+  });
+}
+
+export default function ArchitectureFlowDiagram({ architecture, components }: ArchitectureFlowDiagramProps) {
   const [nodes, setNodes] = useState<ArchNode[]>([]);
   const [connections, setConnections] = useState<ArchConnection[]>([]);
   const [selectedNode, setSelectedNode] = useState<ArchNode | null>(null);
@@ -389,6 +441,18 @@ export default function ArchitectureFlowDiagram({ architecture }: ArchitectureFl
     setConnections(generatedConnections);
     console.log('✅ Generated', generatedNodes.length, 'nodes from architecture');
   }, [architecture]);
+
+  // Update node progress when components change
+  useEffect(() => {
+    if (components && components.length > 0) {
+      console.log('🔄 ArchitectureFlowDiagram: Received component updates', components);
+      setNodes(prevNodes => {
+        const updatedNodes = updateNodeProgress(prevNodes, components);
+        console.log('🎨 ArchitectureFlowDiagram: Updated nodes', updatedNodes);
+        return updatedNodes;
+      });
+    }
+  }, [components]);
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();

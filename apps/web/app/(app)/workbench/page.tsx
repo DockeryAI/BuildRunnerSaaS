@@ -23,6 +23,8 @@ import {
   CommandLineIcon,
   FolderIcon,
   CloudArrowUpIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 
 type ComponentStatus = 'pending' | 'building' | 'completed' | 'error';
@@ -230,6 +232,17 @@ export default function WorkbenchPage() {
   const [components, setComponents] = useState<BuildComponent[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<BuildComponent | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Consensus tracking
+  interface ConsensusVote {
+    id: string;
+    task: string;
+    timestamp: Date;
+    agreed: boolean;
+    agreementRatio: number;
+    models: number;
+  }
+  const [consensusVotes, setConsensusVotes] = useState<ConsensusVote[]>([]);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [planError, setPlanError] = useState<string | null>(null);
   const [messages, setMessages] = useState<BuildMessage[]>([
@@ -248,6 +261,8 @@ export default function WorkbenchPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [projectName, setProjectName] = useState<string>('');
+  const [productIdea, setProductIdea] = useState<string>('');
+  const [ideaExpanded, setIdeaExpanded] = useState<boolean>(false);
   const [projectPlan, setProjectPlan] = useState<any>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [showPreviewButton, setShowPreviewButton] = useState(false);
@@ -257,6 +272,16 @@ export default function WorkbenchPage() {
   const [previewInstructions, setPreviewInstructions] = useState<string | null>(null);
   const [appType, setAppType] = useState<'web' | 'mobile'>('web');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // Phase progress tracking
+  const [phaseProgress, setPhaseProgress] = useState<{
+    phase: string;
+    current: number;
+    total: number;
+    percentage: number;
+  } | null>(null);
+  const [isVerificationRunning, setIsVerificationRunning] = useState(false);
+  const [isFullyComplete, setIsFullyComplete] = useState(false);
 
   // Autosave state
   const [isSavingBuild, setIsSavingBuild] = useState(false);
@@ -407,10 +432,11 @@ export default function WorkbenchPage() {
         // Store plan in state for architecture diagram
         setProjectPlan(plan);
 
-        // Extract project name from plan or project data
+        // Extract project name and idea from plan or project data
         const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
         const project = savedProjects.find((p: any) => p.id === currentProjectId);
-        const name = project?.productName || project?.name || plan.projectName || 'Build Workbench';
+        // Use a simple name instead of the full product idea
+        const name = 'Build Workbench';
         setProjectName(name);
         console.log('📛 Project name:', name);
 
@@ -549,6 +575,10 @@ export default function WorkbenchPage() {
 
       const currentProjectId = localStorage.getItem('currentProjectId') || '1';
 
+      // Get product idea from saved projects for design system generation
+      const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
+      const currentProject = savedProjects.find((p: any) => p.id === currentProjectId);
+
       const response = await fetch('/api/build/start', {
         method: 'POST',
         headers: {
@@ -558,6 +588,11 @@ export default function WorkbenchPage() {
         body: JSON.stringify({
           components: buildComponents,
           projectId: currentProjectId,
+          productIdea: currentProject?.productIdea || productIdea || '',
+          appConfig: {
+            appType: projectPlan?.appType || 'web',
+            framework: projectPlan?.framework || 'nextjs',
+          },
         }),
       });
 
@@ -683,13 +718,77 @@ export default function WorkbenchPage() {
 
         const emoji = phaseEmojis[phase] || '⚙️';
         addLog('info', `${emoji} Starting ${phase} phase...`);
+
+        // Track when verification/testing starts
+        if (phase === 'verification' || phase === 'testing') {
+          setIsVerificationRunning(true);
+        }
+      });
+
+      // Phase progress tracking
+      eventSource.addEventListener('phase_progress', (event) => {
+        const data = JSON.parse(event.data);
+        setPhaseProgress({
+          phase: data.phase,
+          current: data.current,
+          total: data.total,
+          percentage: data.percentage
+        });
+      });
+
+      // Preview ready (early completion)
+      eventSource.addEventListener('build_preview_ready', (event) => {
+        const buildData = JSON.parse(event.data);
+        addLog('success', '✅ Components built! Preview available.');
+        addLog('info', '⏳ Verification and testing running in background...');
+
+        // Show preview button early
+        if (buildData.isWebApp || buildData.isMobileApp) {
+          setShowPreviewButton(true);
+          setAppType(buildData.isMobileApp ? 'mobile' : 'web');
+          // Save preview button state
+          const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+          localStorage.setItem(`showPreviewButton_${currentProjectId}_${buildData.buildId}`, 'true');
+          localStorage.setItem(`appType_${currentProjectId}_${buildData.buildId}`, buildData.isMobileApp ? 'mobile' : 'web');
+        }
+      });
+
+      // Consensus events
+      eventSource.addEventListener('consensus_started', (event) => {
+        const data = JSON.parse(event.data);
+        addLog('info', `🗳️  Starting consensus vote: ${data.task} (${data.models} models)`);
+      });
+
+      eventSource.addEventListener('consensus_completed', (event) => {
+        const data = JSON.parse(event.data);
+        const vote: ConsensusVote = {
+          id: `consensus_${Date.now()}`,
+          task: data.task,
+          timestamp: new Date(),
+          agreed: data.agreed,
+          agreementRatio: data.agreementRatio,
+          models: 3, // Default to 3 models
+        };
+
+        setConsensusVotes((prev) => [...prev, vote]);
+
+        const percentage = Math.round(data.agreementRatio * 100);
+        const icon = data.agreed ? '✅' : '❌';
+        const result = data.agreed ? 'PASSED' : 'FAILED';
+        addLog(
+          data.agreed ? 'success' : 'warning',
+          `${icon} Consensus ${result}: ${data.task} (${percentage}% agreement)`
+        );
       });
 
       eventSource.addEventListener('build_completed', (event) => {
         const buildData = JSON.parse(event.data);
         setBuildStatus('completed');
         setBuildPhase('completed');
-        addLog('success', '🎉 Build completed successfully!');
+        setIsVerificationRunning(false);
+        setIsFullyComplete(true);
+        setPhaseProgress(null); // Clear phase progress
+        addLog('success', '🎉 Build fully complete! Verification and testing passed.');
 
         // Clear build autosave since build is complete
         localStorage.removeItem(`build_progress_${buildData.buildId}`);
@@ -1212,6 +1311,45 @@ export default function WorkbenchPage() {
                 {buildStatus.charAt(0).toUpperCase() + buildStatus.slice(1)}
               </span>
 
+              {/* Phase Progress Indicator */}
+              {phaseProgress && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg border border-blue-200">
+                  <span className="text-xs font-medium text-blue-700">
+                    {phaseProgress.phase === 'verification' ? '🔍 Verifying' : '🧪 Testing'}:
+                  </span>
+                  <span className="text-xs text-blue-600">
+                    {phaseProgress.current}/{phaseProgress.total} ({phaseProgress.percentage}%)
+                  </span>
+                  <div className="w-24 h-1.5 bg-blue-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 transition-all duration-300"
+                      style={{ width: `${phaseProgress.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Background Verification Badge */}
+              {isVerificationRunning && !phaseProgress && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 rounded-md border border-amber-200">
+                  <svg className="w-3 h-3 animate-spin text-amber-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-[10px] text-amber-700 font-medium">Verification running</span>
+                </div>
+              )}
+
+              {/* Fully Complete Badge */}
+              {isFullyComplete && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 rounded-md border border-green-200">
+                  <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  </svg>
+                  <span className="text-[10px] text-green-700 font-medium">Fully verified</span>
+                </div>
+              )}
+
               {buildStatus === 'running' ? (
                 <button
                   onClick={handlePauseBuild}
@@ -1356,6 +1494,53 @@ export default function WorkbenchPage() {
                 </div>
               </div>
             )}
+
+            {/* Consensus Votes Display */}
+            {consensusVotes.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 font-medium flex items-center gap-2">
+                    🗳️ AI Consensus Votes
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {consensusVotes.filter(v => v.agreed).length} / {consensusVotes.length} passed
+                  </span>
+                </div>
+                <div className="max-h-32 overflow-y-auto space-y-1.5 bg-gray-50 rounded-lg p-2">
+                  {consensusVotes.slice(-5).reverse().map((vote) => (
+                    <div
+                      key={vote.id}
+                      className={`flex items-center justify-between px-3 py-2 rounded-md text-xs ${
+                        vote.agreed
+                          ? 'bg-green-50 border border-green-200'
+                          : 'bg-red-50 border border-red-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-base">{vote.agreed ? '✅' : '❌'}</span>
+                        <span className="truncate font-medium text-gray-700">
+                          {vote.task}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2 shrink-0">
+                        <span
+                          className={`px-2 py-0.5 rounded-full font-semibold ${
+                            vote.agreed
+                              ? 'bg-green-200 text-green-800'
+                              : 'bg-red-200 text-red-800'
+                          }`}
+                        >
+                          {Math.round(vote.agreementRatio * 100)}%
+                        </span>
+                        <span className="text-gray-500 text-xs">
+                          ({vote.models} models)
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
@@ -1384,7 +1569,7 @@ export default function WorkbenchPage() {
                 </div>
               </div>
             ) : (
-              <ArchitectureFlowDiagram architecture={projectPlan?.architecture} />
+              <ArchitectureFlowDiagram architecture={projectPlan?.architecture} components={components} />
             )}
           </div>
         </main>

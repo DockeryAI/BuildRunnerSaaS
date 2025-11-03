@@ -42,14 +42,17 @@ export async function GET(request: NextRequest) {
           // Build lifecycle events
           'build:started': (data) => sendEvent('build_started', data),
           'build:completed': (data) => sendEvent('build_completed', data),
+          'build:preview_ready': (data) => sendEvent('build_preview_ready', data),
           'build:paused': (data) => sendEvent('build_paused', data),
           'build:resumed': (data) => sendEvent('build_resumed', data),
+          'build:stopped': (data) => sendEvent('build_stopped', data),
           'build:error': (data) => sendEvent('build_error', data),
 
           // Phase events
           'phase:started': (data) => sendEvent('phase_started', data),
           'phase:completed': (data) => sendEvent('phase_completed', data),
           'phase:failed': (data) => sendEvent('phase_failed', data),
+          'phase:progress': (data) => sendEvent('phase_progress', data),
 
           // Component events
           'component:started': (data) => sendEvent('component_started', data),
