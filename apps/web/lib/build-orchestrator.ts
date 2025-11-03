@@ -405,6 +405,13 @@ export class BuildOrchestrator extends EventEmitter {
                        this.appConfig?.framework?.toLowerCase().includes('react') ||
                        completedComponents.some(c => c.type === 'frontend');
 
+      // Check if this is a mobile app
+      const isMobileApp = this.appConfig?.appType === 'mobile' ||
+                          this.appConfig?.appType === 'ios' ||
+                          this.appConfig?.framework?.toLowerCase().includes('expo') ||
+                          this.appConfig?.framework?.toLowerCase().includes('react native') ||
+                          this.appConfig?.framework?.toLowerCase().includes('swift');
+
       this.emit('build:completed', {
         buildId: this.state.id,
         timestamp: this.state.endTime.toISOString(),
@@ -414,6 +421,7 @@ export class BuildOrchestrator extends EventEmitter {
         buildDirectory: `builds/${this.projectId}/${this.state.id}`,
         duration,
         isWebApp,
+        isMobileApp,
       });
 
     } catch (error) {

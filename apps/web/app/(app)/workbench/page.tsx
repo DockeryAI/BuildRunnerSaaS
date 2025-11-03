@@ -253,6 +253,10 @@ export default function WorkbenchPage() {
   const [showPreviewButton, setShowPreviewButton] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isStartingPreview, setIsStartingPreview] = useState(false);
+  const [previewQrCode, setPreviewQrCode] = useState<string | null>(null);
+  const [previewInstructions, setPreviewInstructions] = useState<string | null>(null);
+  const [appType, setAppType] = useState<'web' | 'mobile'>('web');
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Autosave state
   const [isSavingBuild, setIsSavingBuild] = useState(false);
@@ -367,11 +371,16 @@ export default function WorkbenchPage() {
                 setIsFeedMinimized(false);
                 setIsFilesOpen(true);
 
-                // Restore preview button state if this was a web app build
+                // Restore preview button state if this was a web/mobile app build
                 const savedPreviewButton = localStorage.getItem(`showPreviewButton_${currentProjectId}_${targetBuildId}`);
+                const savedAppType = localStorage.getItem(`appType_${currentProjectId}_${targetBuildId}`) as 'web' | 'mobile' | null;
                 if (savedPreviewButton === 'true') {
                   setShowPreviewButton(true);
-                  addLog('info', '🌐 Preview button available for this web app build');
+                  if (savedAppType) {
+                    setAppType(savedAppType);
+                  }
+                  const appTypeLabel = savedAppType === 'mobile' ? '📱 Mobile' : '🌐 Web';
+                  addLog('info', `${appTypeLabel} preview button available for this build`);
                 }
               }
 
@@ -725,13 +734,16 @@ export default function WorkbenchPage() {
         console.log('✅ Updated project status to complete');
         addLog('success', 'Project status updated to complete');
 
-        // Check if this is a web app and show preview button
-        if (buildData.isWebApp) {
+        // Check if this is a web or mobile app and show preview button
+        if (buildData.isWebApp || buildData.isMobileApp) {
           setShowPreviewButton(true);
+          setAppType(buildData.isMobileApp ? 'mobile' : 'web');
           // Save preview button state to localStorage so it persists
           const currentProjectId = localStorage.getItem('currentProjectId') || '1';
           localStorage.setItem(`showPreviewButton_${currentProjectId}_${buildData.buildId}`, 'true');
-          addLog('info', '🌐 Web app detected! Click "Preview Demo" to start dev server.');
+          localStorage.setItem(`appType_${currentProjectId}_${buildData.buildId}`, buildData.isMobileApp ? 'mobile' : 'web');
+          const appTypeLabel = buildData.isMobileApp ? '📱 Mobile app' : '🌐 Web app';
+          addLog('info', `${appTypeLabel} detected! Click "Preview" to start dev server.`);
         }
 
         const aiMessage: BuildMessage = {
@@ -968,7 +980,7 @@ export default function WorkbenchPage() {
     }
   }, [isFeedMinimized]);
 
-  const handleStartPreview = async () => {
+  const handleStartPreview = async (mode: 'web' | 'native' = 'web') => {
     if (!buildId) return;
 
     setIsStartingPreview(true);
@@ -983,6 +995,7 @@ export default function WorkbenchPage() {
         body: JSON.stringify({
           projectId: currentProjectId,
           buildId,
+          mode, // 'web' or 'native'
         }),
       });
 
@@ -993,15 +1006,25 @@ export default function WorkbenchPage() {
 
       const data = await response.json();
       setPreviewUrl(data.url);
+      setPreviewQrCode(data.qrCode || null);
+      setPreviewInstructions(data.instructions || null);
+      setAppType(data.appType || 'web');
       addLog('success', `Preview server started at ${data.url}`);
 
-      // Open preview in new tab
-      window.open(data.url, '_blank');
+      // If web mode or no QR code, open in new tab
+      if (!data.qrCode || mode === 'web') {
+        window.open(data.url, '_blank');
+      } else {
+        // Show modal with QR code for mobile apps
+        setShowPreviewModal(true);
+      }
 
       const aiMessage: BuildMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `Preview server started! Open ${data.url} in your browser to see your app.`,
+        content: data.qrCode
+          ? `Preview server started! ${data.instructions || 'Scan the QR code to preview the app on your device.'}`
+          : `Preview server started! Open ${data.url} in your browser to see your app.`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
@@ -1209,17 +1232,47 @@ export default function WorkbenchPage() {
               )}
 
               {showPreviewButton && (
-                <button
-                  onClick={handleStartPreview}
-                  disabled={isStartingPreview}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  {isStartingPreview ? 'Starting...' : 'Preview Demo'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleStartPreview(appType === 'mobile' ? 'native' : 'web')}
+                    disabled={isStartingPreview}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {isStartingPreview ? 'Starting...' : (appType === 'mobile' ? 'Preview on Device' : 'Preview Demo')}
+                  </button>
+                  {appType === 'mobile' && (
+                    <button
+                      onClick={() => handleStartPreview('web')}
+                      disabled={isStartingPreview}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm disabled:opacity-50"
+                      title="Preview web version in browser"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Web Preview
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+                      const downloadUrl = `/api/build/download?projectId=${currentProjectId}&buildId=${buildId}`;
+                      window.open(downloadUrl, '_blank');
+                      addLog('info', '📦 Downloading build as ZIP file...');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                    title="Download build as ZIP file"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Download
+                  </button>
+                </div>
               )}
             </div>
 
@@ -1412,6 +1465,55 @@ export default function WorkbenchPage() {
             </span>
           )}
         </button>
+      )}
+
+      {/* QR Code Preview Modal */}
+      {showPreviewModal && previewQrCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-gray-900 rounded-lg shadow-2xl border border-gray-700 p-8 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Scan to Preview</h2>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="bg-white rounded-lg p-6 mb-6 flex justify-center">
+              <img src={previewQrCode} alt="QR Code" className="w-64 h-64" />
+            </div>
+
+            <div className="space-y-4 text-gray-300">
+              <p className="text-center font-medium">{previewInstructions}</p>
+              <div className="bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
+                <p className="font-semibold text-white">Steps:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Install Expo Go app from App Store or Google Play</li>
+                  <li>Open Expo Go on your device</li>
+                  <li>Scan this QR code with your camera or the Expo Go app</li>
+                  <li>Wait for the app to load on your device</li>
+                </ol>
+              </div>
+              {previewUrl && (
+                <div className="bg-gray-800 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-400 mb-1">Or open in browser:</p>
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300 font-mono text-sm underline"
+                  >
+                    {previewUrl}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Component Details Modal */}

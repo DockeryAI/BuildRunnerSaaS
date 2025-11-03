@@ -3,6 +3,7 @@ import { spawn, ChildProcess, exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { promisify } from 'util';
+import QRCode from 'qrcode';
 
 const execAsync = promisify(exec);
 
@@ -36,7 +37,8 @@ async function findAvailablePort(startPort: number = 3001): Promise<number> {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { projectId, buildId } = await request.json();
+    const body = await request.json();
+    const { projectId, buildId, mode } = body;
 
     if (!projectId || !buildId) {
       return NextResponse.json(
@@ -98,15 +100,28 @@ export async function POST(request: NextRequest) {
 
     // Detect if this is an Expo app
     const isExpo = dependencies.expo || dependencies['expo-router'];
-    const appType = isExpo ? 'mobile' : 'web';
+    const isReactNative = dependencies['react-native'] && !isExpo;
+    const appType = isExpo || isReactNative ? 'mobile' : 'web';
+
+    // Get preview mode from request (native or web for Expo apps)
+    const previewMode = mode || (isExpo ? 'native' : 'web'); // 'native' or 'web'
 
     let devCommand = 'npm';
     let devArgs: string[] = [];
 
-    // Detect dev script - Expo apps use different command
+    // Detect dev script - different commands for different app types
     if (isExpo) {
       devCommand = 'npx';
-      devArgs = ['expo', 'start', '--web'];
+      if (previewMode === 'web') {
+        devArgs = ['expo', 'start', '--web'];
+      } else {
+        // Native mode - start Expo dev server for iOS/Android
+        devArgs = ['expo', 'start', '--tunnel']; // Use tunnel for remote access
+      }
+    } else if (isReactNative) {
+      // Pure React Native (no Expo)
+      devCommand = 'npx';
+      devArgs = ['react-native', 'start'];
     } else if (scripts.dev) {
       devArgs = ['run', 'dev'];
     } else if (scripts.start) {
@@ -118,10 +133,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find available port (start from 3004 for web, 19006 for Expo)
+    // Find available port (start from different ports based on app type)
     let port: number;
     try {
-      port = await findAvailablePort(isExpo ? 19006 : 3004);
+      if (isExpo && previewMode === 'native') {
+        port = await findAvailablePort(19000); // Expo native default
+      } else if (isExpo && previewMode === 'web') {
+        port = await findAvailablePort(19006); // Expo web default
+      } else if (isReactNative) {
+        port = await findAvailablePort(8081); // React Native default
+      } else {
+        port = await findAvailablePort(3004); // Next.js/web apps
+      }
       console.log(`Found available port: ${port}`);
     } catch (error) {
       return NextResponse.json(
@@ -130,8 +153,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Start dev server (add port flag for Expo)
-    if (isExpo) {
+    // Add port flag for Expo
+    if (isExpo && previewMode === 'web') {
       devArgs.push('--port', port.toString());
     }
 
@@ -170,6 +193,23 @@ export async function POST(request: NextRequest) {
     // Wait a bit for server to start
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Generate QR code for Expo native mode
+    let qrCode: string | undefined;
+    if (isExpo && previewMode === 'native') {
+      try {
+        // Generate Expo dev URL (will be exp://192.168.x.x:19000 after server starts)
+        const expUrl = `exp://localhost:${port}`;
+        qrCode = await QRCode.toDataURL(expUrl, {
+          errorCorrectionLevel: 'M',
+          type: 'image/png',
+          width: 300,
+          margin: 2,
+        });
+      } catch (qrError) {
+        console.error('Failed to generate QR code:', qrError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       port,
@@ -178,6 +218,11 @@ export async function POST(request: NextRequest) {
       status: 'started',
       serverId,
       appType,
+      previewMode,
+      qrCode, // Base64 QR code for Expo native apps
+      instructions: isExpo && previewMode === 'native'
+        ? 'Download Expo Go app on your phone, then scan the QR code to preview the app.'
+        : undefined,
     });
 
   } catch (error) {
