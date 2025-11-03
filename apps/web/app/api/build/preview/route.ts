@@ -50,11 +50,21 @@ export async function POST(request: NextRequest) {
     // Check if server is already running
     if (activeServers.has(serverId)) {
       const server = activeServers.get(serverId)!;
+      // Read package.json to get appType
+      const buildDir = path.join(process.cwd(), 'builds', projectId, buildId);
+      const packageJsonPath = path.join(buildDir, 'package.json');
+      let appType = 'web';
+      if (fs.existsSync(packageJsonPath)) {
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+        const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+        appType = (dependencies.expo || dependencies['expo-router']) ? 'mobile' : 'web';
+      }
       return NextResponse.json({
         success: true,
         port: server.port,
         url: `http://localhost:${server.port}`,
         status: 'already_running',
+        appType,
       });
     }
 
@@ -81,15 +91,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Read package.json to detect dev script
+    // Read package.json to detect dev script and app type
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
     const scripts = packageJson.scripts || {};
+    const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+    // Detect if this is an Expo app
+    const isExpo = dependencies.expo || dependencies['expo-router'];
+    const appType = isExpo ? 'mobile' : 'web';
 
     let devCommand = 'npm';
     let devArgs: string[] = [];
 
-    // Detect dev script
-    if (scripts.dev) {
+    // Detect dev script - Expo apps use different command
+    if (isExpo) {
+      devCommand = 'npx';
+      devArgs = ['expo', 'start', '--web'];
+    } else if (scripts.dev) {
       devArgs = ['run', 'dev'];
     } else if (scripts.start) {
       devArgs = ['run', 'start'];
@@ -100,10 +118,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find available port (start from 3004 for preview builds)
+    // Find available port (start from 3004 for web, 19006 for Expo)
     let port: number;
     try {
-      port = await findAvailablePort(3004);
+      port = await findAvailablePort(isExpo ? 19006 : 3004);
       console.log(`Found available port: ${port}`);
     } catch (error) {
       return NextResponse.json(
@@ -112,7 +130,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Start dev server
+    // Start dev server (add port flag for Expo)
+    if (isExpo) {
+      devArgs.push('--port', port.toString());
+    }
+
     const serverProcess = spawn(devCommand, devArgs, {
       cwd: buildDir,
       env: {
@@ -155,6 +177,7 @@ export async function POST(request: NextRequest) {
       buildDir,
       status: 'started',
       serverId,
+      appType,
     });
 
   } catch (error) {
