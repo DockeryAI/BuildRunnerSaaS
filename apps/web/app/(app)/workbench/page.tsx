@@ -10,6 +10,7 @@ import LiveFeedPanel from '../../../components/LiveFeedPanel';
 import FileBrowser from '../../../components/FileBrowser';
 import ChatPanel from '../../../components/ChatPanel';
 import TerminalPanel, { TerminalLog } from '../../../components/TerminalPanel';
+import ArchitectureFlowDiagram from '../../../components/ArchitectureFlowDiagram';
 import { updateProjectStatus } from '../../../lib/autosave';
 import {
   PlayIcon,
@@ -199,6 +200,7 @@ export default function WorkbenchPage() {
   const searchParams = useSearchParams();
   const { currentProject } = useTabSafeProject();
   const [buildStatus, setBuildStatus] = useState<BuildStatus>('idle');
+  const [buildPhase, setBuildPhase] = useState<string>('idle'); // planning, building, verifying, testing, completed
   const [components, setComponents] = useState<BuildComponent[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<BuildComponent | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -238,16 +240,56 @@ export default function WorkbenchPage() {
         const buildIdParam = searchParams.get('buildId');
         const restoreParam = searchParams.get('restore');
 
-        // Check if we're restoring a build
-        if (buildIdParam && restoreParam === 'true') {
-          console.log('🔄 Restoring build:', buildIdParam);
+        // Try to auto-restore the last build for this project
+        let buildToRestore = buildIdParam;
 
-          // Load build metadata from project
+        if (!buildToRestore) {
+          // Check localStorage for last build
+          const lastBuildKey = `last_build_${currentProjectId}`;
+          const lastBuildId = localStorage.getItem(lastBuildKey);
+
+          if (lastBuildId) {
+            console.log(`🔄 Auto-restoring last build: ${lastBuildId}`);
+            buildToRestore = lastBuildId;
+          }
+        }
+
+        // Check if we're restoring a build
+        if (buildToRestore) {
+          console.log('🔄 Restoring build:', buildToRestore);
+
+          // Load build progress from localStorage
+          const buildProgressKey = `build_progress_${buildToRestore}`;
+          const savedProgress = localStorage.getItem(buildProgressKey);
+
+          if (savedProgress) {
+            const buildData = JSON.parse(savedProgress);
+            setBuildId(buildToRestore);
+            setBuildStatus(buildData.status || 'completed');
+
+            // Restore components with their statuses
+            if (buildData.components) {
+              const positionedComponents = calculateComponentPositions(buildData.components);
+              setComponents(positionedComponents);
+              addLog('success', `Restored ${buildData.components.length} components from build ${buildToRestore}`);
+              addLog('info', `Build directory: builds/${currentProjectId}/${buildToRestore}`);
+
+              // Auto-open file browser
+              setIsFeedMinimized(false);
+              setIsFilesOpen(true);
+              setShowPreviewButton(true);
+            }
+
+            setIsLoadingPlan(false);
+            return;
+          }
+
+          // Fallback: Load build metadata from project (old method)
           const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
           const project = savedProjects.find((p: any) => p.id === currentProjectId);
 
           if (project && project.builds) {
-            const build = project.builds.find((b: any) => b.buildId === buildIdParam);
+            const build = project.builds.find((b: any) => b.buildId === buildToRestore);
 
             if (build) {
               setBuildId(buildIdParam);
@@ -381,9 +423,13 @@ export default function WorkbenchPage() {
     const currentProjectId = localStorage.getItem('currentProjectId') || '1';
     const buildProgressKey = `build_progress_${currentBuildId}`;
 
+    // Calculate build directory path
+    const buildDir = `builds/${currentProjectId}/${currentBuildId}`;
+
     const progressData = {
       buildId: currentBuildId,
       projectId: currentProjectId,
+      buildDir, // Store build directory path
       components: currentComponents,
       progress: Math.round(
         (currentComponents.filter(c => c.status === 'completed').length / currentComponents.length) * 100
@@ -409,8 +455,19 @@ export default function WorkbenchPage() {
         dependencies: c.dependencies,
       }));
 
-      if (!apiKeys.openrouter) {
+      // Check for OpenRouter API key with multiple fallbacks
+      let openrouterKey = apiKeys.openrouter ||
+                          localStorage.getItem('openrouter_api_key') ||
+                          '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';
+
+      if (!openrouterKey) {
         throw new Error('OpenRouter API key not found. Please configure it in Settings → API Keys.');
+      }
+
+      // Ensure the key is saved in the structured format for future use
+      if (!apiKeys.openrouter && openrouterKey) {
+        apiKeys.openrouter = openrouterKey;
+        localStorage.setItem('buildrunner_api_keys', JSON.stringify(apiKeys));
       }
 
       addLog('info', 'Starting build process...');
@@ -444,6 +501,11 @@ export default function WorkbenchPage() {
       setBuildId(newBuildId);
       setBuildStatus('running');
       addLog('success', `Build started with ID: ${newBuildId}`);
+
+      // Save as last build for auto-restore
+      const lastBuildKey = `last_build_${currentProjectId}`;
+      localStorage.setItem(lastBuildKey, newBuildId);
+      console.log(`💾 Saved last build ID: ${newBuildId}`);
 
       // Update project status to 'build' phase
       updateProjectStatus(currentProjectId, {
@@ -536,9 +598,26 @@ export default function WorkbenchPage() {
         });
       });
 
+      eventSource.addEventListener('phase:started', (event) => {
+        const data = JSON.parse(event.data);
+        const phase = data.phase || 'unknown';
+        setBuildPhase(phase);
+
+        const phaseEmojis: Record<string, string> = {
+          planning: '📋',
+          building: '🔨',
+          verification: '🔍',
+          testing: '🧪',
+        };
+
+        const emoji = phaseEmojis[phase] || '⚙️';
+        addLog('info', `${emoji} Starting ${phase} phase...`);
+      });
+
       eventSource.addEventListener('build_completed', (event) => {
         const buildData = JSON.parse(event.data);
         setBuildStatus('completed');
+        setBuildPhase('completed');
         addLog('success', '🎉 Build completed successfully!');
 
         // Clear build autosave since build is complete
@@ -671,8 +750,10 @@ export default function WorkbenchPage() {
 
       eventSource.addEventListener('llm_response', (event) => {
         const data = JSON.parse(event.data);
-        addLog('llm_response', data.response || 'Response received', {
+        const codePreview = data.codePreview || data.responsePreview || data.response || '';
+        addLog('llm_response', codePreview || 'Response received', {
           model: data.model,
+          component: data.component,
           responseLength: data.responseLength || data.codeLength || 0,
         });
       });
@@ -1075,25 +1156,94 @@ export default function WorkbenchPage() {
                   {isStartingPreview ? 'Starting...' : 'Preview Demo'}
                 </button>
               )}
-
-              <button
-                onClick={() => setIsChatOpen(!isChatOpen)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm ${
-                  isChatOpen
-                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
-                    : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <ChatBubbleLeftRightIcon className="w-5 h-5" />
-                AI Strategist
-              </button>
             </div>
+
+            {/* Build Phase Indicator */}
+            {buildStatus === 'running' && buildPhase !== 'idle' && (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <span className="text-gray-600 font-medium">Current Phase:</span>
+                <div className="flex items-center gap-3">
+                  {['planning', 'building', 'verification', 'testing'].map((phase, idx) => {
+                    const phaseLabels: Record<string, string> = {
+                      planning: '📋 Planning',
+                      building: '🔨 Building',
+                      verification: '🔍 Verifying',
+                      testing: '🧪 Testing',
+                    };
+
+                    const isCompleted = ['planning', 'building', 'verification', 'testing'].indexOf(buildPhase) > idx;
+                    const isCurrent = buildPhase === phase;
+                    const isPending = ['planning', 'building', 'verification', 'testing'].indexOf(buildPhase) < idx;
+
+                    return (
+                      <div key={phase} className="flex items-center gap-2">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                            isCurrent
+                              ? 'bg-blue-100 text-blue-800 ring-2 ring-blue-400 animate-pulse'
+                              : isCompleted
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {phaseLabels[phase]}
+                        </span>
+                        {idx < 3 && (
+                          <svg
+                            className={`w-3 h-3 ${isCompleted ? 'text-green-500' : 'text-gray-300'}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Overall Progress Bar */}
+            {components.length > 0 && buildStatus !== 'idle' && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 font-medium">
+                    Overall Progress: {components.filter(c => c.status === 'completed').length} / {components.length} components
+                  </span>
+                  <span className="text-gray-500">
+                    {Math.round((components.filter(c => c.status === 'completed').length / components.length) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div
+                    className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500 ease-out relative overflow-hidden"
+                    style={{
+                      width: `${(components.filter(c => c.status === 'completed').length / components.length) * 100}%`
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    {components.filter(c => c.status === 'building').length > 0 && (
+                      <>Building: {components.filter(c => c.status === 'building').length}</>
+                    )}
+                  </span>
+                  <span>
+                    Pending: {components.filter(c => c.status === 'pending').length}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
-        {/* Architecture Visualization with Canvas */}
+        {/* Architecture Visualization with Flow Diagram */}
         <main className="flex-1 overflow-hidden">
-          <div className="h-full w-full bg-white overflow-hidden">
+          <div className="h-full w-full bg-[#F4F6F8] overflow-hidden">
             {isLoadingPlan ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -1115,35 +1265,8 @@ export default function WorkbenchPage() {
                   </a>
                 </div>
               </div>
-            ) : components.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center max-w-md">
-                  <ClockIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-800 font-semibold mb-2">No Components Found</p>
-                  <p className="text-gray-600 text-sm mb-4">
-                    No build components were extracted from your project plan.
-                  </p>
-                  <a
-                    href="/plan"
-                    className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Go to Plan Page
-                  </a>
-                </div>
-              </div>
             ) : (
-              <BuildCanvas>
-                <div className="relative min-h-[2000px] min-w-[2000px]">
-                  <DependencyLines components={components} />
-                  {components.map((component) => (
-                    <ComponentCard
-                      key={component.id}
-                      component={component}
-                      onDoubleClick={() => setSelectedComponent(component)}
-                    />
-                  ))}
-                </div>
-              </BuildCanvas>
+              <ArchitectureFlowDiagram />
             )}
           </div>
         </main>
@@ -1225,14 +1348,6 @@ export default function WorkbenchPage() {
           )}
         </button>
       )}
-
-      {/* Chat Panel */}
-      <ChatPanel
-        messages={messages}
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onSendMessage={handleSendMessage}
-      />
 
       {/* Component Details Modal */}
       {selectedComponent && (

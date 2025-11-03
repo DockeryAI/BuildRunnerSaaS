@@ -129,9 +129,14 @@ export default function PlanPage() {
       const cacheKey = `project_plan_${currentProjectId}`;
       const progressKey = `plan_progress_${currentProjectId}`;
 
+      // Get stored PRD hash for cache validation
+      const cachedHash = localStorage.getItem(`plan_hash_${currentProjectId}`);
+
       // Check cache first and show cached data immediately
       const cachedPlan = localStorage.getItem(cacheKey);
-      if (cachedPlan) {
+      let useCachedPlan = false;
+
+      if (cachedPlan && cachedHash) {
         try {
           const parsedCache = JSON.parse(cachedPlan);
           setProjectPlan(parsedCache);
@@ -141,6 +146,7 @@ export default function PlanPage() {
           if (parsedCache.milestones && parsedCache.milestones.length > 0) {
             setExpandedMilestones(new Set([parsedCache.milestones[0].id]));
           }
+          useCachedPlan = true;
         } catch (cacheError) {
           console.warn('Failed to parse cached plan, will fetch fresh data');
         }
@@ -193,6 +199,7 @@ export default function PlanPage() {
           productIdea: latestProject.productIdea,
           productName: latestProject.productName || latestProject.name,
           prdSections: latestProject.prdSections,
+          cachedPlanHash: cachedHash, // Include cached hash to check if PRD changed
         }),
       });
 
@@ -201,6 +208,15 @@ export default function PlanPage() {
       }
 
       const data = await response.json();
+
+      // Check if API says to use cache (PRD hasn't changed)
+      if (data.useCache && useCachedPlan) {
+        console.log('✅ PRD unchanged, using cached plan');
+        setIsLoading(false);
+        setGenerationStage(null);
+        localStorage.removeItem(progressKey); // Clear any saved progress
+        return;
+      }
 
       setGenerationStage('Finalizing plan...');
 
@@ -216,6 +232,11 @@ export default function PlanPage() {
 
       // Update cache with fresh data
       localStorage.setItem(cacheKey, JSON.stringify(data.plan));
+
+      // Save PRD hash for future cache validation
+      if (data.prdHash) {
+        localStorage.setItem(`plan_hash_${currentProjectId}`, data.prdHash);
+      }
 
       // Also save to legacy key for workbench access
       localStorage.setItem(`buildrunner_plan_${currentProjectId}`, JSON.stringify(data.plan));

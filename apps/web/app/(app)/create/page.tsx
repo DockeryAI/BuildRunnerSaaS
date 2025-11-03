@@ -19,14 +19,20 @@ import {
   BookmarkIcon,
   CloudArrowUpIcon,
   CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
+  PaperAirplaneIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 
 // Store
 import { useOrchestrationStore } from '@/lib/stores/orchestration-store';
 
 // Import components
+import PRDExportButton from '@/components/PRDExportButton';
 import { ProjectImportWizard } from '@/components/import/ProjectImportWizard';
 import { ProjectSetupWizard } from '@/components/project/ProjectSetupWizard';
+import FeatureSuggestionBox from '@/components/FeatureSuggestionBox';
+import { useStrategery } from '@/lib/strategery-context';
 
 // Import autosave
 import {
@@ -37,7 +43,11 @@ import {
   updateProjectStatus
 } from '@/lib/autosave';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+  suggestions?: Suggestion[];
+};
 
 interface Suggestion {
   id: string;
@@ -527,6 +537,7 @@ function PRDSectionPanel({
   onSuggestName,
   productName,
   onProductNameChange,
+  onAddManualItem,
 }: {
   phase: number;
   sections: PRDSection[];
@@ -538,6 +549,7 @@ function PRDSectionPanel({
   onSuggestName?: (itemId: string) => void;
   productName?: string;
   onProductNameChange?: (name: string) => void;
+  onAddManualItem: (sectionId: string) => void;
 }) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -605,11 +617,20 @@ function PRDSectionPanel({
                   </div>
                 </div>
               </div>
-              {section.completed && (
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                  ✓ Complete
-                </span>
-              )}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => onAddManualItem(section.id)}
+                  className="p-1.5 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                  title="Add manual item"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                </button>
+                {section.completed && (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                    ✓ Complete
+                  </span>
+                )}
+              </div>
             </div>
 
             <div
@@ -872,6 +893,9 @@ function CreatePage() {
     removeSuggestion,
   } = useOrchestrationStore();
 
+  // Strategery context for feature suggestions
+  const { getPendingSuggestions, acceptSuggestion, dismissSuggestion } = useStrategery();
+
   const [projectId, setProjectId] = useState<string>('');
   const [productIdea, setProductIdea] = useState<string>('');
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -888,6 +912,11 @@ function CreatePage() {
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [productName, setProductName] = useState<string>('');
+
+  // Chat feature state
+  const [rightPanelTab, setRightPanelTab] = useState<'suggestions' | 'chat'>('suggestions');
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [chatInput, setChatInput] = useState('');
 
   // Check for existing project on mount
   useEffect(() => {
@@ -1094,8 +1123,19 @@ function CreatePage() {
     setStoreProductIdea(idea); // Sync with orchestration store
     setShowOnboarding(false);
 
-    // Show project setup wizard
-    setShowSetupWizard(true);
+    // Skip project setup wizard and go directly to PRD building
+    // Database/backend setup will happen in the plan phase when AI suggests tech stack
+
+    console.log('🚀 Starting PRD build for idea:', idea);
+
+    // Don't auto-fill PRD - keep it empty
+    // User will drag suggestions from the suggestion box to populate the PRD
+
+    // Generate AI suggestions for all phases automatically
+    // Backend will use OpenRouter if key is available, otherwise returns mock suggestions
+    console.log('🤖 Generating AI suggestions for all phases...');
+    await generateAllPhaseSuggestions(idea);
+    console.log('✅ AI suggestion generation complete');
   }
 
   async function handleSetupComplete(projectId: string) {
@@ -1113,11 +1153,17 @@ function CreatePage() {
 
   async function generateSuggestionsForPhase(idea: string, phase: number): Promise<Suggestion[]> {
     try {
+      console.log(`🔄 Phase ${phase}: Fetching suggestions...`);
+
       // Get API keys from localStorage
       const savedKeys = localStorage.getItem('buildrunner_api_keys');
       const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
 
-      // Call the real AI API
+      if (!apiKeys.openrouter) {
+        console.warn(`⚠️  Phase ${phase}: No OpenRouter API key in localStorage - backend will use mock suggestions`);
+      }
+
+      // Call the AI API (backend will use OpenRouter if key available, otherwise mock data)
       const response = await fetch('/api/prd/build', {
         method: 'POST',
         headers: {
@@ -1134,19 +1180,25 @@ function CreatePage() {
       });
 
       if (!response.ok) {
-        console.error(`Failed to generate suggestions for phase ${phase}`);
+        const errorText = await response.text();
+        console.error(`❌ Phase ${phase}: API request failed (${response.status}):`, errorText);
         return [];
       }
 
       const data = await response.json();
+      console.log(`📥 Phase ${phase}: Full API response:`, JSON.stringify(data, null, 2));
+      console.log(`📥 Phase ${phase}: data.result type:`, typeof data.result, 'isArray:', Array.isArray(data.result));
+      console.log(`📥 Phase ${phase}: data.result:`, data.result);
 
       if (data.result && Array.isArray(data.result)) {
+        console.log(`✅ Phase ${phase}: ${data.result.length} suggestions received`);
         return data.result;
       }
 
+      console.warn(`⚠️  Phase ${phase}: No suggestions in response - data.result is:`, data.result);
       return [];
     } catch (error) {
-      console.error(`Error generating suggestions for phase ${phase}:`, error);
+      console.error(`❌ Error generating suggestions for phase ${phase}:`, error);
       return [];
     }
   }
@@ -1154,6 +1206,8 @@ function CreatePage() {
   async function generateAllPhaseSuggestions(idea: string) {
     setIsLoading(true);
     try {
+      console.log('📊 Generating suggestions for all 4 phases...');
+
       // Generate suggestions for all 4 phases simultaneously
       const phasePromises = [1, 2, 3, 4].map(phase =>
         generateSuggestionsForPhase(idea, phase)
@@ -1164,12 +1218,15 @@ function CreatePage() {
       // Organize suggestions by phase
       const suggestionsByPhase: Record<number, Suggestion[]> = {};
       allPhaseResults.forEach((suggestions, index) => {
-        suggestionsByPhase[index + 1] = suggestions;
+        const phaseNum = index + 1;
+        suggestionsByPhase[phaseNum] = suggestions;
+        console.log(`✨ Phase ${phaseNum}: ${suggestions.length} suggestions generated`);
       });
 
+      console.log('📦 All suggestions by phase:', suggestionsByPhase);
       setAllSuggestions(suggestionsByPhase);
     } catch (error) {
-      console.error('Error generating all phase suggestions:', error);
+      console.error('❌ Error generating all phase suggestions:', error);
     } finally {
       setIsLoading(false);
     }
@@ -1708,6 +1765,7 @@ function CreatePage() {
     'analytics': ['analytics'],
     'monetization': ['monetization'],
     'rollout': ['rollout'],
+    'open_questions': ['open_questions'],
   };
 
   function handleDrop(sectionId: string, suggestion: Suggestion) {
@@ -1906,6 +1964,150 @@ function CreatePage() {
     }, 1000);
   }
 
+  function handleAddManualItem(sectionId: string) {
+    const title = prompt('Enter item title:');
+    if (!title) return;
+
+    const shortDescription = prompt('Enter short description:');
+    if (!shortDescription) return;
+
+    const fullDescription = prompt('Enter full description (optional):') || shortDescription;
+
+    const newItem: PRDItem = {
+      id: `manual_item_${Date.now()}`,
+      title,
+      shortDescription,
+      fullDescription,
+      citations: ['Manually added'],
+      status: 'active',
+      isExpanded: false
+    };
+
+    const updatedSections = prdSections[currentPhase].map(section =>
+      section.id === sectionId
+        ? { ...section, items: [...section.items, newItem] }
+        : section
+    );
+
+    setPrdSections({
+      ...prdSections,
+      [currentPhase]: updatedSections
+    });
+
+    console.log('Added manual item to PRD:', title);
+  }
+
+  // Handle accepting strategery suggestions
+  function handleAcceptSuggestion(suggestionId: string) {
+    const suggestion = getPendingSuggestions().find((s) => s.id === suggestionId);
+    if (!suggestion) return;
+
+    // Find the appropriate section (or use first section as default)
+    const sections = prdSections[currentPhase] || [];
+    const targetSectionId = sections[0]?.id || 'core_features';
+
+    // Create a new PRD item from the suggestion
+    const newItem: PRDItem = {
+      id: `suggestion_${suggestionId}_${Date.now()}`,
+      title: suggestion.title,
+      shortDescription: suggestion.description,
+      fullDescription: suggestion.reasoning || suggestion.description,
+      status: 'active',
+    };
+
+    // Add to PRD
+    const updatedSections = sections.map((section) =>
+      section.id === targetSectionId
+        ? { ...section, items: [...section.items, newItem] }
+        : section
+    );
+
+    setPrdSections({
+      ...prdSections,
+      [currentPhase]: updatedSections,
+    });
+
+    // Mark suggestion as accepted
+    acceptSuggestion(suggestionId);
+
+    console.log('Accepted suggestion and added to PRD:', suggestion.title);
+  }
+
+  // Handle dismissing strategery suggestions
+  function handleDismissSuggestion(suggestionId: string) {
+    dismissSuggestion(suggestionId);
+    console.log('Dismissed suggestion:', suggestionId);
+  }
+
+  // Handle shelving suggestions for later consideration
+  function handleShelveSuggestion(suggestionId: string) {
+    // For now, treat shelve similar to dismiss but we could add a separate status
+    dismissSuggestion(suggestionId);
+    console.log('Shelved suggestion:', suggestionId);
+    // TODO: Add a "shelved" status to track these separately
+  }
+
+  // Handle adding suggestions to V2
+  function handleAddToV2(suggestionId: string) {
+    const suggestion = getPendingSuggestions().find((s) => s.id === suggestionId);
+    if (!suggestion) return;
+
+    // Find or create V2 section
+    const sections = prdSections[currentPhase] || [];
+    let v2Section = sections.find((s) => s.id === 'version_2' || s.name === 'Version 2');
+
+    if (!v2Section) {
+      // Create V2 section
+      v2Section = {
+        id: 'version_2',
+        name: 'Version 2',
+        description: 'Features planned for future release',
+        items: [],
+      };
+
+      // Add V2 section to current phase
+      const updatedSections = [...sections, v2Section];
+      setPrdSections({
+        ...prdSections,
+        [currentPhase]: updatedSections,
+      });
+    }
+
+    // Create new PRD item
+    const newItem: PRDItem = {
+      id: `v2_suggestion_${suggestionId}_${Date.now()}`,
+      title: suggestion.title,
+      shortDescription: suggestion.description,
+      fullDescription: suggestion.reasoning || suggestion.description,
+      status: 'active',
+    };
+
+    // Add to V2 section
+    const updatedSections = sections.map((section) =>
+      section.id === 'version_2' || section.name === 'Version 2'
+        ? { ...section, items: [...section.items, newItem] }
+        : section
+    );
+
+    // If V2 section was just created, make sure it's in the array
+    if (!sections.find((s) => s.id === 'version_2' || s.name === 'Version 2')) {
+      updatedSections.push({
+        ...v2Section,
+        items: [newItem],
+      });
+    }
+
+    setPrdSections({
+      ...prdSections,
+      [currentPhase]: updatedSections,
+    });
+
+    // Mark suggestion as accepted
+    acceptSuggestion(suggestionId);
+
+    console.log('Added suggestion to V2:', suggestion.title);
+  }
+
   async function handleMessageSend(message: string) {
     await generateSuggestions(message, currentPhase);
   }
@@ -2007,6 +2209,112 @@ function CreatePage() {
     alert(`✅ Successfully imported ${result.projectName}!\n\nFeatures imported: ${result.featuresImported}\nCompleted: ${result.completedFeatures}\nIn Progress: ${result.inProgressFeatures}\nPlanned: ${result.plannedFeatures}`);
   }
 
+  // Chat handler
+  async function handleChatSubmit() {
+    if (!chatInput.trim()) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: chatInput
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsLoading(true);
+
+    try {
+      const savedKeys = localStorage.getItem('buildrunner_api_keys');
+      const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
+
+      const response = await fetch('/api/prd/build', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-keys': JSON.stringify(apiKeys),
+        },
+        body: JSON.stringify({
+          action: 'process_message',
+          product_idea: productIdea,
+          user_message: chatInput,
+          phase: currentPhase,
+          current_prd: prdSections
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Extract suggestions from response if any
+        const suggestions = data.result?.suggestions && Array.isArray(data.result.suggestions)
+          ? data.result.suggestions
+          : [];
+
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: data.result?.response || 'I understand. How can I help further?',
+          suggestions: suggestions.length > 0 ? suggestions : undefined
+        };
+        setChatMessages(prev => [...prev, assistantMessage]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.'
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Handler for adding suggestion from chat to PRD
+  function handleAddChatSuggestionToPRD(suggestion: Suggestion) {
+    // Add suggestion to the appropriate PRD section
+    const targetSection = prdSections[currentPhase].find(
+      s => s.id === suggestion.section
+    );
+
+    if (targetSection) {
+      const newItem: PRDItem = {
+        id: `prd_item_${Date.now()}`,
+        title: suggestion.title,
+        shortDescription: suggestion.shortDescription,
+        fullDescription: suggestion.fullDescription,
+        citations: suggestion.citations,
+        status: 'active',
+        isExpanded: false
+      };
+
+      const updatedSections = prdSections[currentPhase].map(section =>
+        section.id === suggestion.section
+          ? { ...section, items: [...section.items, newItem] }
+          : section
+      );
+
+      setPrdSections({
+        ...prdSections,
+        [currentPhase]: updatedSections
+      });
+
+      console.log('Added suggestion from chat to PRD:', suggestion.title);
+    }
+  }
+
+  // Handler for dismissing suggestion from chat
+  function handleDismissChatSuggestion(messageIndex: number, suggestionId: string) {
+    // Remove the suggestion from the message
+    setChatMessages(prev => prev.map((msg, idx) => {
+      if (idx === messageIndex && msg.suggestions) {
+        return {
+          ...msg,
+          suggestions: msg.suggestions.filter(s => s.id !== suggestionId)
+        };
+      }
+      return msg;
+    }));
+  }
+
   if (showOnboarding) {
     return <OnboardingFlow onStart={handleStart} onImport={() => setShowImportWizard(true)} />;
   }
@@ -2018,12 +2326,17 @@ function CreatePage() {
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">PRD Builder</h1>
-            <button
-              onClick={() => setShowOnboarding(true)}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Update Prompt
-            </button>
+            <div className="flex items-center gap-3">
+              {projectId && productIdea && (
+                <PRDExportButton project={{ id: projectId, name: productIdea }} />
+              )}
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Update Prompt
+              </button>
+            </div>
           </div>
 
           {/* Collapsible Product Idea Display */}
@@ -2058,12 +2371,6 @@ function CreatePage() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button
-              onClick={handleSaveProgress}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium"
-            >
-              💾 Save Progress
-            </button>
             <div className="flex items-center space-x-2">
               {saveStatus === 'saving' && (
                 <div className="flex items-center space-x-2 text-sm text-blue-600">
@@ -2120,25 +2427,56 @@ function CreatePage() {
               onSuggestName={handleSuggestName}
               productName={productName}
               onProductNameChange={setProductName}
+              onAddManualItem={handleAddManualItem}
             />
           </div>
 
-          {/* RIGHT: AI Suggestions */}
+          {/* RIGHT: AI Suggestions & Chat */}
           <div className="col-span-1">
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200 px-6 py-4 rounded-t-xl">
-                <div className="flex items-center space-x-2">
-                  <SparklesIcon className="h-5 w-5 text-purple-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">AI Suggestions</h3>
+              {/* Tabs */}
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200 rounded-t-xl">
+                <div className="flex">
+                  <button
+                    onClick={() => setRightPanelTab('suggestions')}
+                    className={`flex-1 px-6 py-4 text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
+                      rightPanelTab === 'suggestions'
+                        ? 'text-purple-700 border-b-2 border-purple-600 bg-white/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/30'
+                    }`}
+                  >
+                    <SparklesIcon className="h-5 w-5" />
+                    <span>Suggestions</span>
+                  </button>
+                  <button
+                    onClick={() => setRightPanelTab('chat')}
+                    className={`flex-1 px-6 py-4 text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
+                      rightPanelTab === 'chat'
+                        ? 'text-purple-700 border-b-2 border-purple-600 bg-white/50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/30'
+                    }`}
+                  >
+                    <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                    <span>Strategery</span>
+                  </button>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  Phase {currentPhase} recommendations - drag to PRD sections
-                </p>
               </div>
 
               {/* Suggestions Content */}
+              {rightPanelTab === 'suggestions' && (
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {/* Strategery Feature Suggestions */}
+                {getPendingSuggestions().map((suggestion) => (
+                  <FeatureSuggestionBox
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    onAccept={handleAcceptSuggestion}
+                    onDismiss={handleDismissSuggestion}
+                    onShelve={handleShelveSuggestion}
+                    onAddToV2={handleAddToV2}
+                  />
+                ))}
+
                 {(allSuggestions[currentPhase] || []).length > 0 ? (
                   <>
                     {(allSuggestions[currentPhase] || []).map((suggestion) => (
@@ -2224,12 +2562,122 @@ function CreatePage() {
                 )}
               </div>
 
-              {/* Message Input */}
-              <MessageInput
-                onSend={handleMessageSend}
-                isLoading={isLoading}
-                placeholder={`Describe what you want to add to Phase ${currentPhase}...`}
-              />
+              )}
+
+              {/* Message Input for Suggestions */}
+              {rightPanelTab === 'suggestions' && (
+                <MessageInput
+                  onSend={handleMessageSend}
+                  isLoading={isLoading}
+                  placeholder={`Describe what you want to add to Phase ${currentPhase}...`}
+                />
+              )}
+
+              {/* Chat Content */}
+              {rightPanelTab === 'chat' && (
+                <>
+                  {/* Chat Messages */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {chatMessages.length > 0 ? (
+                      chatMessages.map((message, index) => (
+                        <div key={index} className="space-y-2">
+                          <div
+                            className={`flex ${
+                              message.role === 'user' ? 'justify-end' : 'justify-start'
+                            }`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                                message.role === 'user'
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-gray-100 text-gray-900'
+                              }`}
+                            >
+                              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            </div>
+                          </div>
+
+                          {/* Show suggestions with action buttons */}
+                          {message.suggestions && message.suggestions.length > 0 && (
+                            <div className="ml-4 space-y-2">
+                              {message.suggestions.map((suggestion) => (
+                                <div
+                                  key={suggestion.id}
+                                  className="bg-purple-50 border border-purple-200 rounded-lg p-3"
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h5 className="text-sm font-semibold text-gray-900 mb-1">
+                                        {suggestion.title}
+                                      </h5>
+                                      <p className="text-xs text-gray-600 mb-2">
+                                        {suggestion.shortDescription}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <button
+                                      onClick={() => handleAddChatSuggestionToPRD(suggestion)}
+                                      className="flex-1 px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 transition-colors"
+                                    >
+                                      Add to PRD
+                                    </button>
+                                    <button
+                                      onClick={() => handleDismissChatSuggestion(index, suggestion.id)}
+                                      className="flex-1 px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded hover:bg-gray-300 transition-colors"
+                                    >
+                                      Dismiss
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12">
+                        <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">Start a conversation</h4>
+                        <p className="text-gray-500 text-sm">
+                          Chat with AI to strategize about your PRD
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chat Input */}
+                  <div className="border-t border-gray-200 p-4">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleChatSubmit();
+                      }}
+                      className="flex items-center space-x-2"
+                    >
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask about your PRD or request suggestions..."
+                        disabled={isLoading}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isLoading || !chatInput.trim()}
+                        className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isLoading ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        ) : (
+                          <PaperAirplaneIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                    </form>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

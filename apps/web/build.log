@@ -1,0 +1,35 @@
+
+> buildrunner-web@0.4.0 build
+> next build
+
+   ▲ Next.js 14.0.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings
+
+./app/api/provision/keys/route.ts
+Attempted import error: 'SupabaseMgmtClient' is not exported from '../../../../server/lib/supabaseMgmt.js' (imported as 'SupabaseMgmtClient').
+
+Import trace for requested module:
+./app/api/provision/keys/route.ts
+
+./app/api/provision/projects/route.ts
+Attempted import error: 'SupabaseMgmtClient' is not exported from '../../../../server/lib/supabaseMgmt.js' (imported as 'SupabaseMgmtClient').
+
+Import trace for requested module:
+./app/api/provision/projects/route.ts
+
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/brainstorm/chat/route.ts:383:51
+Type error: 'error' is of type 'unknown'.
+
+[0m [90m 381 |[39m     console[33m.[39merror([32m'Error in brainstorm chat:'[39m[33m,[39m error)[33m;[39m[0m
+[0m [90m 382 |[39m     [36mreturn[39m [33mNextResponse[39m[33m.[39mjson([0m
+[0m[31m[1m>[22m[39m[90m 383 |[39m       { error[33m:[39m [32m`Failed to process chat request: ${error.message}`[39m }[33m,[39m[0m
+[0m [90m     |[39m                                                   [31m[1m^[22m[39m[0m
+[0m [90m 384 |[39m       { status[33m:[39m [35m500[39m }[0m
+[0m [90m 385 |[39m     )[33m;[39m[0m
+[0m [90m 386 |[39m   }[0m

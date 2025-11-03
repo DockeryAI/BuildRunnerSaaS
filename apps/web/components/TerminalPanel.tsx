@@ -108,19 +108,33 @@ export default function TerminalPanel({
     // Add detailed information based on log type and metadata
     if (log.type === 'llm_request' && log.metadata) {
       const { model, component, promptLength } = log.metadata;
-      detailedMessage = `LLM Request: ${model || 'unknown'}
-  Component: ${component || 'N/A'}
-  Prompt: ${promptLength || 0} characters (preview: ${log.message.substring(0, 200)}${log.message.length > 200 ? '...' : ''})`;
+      detailedMessage = `┌─────────────────────────────────────────────────────────
+│ 🚀 Generating Code
+├─────────────────────────────────────────────────────────
+│ Component: ${component || 'N/A'}
+│ Model: ${model || 'unknown'}
+│ Prompt: ${promptLength || 0} characters (~${Math.floor((promptLength || 0) / 4)} tokens)
+└─────────────────────────────────────────────────────────`;
     } else if (log.type === 'llm_response' && log.metadata) {
-      const { model, responseLength } = log.metadata;
-      detailedMessage = `LLM Response: ${model || 'unknown'}
-  Response Length: ${responseLength || 0} characters
-  Token Count: ~${Math.floor((responseLength || 0) / 4)} tokens
-  Preview: ${log.message.substring(0, 200)}${log.message.length > 200 ? '...' : ''}`;
+      const { model, component, responseLength } = log.metadata;
+      const codeLines = log.message.split('\n').slice(0, 50); // Show first 50 lines
+      const totalLines = log.message.split('\n').length;
+      const hasMore = totalLines > 50;
+
+      detailedMessage = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Component: ${component || 'N/A'}
+🤖 Model: ${model || 'unknown'}
+📊 Generated: ${responseLength || 0} characters (~${Math.floor((responseLength || 0) / 4)} tokens)
+📄 Lines: ${totalLines}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${codeLines.join('\n')}${hasMore ? `\n\n... (${totalLines - 50} more lines - view full code in Files panel)` : ''}`;
     } else if (log.type === 'file_operation' && log.metadata?.filePath) {
-      detailedMessage = `File Operation
-  Path: ${log.metadata.filePath}
-  Action: ${log.message}`;
+      detailedMessage = `┌─────────────────────────────────────────────────────────
+│ 📁 File Written
+├─────────────────────────────────────────────────────────
+│ ${log.metadata.filePath}
+└─────────────────────────────────────────────────────────`;
     } else if (log.type === 'consensus' && log.metadata) {
       const { agreementRatio, models } = log.metadata;
       detailedMessage = `Multi-LLM Consensus Check

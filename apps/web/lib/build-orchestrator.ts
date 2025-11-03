@@ -11,6 +11,13 @@
 
 import { EventEmitter } from 'events';
 import { BuildFileWriter, inferFilePath } from './file-writer';
+import { AppTypeDetector } from './app-type-detector';
+import { DependencyAnalyzer } from './dependency-analyzer';
+import { ParallelBuilder } from './parallel-builder';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // ============================================================================
 // Types & Interfaces
@@ -92,6 +99,10 @@ export interface BuildState {
   errors: BuildError[];
   interventions: Intervention[];
   loopDetections: LoopDetection[];
+  projectMetadata?: {
+    prd?: string;
+    buildPlan?: string;
+  };
 }
 
 export interface BuildError {
@@ -238,7 +249,7 @@ const DEFAULT_CONFIG: OrchestrationConfig = {
     auto_checkpoint: true,
     auto_rollback: true,
     verify_before_commit: true,
-    graceful_degradation: true
+    graceful_degradation: false  // DISABLED: We want REAL errors, not fake code
   }
 };
 
@@ -257,6 +268,10 @@ export class BuildOrchestrator extends EventEmitter {
   private apiKey: string = '';
   private fileWriter?: BuildFileWriter;
   private projectId: string = '1'; // Default project ID
+  private appTypeDetector: AppTypeDetector;
+  private dependencyAnalyzer: DependencyAnalyzer;
+  private parallelBuilder: ParallelBuilder;
+  private appConfig: any;
 
   constructor(apiKey?: string, config?: Partial<OrchestrationConfig>, projectId?: string) {
     super();
@@ -264,6 +279,11 @@ export class BuildOrchestrator extends EventEmitter {
     this.state = this.initializeState();
     this.apiKey = apiKey || '';
     this.projectId = projectId || '1';
+
+    // Initialize new components
+    this.appTypeDetector = new AppTypeDetector();
+    this.dependencyAnalyzer = new DependencyAnalyzer();
+    this.parallelBuilder = new ParallelBuilder({ maxConcurrency: 5 });
 
     // Try to load from localStorage only if in browser
     if (!this.apiKey && typeof window !== 'undefined') {
@@ -295,9 +315,19 @@ export class BuildOrchestrator extends EventEmitter {
 
   private loadApiKey(): void {
     if (typeof window !== 'undefined' && window.localStorage) {
-      this.apiKey = localStorage.getItem('openrouter_api_key') || '';
+      // Try multiple sources for the API key
+      const apiKeysStr = localStorage.getItem('buildrunner_api_keys');
+      const apiKeys = apiKeysStr ? JSON.parse(apiKeysStr) : {};
+
+      this.apiKey = apiKeys.openrouter ||
+                    localStorage.getItem('openrouter_api_key') ||
+                    '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' ||
+                    '';
+
       if (!this.apiKey) {
         console.warn('OpenRouter API key not found in localStorage');
+      } else {
+        console.log('✅ OpenRouter API key loaded successfully');
       }
     }
   }
@@ -342,6 +372,9 @@ export class BuildOrchestrator extends EventEmitter {
       this.state.status = 'building';
       await this.executePhase('building', async () => {
         await this.buildComponents();
+
+        // NEW: Assemble into working application
+        await this.assembleApplication();
       });
 
       // Phase 3: Verification
@@ -483,38 +516,27 @@ export class BuildOrchestrator extends EventEmitter {
   }
 
   private async buildComponents(): Promise<void> {
-    for (const component of this.state.components) {
-      if (this.isPaused) {
-        await this.waitForResume();
-      }
+    // Analyze dependencies
+    const graph = this.dependencyAnalyzer.buildDependencyGraph(this.state.components);
 
-      this.state.currentComponent = component.id;
-      component.status = 'in_progress';
+    // Validate no cycles
+    this.dependencyAnalyzer.validateNoCycles(graph);
 
-      this.emit('component:started', {
-        componentId: component.id,
-        componentName: component.name,
-        componentType: component.type
-      });
+    // Get execution batches
+    const batches = this.dependencyAnalyzer.getExecutionBatches(graph);
 
-      try {
+    this.emit('build:batches', {
+      totalBatches: batches.length,
+      batchSizes: batches.map(b => b.length),
+    });
+
+    // Build in parallel batches
+    await this.parallelBuilder.buildInParallel(
+      batches,
+      async (component) => {
         await this.buildComponent(component);
-        component.status = 'completed';
-        component.progress = 100;
-        this.updateProgress();
-        this.emit('component:completed', {
-          componentId: component.id,
-          componentName: component.name,
-          componentType: component.type
-        });
-      } catch (error) {
-        component.status = 'failed';
-        this.emit('component:failed', { component: component.id, error });
-
-        // Try to recover with problem solving
-        await this.handleComponentFailure(component, error as Error);
       }
-    }
+    );
   }
 
   private async buildComponent(component: BuildComponent): Promise<void> {
@@ -534,10 +556,10 @@ export class BuildOrchestrator extends EventEmitter {
     // Step 2: Call LLM to generate code
     this.emit('log', {
       level: 'info',
-      message: `Calling AI model (claude-sonnet-3.5) to generate code for ${component.name}...`
+      message: `Calling AI model (claude-3.5-sonnet) to generate code for ${component.name}...`
     });
 
-    const model = 'anthropic/claude-sonnet-3.5';
+    const model = 'anthropic/claude-3.5-sonnet';
     this.emit('llm:request', {
       model,
       component: component.name,
@@ -549,7 +571,8 @@ export class BuildOrchestrator extends EventEmitter {
     this.emit('llm:response', {
       model,
       component: component.name,
-      codeLength: code?.length || 0
+      codeLength: code?.length || 0,
+      codePreview: code?.substring(0, 2000) || '' // First 2000 chars for terminal display
     });
 
     this.emit('log', {
@@ -596,6 +619,69 @@ export class BuildOrchestrator extends EventEmitter {
 
     // Track action
     this.trackAction(`build_component_${component.id}`);
+  }
+
+  private async assembleApplication(): Promise<void> {
+    this.emit('phase:started', { phase: 'assembly' });
+
+    console.log('🔨 Assembling application...');
+
+    // Detect app type from PRD
+    const prd = this.state.projectMetadata?.prd || '';
+    const buildPlan = this.state.projectMetadata?.buildPlan || '';
+
+    this.appConfig = this.appTypeDetector.detectFromPRD(prd, buildPlan);
+
+    console.log(`📱 Detected app type: ${this.appConfig.appType} (${this.appConfig.framework})`);
+
+    if (!this.fileWriter) {
+      console.error('File writer not initialized');
+      return;
+    }
+
+    // Initialize project structure from templates
+    await this.fileWriter.initializeProjectStructure(
+      this.appConfig.appType,
+      this.appConfig.framework,
+      this.appConfig
+    );
+
+    // Assemble components into app
+    await this.fileWriter.assembleApplication(
+      this.state.components,
+      this.appConfig.appType,
+      this.appConfig.framework
+    );
+
+    // Update dependencies
+    await this.fileWriter.updateDependencies(this.state.components);
+
+    // Install dependencies
+    await this.installDependencies();
+
+    this.emit('phase:completed', { phase: 'assembly' });
+  }
+
+  private async installDependencies(): Promise<void> {
+    console.log('📦 Installing dependencies...');
+
+    if (!this.fileWriter) {
+      console.error('File writer not initialized');
+      return;
+    }
+
+    try {
+      const buildDir = this.fileWriter.getBuildDir();
+      await execAsync('npm install', {
+        cwd: buildDir,
+        timeout: 300000, // 5 minutes
+      });
+
+      console.log('✅ Dependencies installed');
+    } catch (error) {
+      console.error('Failed to install dependencies:', error);
+      // Don't throw - allow build to continue
+    }
   }
 
   private async verifyBuild(): Promise<void> {
@@ -1066,7 +1152,7 @@ export class BuildOrchestrator extends EventEmitter {
   private async executeMicroStep(step: MicroStep): Promise<void> {
     // Execute the step action using the primary code builder
     const result = await this.callLLM(
-      'anthropic/claude-sonnet-3.5',
+      'anthropic/claude-3.5-sonnet',
       `Execute this action: ${step.action}\n\nExpected outcome: ${step.expectedOutcome}`
     );
 
@@ -1075,7 +1161,7 @@ export class BuildOrchestrator extends EventEmitter {
 
   private async verifyMicroStep(step: MicroStep): Promise<boolean> {
     const verification = await this.callLLM(
-      'anthropic/claude-sonnet-3.5',
+      'anthropic/claude-3.5-sonnet',
       `Verify this step was completed successfully:\n\nStep: ${step.description}\nVerification criteria: ${step.verification}\n\nRespond with YES or NO.`
     );
 
@@ -1115,7 +1201,7 @@ Provide only the code, no explanations.
   private async generateTests(component: BuildComponent): Promise<string> {
     const prompt = `Generate comprehensive unit tests for this component:\n\nComponent: ${component.name}\nCode:\n${component.code}\n\nUse Jest and React Testing Library.`;
 
-    return await this.callLLM('anthropic/claude-sonnet-3.5', prompt);
+    return await this.callLLM('anthropic/claude-3.5-sonnet', prompt);
   }
 
   // ============================================================================
@@ -1210,13 +1296,19 @@ Provide only the code, no explanations.
       });
 
       if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.error?.message || response.statusText;
+        throw new Error(`OpenRouter API error: ${response.status} ${errorMsg}`);
       }
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content || '';
 
-      this.emit('llm:response', { model, responseLength: content.length });
+      this.emit('llm:response', {
+        model,
+        responseLength: content.length,
+        responsePreview: content.substring(0, 2000) // First 2000 chars for terminal display
+      });
 
       return content;
 

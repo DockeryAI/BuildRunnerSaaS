@@ -50,6 +50,74 @@ function generateMockSuggestions(productIdea: string, phase: number) {
           ],
           section: 'objectives',
           priority: 'high'
+        },
+        {
+          id: `mock-${baseId}-4`,
+          type: 'features',
+          title: 'Core Feature Set',
+          shortDescription: 'Smart automation, real-time sync, and intuitive dashboard',
+          fullDescription: 'Core features include intelligent automation engine, real-time data synchronization across platforms, customizable workflow builder, and analytics dashboard with actionable insights.',
+          citations: [
+            'Industry Best Practices (2023) - Core feature requirements',
+          ],
+          section: 'features',
+          priority: 'high'
+        }
+      ];
+
+    case 3: // Evidence Phase
+      return [
+        {
+          id: `mock-${baseId}-5`,
+          type: 'analytics',
+          title: 'Key Performance Indicators',
+          shortDescription: 'Track adoption rate, task completion time, and user satisfaction',
+          fullDescription: 'Monitor: User adoption rate (target 75% in 3 months), average task completion time reduction (target 60% faster), user satisfaction score (target 8.5/10), and monthly active users growth.',
+          citations: [
+            'Product Analytics Framework (2023) - Essential KPIs',
+          ],
+          section: 'analytics',
+          priority: 'high'
+        },
+        {
+          id: `mock-${baseId}-6`,
+          type: 'risks',
+          title: 'Implementation Risks',
+          shortDescription: 'Data migration complexity and user adoption challenges',
+          fullDescription: 'Key risks: Data migration from legacy systems (mitigation: phased rollout), user adoption resistance (mitigation: training program), API rate limits (mitigation: caching strategy).',
+          citations: [
+            'Risk Management Best Practices (2023)',
+          ],
+          section: 'risks',
+          priority: 'medium'
+        }
+      ];
+
+    case 4: // Launch Phase
+      return [
+        {
+          id: `mock-${baseId}-7`,
+          type: 'monetization',
+          title: 'Pricing Strategy',
+          shortDescription: 'Freemium model with $29/month Pro tier',
+          fullDescription: 'Free tier: 5 automations, 100 tasks/month. Pro tier ($29/month): Unlimited automations, 10,000 tasks/month, priority support, advanced analytics. Enterprise: Custom pricing.',
+          citations: [
+            'SaaS Pricing Research (2023) - Optimal price points',
+          ],
+          section: 'monetization',
+          priority: 'high'
+        },
+        {
+          id: `mock-${baseId}-8`,
+          type: 'rollout',
+          title: 'Launch Plan',
+          shortDescription: 'Beta launch with 50 users, then gradual rollout over 3 months',
+          fullDescription: 'Week 1-2: Private beta with 50 selected users. Week 3-4: Expand to 500 users. Month 2: Public beta launch. Month 3: General availability with marketing campaign.',
+          citations: [
+            'Product Launch Playbook (2023)',
+          ],
+          section: 'rollout',
+          priority: 'high'
         }
       ];
 
@@ -559,7 +627,23 @@ export async function POST(request: NextRequest) {
 
     if (!openrouterKey) {
       console.log('OpenRouter API key not configured, using mock responses');
-      // Return mock suggestions instead of error
+
+      // Handle process_message action with mock response
+      if (action === 'process_message') {
+        const mockSuggestions = generateMockSuggestions(product_idea, phase || 1);
+        return NextResponse.json({
+          result: {
+            response: `I understand you want to discuss "${user_message}". Based on your product idea, I have some suggestions that might help.`,
+            suggestions: mockSuggestions.slice(0, 1) // Return 1 suggestion from chat
+          },
+          action,
+          phase: phase || 1,
+          timestamp: new Date().toISOString(),
+          source: 'mock_data'
+        });
+      }
+
+      // Return mock suggestions for other actions
       const mockSuggestions = generateMockSuggestions(product_idea, phase || 1);
       return NextResponse.json({
         result: mockSuggestions,

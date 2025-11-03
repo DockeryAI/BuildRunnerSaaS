@@ -32,16 +32,41 @@ function getSignupUrl(techName: string): string | undefined {
   return signups[techName];
 }
 
+// Helper function to create a simple hash from PRD content
+function createPRDHash(productIdea: string, prdSections: any): string {
+  const content = JSON.stringify({ productIdea, prdSections });
+  // Simple hash function (for production, consider using crypto)
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString();
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productIdea, productName, prdSections } = body;
+    const { productIdea, productName, prdSections, cachedPlanHash } = body;
+
+    // Check if we should use cached plan
+    if (cachedPlanHash && productIdea && prdSections) {
+      const currentHash = createPRDHash(productIdea, prdSections);
+      if (currentHash === cachedPlanHash) {
+        // PRD hasn't changed, signal client to use cached plan
+        return NextResponse.json({ useCache: true });
+      }
+    }
 
     // Get API keys from headers
     const apiKeysHeader = request.headers.get('x-api-keys');
     const apiKeys = apiKeysHeader ? JSON.parse(apiKeysHeader) : {};
 
-    if (!apiKeys.openrouter) {
+    // Use OpenRouter API key from header or fallback to environment variable
+    const openrouterApiKey = apiKeys.openrouter || process.env.OPENROUTER_API_KEY;
+
+    if (!openrouterApiKey) {
       return NextResponse.json(
         { error: 'OpenRouter API key not configured' },
         { status: 400 }
@@ -67,7 +92,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKeys.openrouter}`,
+        'Authorization': `Bearer ${openrouterApiKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://buildrunner.cloud',
         'X-Title': 'BuildRunner SaaS - Project Plan Generator',
@@ -338,7 +363,10 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       });
     }
 
-    return NextResponse.json({ plan });
+    // Generate hash for caching
+    const prdHash = createPRDHash(productIdea, prdSections);
+
+    return NextResponse.json({ plan, prdHash });
   } catch (error) {
     console.error('Error generating project plan:', error);
     return NextResponse.json(

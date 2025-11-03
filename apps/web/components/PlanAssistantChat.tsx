@@ -141,7 +141,7 @@ export default function PlanAssistantChat({ technologies = [] }: PlanAssistantCh
                   <ChatBubbleLeftRightIcon className="h-8 w-8" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Need Help?</h3>
+                  <h3 className="font-bold text-lg">API Assistant</h3>
                   <p className="text-sm text-blue-100">I'm here to assist!</p>
                 </div>
               </div>
@@ -169,7 +169,7 @@ export default function PlanAssistantChat({ technologies = [] }: PlanAssistantCh
                 <ChatBubbleLeftRightIcon className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-lg">Setup Assistant</h3>
+                <h3 className="font-bold text-lg">API Assistant</h3>
                 <p className="text-xs text-blue-100">Powered by Claude AI</p>
               </div>
             </div>
@@ -201,6 +201,30 @@ export default function PlanAssistantChat({ technologies = [] }: PlanAssistantCh
                 </div>
               </div>
             ))}
+
+            {/* Conversation Starters - Only show at start of conversation */}
+            {messages.length === 1 && technologies && technologies.length > 0 && !isLoading && (
+              <div className="space-y-2 mt-4">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Quick Start</p>
+                {technologies.slice(0, 3).map((tech, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setInput(`How do I set up ${tech.name}?`);
+                    }}
+                    className="w-full text-left p-3 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg transition-all text-sm"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-900">How do I set up {tech.name}?</span>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white text-gray-900 border border-gray-200 rounded-lg px-4 py-2 shadow-sm">

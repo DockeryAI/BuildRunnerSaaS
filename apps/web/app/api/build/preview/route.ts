@@ -1,10 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Store active preview servers
 const activeServers = new Map<string, { process: ChildProcess; port: number }>();
+
+// Check if a port is available
+async function isPortAvailable(port: number): Promise<boolean> {
+  try {
+    const { stdout } = await execAsync(`lsof -ti:${port}`);
+    return !stdout.trim(); // Port is available if no process found
+  } catch (error) {
+    return true; // If lsof errors, assume port is available
+  }
+}
+
+// Find next available port starting from a base port
+async function findAvailablePort(startPort: number = 3001): Promise<number> {
+  for (let port = startPort; port < startPort + 100; port++) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error('No available ports found');
+}
 
 /**
  * Start a preview server for a build
@@ -35,16 +58,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build directory path
-    const buildDir = path.join(process.cwd(), '..', '..', 'builds', projectId, buildId);
+    // Build directory path (same as BuildFileWriter)
+    const buildDir = path.join(process.cwd(), 'builds', projectId, buildId);
+    console.log(`[Preview] Looking for build at: ${buildDir}`);
 
     // Check if build directory exists
     if (!fs.existsSync(buildDir)) {
+      console.error(`[Preview] Build directory not found: ${buildDir}`);
       return NextResponse.json(
         { error: 'Build directory not found', buildDir },
         { status: 404 }
       );
     }
+    console.log(`[Preview] ✅ Build directory found`);
 
     // Check for package.json
     const packageJsonPath = path.join(buildDir, 'package.json');
@@ -74,18 +100,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find available port (start from 3001)
-    let port = 3001;
-    while (activeServers.size > 0) {
-      const usedPorts = Array.from(activeServers.values()).map(s => s.port);
-      if (!usedPorts.includes(port)) break;
-      port++;
-      if (port > 3100) {
-        return NextResponse.json(
-          { error: 'No available ports (max 100 concurrent servers)' },
-          { status: 503 }
-        );
-      }
+    // Find available port (start from 3004 for preview builds)
+    let port: number;
+    try {
+      port = await findAvailablePort(3004);
+      console.log(`Found available port: ${port}`);
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'No available ports (max 100 concurrent servers)' },
+        { status: 503 }
+      );
     }
 
     // Start dev server

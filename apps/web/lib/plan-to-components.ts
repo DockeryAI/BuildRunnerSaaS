@@ -230,7 +230,13 @@ export function calculateComponentPositions(
   };
 
   components.forEach(component => {
-    byType[component.type].push(component);
+    // Handle components with type that might not exist in byType
+    if (byType[component.type]) {
+      byType[component.type].push(component);
+    } else {
+      // Default unknown types to 'service'
+      byType.service.push(component);
+    }
   });
 
   const positioned = [...components];

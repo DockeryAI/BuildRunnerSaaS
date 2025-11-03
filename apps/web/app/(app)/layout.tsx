@@ -7,6 +7,8 @@ import { useAuth } from '../../lib/auth';
 import { ProtectedRoute } from '../../components/auth/ProtectedRoute';
 import { ProjectProvider, useProject } from '../../lib/project';
 import { TabSafeProjectProvider, useTabSafeProject } from '../../lib/project-context';
+import { StrategeryProvider, useStrategery } from '../../lib/strategery-context';
+import { APIAssistantProvider, useAPIAssistant } from '../../lib/api-assistant-context';
 import { ProjectSelector } from '../../components/project/ProjectSelector';
 import {
   FileText,
@@ -29,15 +31,44 @@ import {
   BookTemplate,
   DollarSign,
   Sparkles,
-  GitBranch
+  GitBranch,
+  MessageSquare
 } from 'lucide-react';
 import { SyncStatusWidget } from '../../components/github-sync/SyncStatusWidget';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
+import dynamic from 'next/dynamic';
+
+// Dynamic imports for voice components (client-side only)
+const VoiceProvider = dynamic(
+  () => import('../../components/voice/VoiceProvider').then((mod) => mod.VoiceProvider),
+  { ssr: false }
+);
+const VoiceMicrophone = dynamic(
+  () => import('../../components/voice/VoiceMicrophone').then((mod) => mod.VoiceMicrophone),
+  { ssr: false }
+);
+const VoiceTranscript = dynamic(
+  () => import('../../components/voice/VoiceTranscript').then((mod) => mod.VoiceTranscript),
+  { ssr: false }
+);
+const VoiceStatus = dynamic(
+  () => import('../../components/voice/VoiceStatus').then((mod) => mod.VoiceStatus),
+  { ssr: false }
+);
+const APIAssistant = dynamic(
+  () => import('../../components/APIAssistant'),
+  { ssr: false }
+);
+const StrategeryAssistant = dynamic(
+  () => import('../../components/StrategeryAssistant'),
+  { ssr: false }
+);
 
 const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderOpen, description: 'Project library' },
   { name: 'Create', href: '/create', icon: Lightbulb, description: 'Build PRD with AI' },
+  { name: 'PRD', href: '/create?view=prd', icon: FileText, description: 'View/Edit PRD', highlight: true },
   { name: 'Templates', href: '/templates', icon: BookTemplate, description: 'PRD templates' },
   { name: 'Plan', href: '/plan', icon: Edit3, description: 'Project plan & timeline' },
   { name: 'Build', href: '/workbench', icon: Wrench, description: 'Code & tests' },
@@ -47,14 +78,63 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: Settings, description: 'API keys & governance' },
 ];
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
+// Inner component that uses the context hooks
+function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarHidden, setSidebarHidden] = useState(false);
+  const [showStrategeryBtn, setShowStrategeryBtn] = useState(false);
+  const [showAPIBtn, setShowAPIBtn] = useState(false);
 
   const { user, signOut } = useAuth();
   const { currentProject } = useTabSafeProject();
+  const { toggleOpen: toggleStrategery } = useStrategery();
+  const { toggleOpen: toggleAPIAssistant } = useAPIAssistant();
+
+  // Check visibility for both assistants
+  useEffect(() => {
+    const checkVisibility = () => {
+      const currentProjectId = localStorage.getItem('currentProjectId');
+      console.log('[Assistant Visibility] currentProjectId:', currentProjectId);
+
+      if (!currentProjectId) {
+        console.log('[Assistant Visibility] No project ID, hiding assistants');
+        setShowStrategeryBtn(false);
+        setShowAPIBtn(false);
+        return;
+      }
+
+      // Show Strategery after idea submission
+      const savedProject = localStorage.getItem(`buildrunner_project_${currentProjectId}`);
+      console.log('[Assistant Visibility] savedProject:', savedProject ? 'found' : 'not found');
+
+      if (savedProject) {
+        try {
+          const project = JSON.parse(savedProject);
+          const hasIdea = !!project.productIdea;
+          console.log('[Assistant Visibility] Has product idea:', hasIdea);
+          setShowStrategeryBtn(hasIdea);
+        } catch (error) {
+          console.error('[Assistant Visibility] Failed to parse project:', error);
+          setShowStrategeryBtn(false);
+        }
+      } else {
+        setShowStrategeryBtn(false);
+      }
+
+      // Show API Assistant after plan generation
+      const savedPlan = localStorage.getItem(`buildrunner_plan_${currentProjectId}`);
+      const hasPlan = !!savedPlan;
+      console.log('[Assistant Visibility] Has plan:', hasPlan);
+      setShowAPIBtn(hasPlan);
+    };
+
+    // Check immediately on mount
+    checkVisibility();
+
+    // Also check when pathname or currentProject changes
+  }, [pathname, currentProject]);
 
   // Load sidebar states from localStorage on mount
   useEffect(() => {
@@ -84,9 +164,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
-          {/* Sidebar */}
-          {!sidebarHidden && (
+      <VoiceProvider
+        deepgramApiKey={process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY || ''}
+        elevenLabsApiKey={process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || ''}
+        elevenLabsVoiceId={process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || ''}
+        anthropicApiKey={process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || ''}
+        autoSpeak={true}
+      >
+      <div className="h-screen flex overflow-hidden bg-gray-100">
+            {/* Sidebar */}
+            {!sidebarHidden && (
             <div className={cn(
               "fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
               sidebarOpen ? "translate-x-0" : "-translate-x-full",
@@ -131,14 +218,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 <nav className="flex-1 px-2 py-4 space-y-1">
                   {navigation.map((item) => {
                     const isActive = pathname === item.href;
+                    const isHighlight = (item as any).highlight;
                     return (
                       <Link
                         key={item.name}
                         href={item.href}
                         className={cn(
                           "group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors",
-                          isActive
+                          isActive && !isHighlight
                             ? "bg-blue-100 text-blue-700"
+                            : isHighlight
+                            ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
                             : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                           sidebarCollapsed ? "justify-center" : ""
                         )}
@@ -148,7 +238,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                           className={cn(
                             sidebarCollapsed ? "" : "mr-3",
                             "h-5 w-5",
-                            isActive ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500"
+                            isActive && !isHighlight ? "text-blue-500" : isHighlight ? "text-purple-600" : "text-gray-400 group-hover:text-gray-500"
                           )}
                         />
                         {!sidebarCollapsed && item.name}
@@ -220,16 +310,44 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
                   {/* PRD Button - Shows when project is selected */}
                   {currentProject && (
-                    <Link href="/create">
+                    <Link href="/create?view=prd">
                       <Button
                         variant="outline"
                         size="sm"
                         className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
                       >
                         <FileText className="h-4 w-4" />
-                        <span className="hidden sm:inline">PRD</span>
+                        <span className="hidden sm:inline">What's Your Idea?</span>
                       </Button>
                     </Link>
+                  )}
+
+                  {/* Strategery Assistant - Shows after idea submission */}
+                  {showStrategeryBtn && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleStrategery}
+                      className="flex items-center gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+                      title="Strategery Assistant"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="hidden sm:inline">Strategy</span>
+                    </Button>
+                  )}
+
+                  {/* API Assistant - Shows after plan generation */}
+                  {showAPIBtn && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleAPIAssistant}
+                      className="flex items-center gap-2 border-blue-400 text-blue-800 hover:bg-blue-50"
+                      title="API Assistant"
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span className="hidden sm:inline">APIs</span>
+                    </Button>
                   )}
                 </div>
 
@@ -260,7 +378,28 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               onClick={() => setSidebarOpen(false)}
             />
           )}
+
+          {/* Voice UI Components */}
+          <VoiceMicrophone />
+          <VoiceTranscript />
+          <VoiceStatus />
+
+          {/* Global Assistants */}
+          <APIAssistant />
+          <StrategeryAssistant />
         </div>
+      </VoiceProvider>
+  );
+}
+
+// Wrapper component that provides the contexts
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
+  return (
+    <StrategeryProvider>
+      <APIAssistantProvider>
+        <AppLayoutInner>{children}</AppLayoutInner>
+      </APIAssistantProvider>
+    </StrategeryProvider>
   );
 }
 
