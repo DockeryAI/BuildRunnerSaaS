@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Monitor, Smartphone, Tablet, ChevronLeft, ChevronRight, Camera, Maximize2 } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, ChevronLeft, ChevronRight, Camera, Maximize2, MessageSquare, Sparkles } from 'lucide-react';
 import { FeedbackSidebar } from './FeedbackSidebar';
 import { FeedbackInput } from './FeedbackInput';
+import { PRDSuggestionsPanel } from './PRDSuggestionsPanel';
 
 type ViewportSize = 'mobile' | 'tablet' | 'desktop';
 type AppType = 'web' | 'mobile';
@@ -31,6 +32,7 @@ export function InteractivePreview({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentRoute, setCurrentRoute] = useState('/');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'feedback' | 'prd'>('feedback');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Listen for iframe navigation changes
@@ -163,13 +165,74 @@ export function InteractivePreview({
           </div>
         </div>
 
-        {/* Feedback sidebar */}
-        <FeedbackSidebar
-          buildId={buildId}
-          projectId={projectId}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        {/* Right sidebar with tabs */}
+        {!sidebarCollapsed ? (
+          <div className="absolute right-0 top-0 bottom-0 w-96 bg-white border-l border-gray-200 flex flex-col shadow-lg">
+            {/* Tab switcher */}
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab('feedback')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'feedback'
+                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Feedback
+              </button>
+              <button
+                onClick={() => setActiveTab('prd')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'prd'
+                    ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                PRD
+              </button>
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-hidden">
+              {activeTab === 'feedback' ? (
+                <FeedbackSidebar
+                  buildId={buildId}
+                  projectId={projectId}
+                  collapsed={false}
+                  onToggleCollapse={() => setSidebarCollapsed(true)}
+                />
+              ) : (
+                <PRDSuggestionsPanel
+                  projectId={projectId}
+                  buildId={buildId}
+                />
+              )}
+            </div>
+
+            {/* Collapse button */}
+            <div className="absolute top-3 right-3">
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                title="Collapse sidebar"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-white border-l border-gray-200 flex flex-col items-center py-4">
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+              title="Expand sidebar"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Feedback input (fixed at bottom) */}

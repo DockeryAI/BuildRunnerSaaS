@@ -83,21 +83,11 @@ export function FeedbackSidebar({
   };
 
   if (collapsed) {
-    return (
-      <div className="absolute right-0 top-0 bottom-0 w-12 bg-white border-l border-gray-200 flex flex-col items-center py-4">
-        <button
-          onClick={onToggleCollapse}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-          title="Expand sidebar"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-      </div>
-    );
+    return null; // Tab system handles collapsed state
   }
 
   return (
-    <div className="absolute right-0 top-0 bottom-0 w-96 bg-white border-l border-gray-200 flex flex-col shadow-lg">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900">Feedback</h3>
@@ -109,13 +99,6 @@ export function FeedbackSidebar({
             title="Refresh"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={onToggleCollapse}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded"
-            title="Collapse sidebar"
-          >
-            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </div>

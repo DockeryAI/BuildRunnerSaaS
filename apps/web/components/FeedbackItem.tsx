@@ -15,19 +15,26 @@ import {
   Lightbulb,
   Palette,
   TrendingUp,
+  FileText,
+  Plus,
 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import type { FeedbackItem as FeedbackItemType } from '@/app/api/build/feedback/route';
+import { PRDUpdater } from '@/lib/prd-updater';
 
 interface FeedbackItemProps {
   feedback: FeedbackItemType;
   onUpdate: () => void;
 }
 
+const prdUpdater = new PRDUpdater();
+
 export function FeedbackItem({ feedback, onUpdate }: FeedbackItemProps) {
   const [expanded, setExpanded] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [autoFixJobId, setAutoFixJobId] = useState<string | null>(null);
+  const [addingToPRD, setAddingToPRD] = useState(false);
+  const [addedToPRD, setAddedToPRD] = useState(false);
 
   const getStatusColor = (status: FeedbackItemType['status']) => {
     switch (status) {
@@ -195,6 +202,40 @@ export function FeedbackItem({ feedback, onUpdate }: FeedbackItemProps) {
     }
   };
 
+  const handleAddToPRD = async () => {
+    setAddingToPRD(true);
+    try {
+      // Generate PRD feature from feedback
+      const feature = prdUpdater.generateFeatureSquare({
+        description: feedback.description,
+        type: feedback.type,
+        priority: feedback.priority,
+        context: feedback.context,
+      });
+
+      const response = await fetch('/api/prd/update-from-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: feedback.projectId,
+          buildId: feedback.buildId,
+          feature,
+          feedbackId: feedback.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAddedToPRD(true);
+      }
+    } catch (error) {
+      console.error('Error adding to PRD:', error);
+    } finally {
+      setAddingToPRD(false);
+    }
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg bg-white overflow-hidden hover:shadow-md transition-shadow">
       {/* Header */}
@@ -348,10 +389,40 @@ export function FeedbackItem({ feedback, onUpdate }: FeedbackItemProps) {
             )}
 
             {feedback.status === 'verified' && (
-              <div className="flex items-center gap-1 text-xs text-green-700">
-                <CheckCircle className="w-3 h-3" />
-                Changes applied successfully
-              </div>
+              <>
+                <div className="flex items-center gap-1 text-xs text-green-700">
+                  <CheckCircle className="w-3 h-3" />
+                  Changes applied successfully
+                </div>
+                {!addedToPRD && feedback.type === 'feature' && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToPRD();
+                    }}
+                    disabled={addingToPRD}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {addingToPRD ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3 h-3" />
+                        Add to PRD
+                      </>
+                    )}
+                  </button>
+                )}
+                {addedToPRD && (
+                  <div className="flex items-center gap-1 text-xs text-purple-700">
+                    <FileText className="w-3 h-3" />
+                    Added to PRD
+                  </div>
+                )}
+              </>
             )}
 
             {feedback.status === 'rejected' && (
