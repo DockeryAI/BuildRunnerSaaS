@@ -3,10 +3,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
+// Only create Supabase client if credentials are provided
+const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+  : null;
 
 interface User {
   id: string;
@@ -41,17 +44,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Then check Supabase session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const supabaseUser = {
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name,
-            avatar: session.user.user_metadata?.avatar_url,
-          };
-          setUser(supabaseUser);
-          localStorage.setItem('buildrunner_user', JSON.stringify(supabaseUser));
+        // Then check Supabase session (if available)
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const supabaseUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name,
+              avatar: session.user.user_metadata?.avatar_url,
+            };
+            setUser(supabaseUser);
+            localStorage.setItem('buildrunner_user', JSON.stringify(supabaseUser));
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -62,7 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkUser();
 
-    // Listen for auth changes
+    // Listen for auth changes (if Supabase is available)
+    if (!supabase) return;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session);
@@ -114,16 +121,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Try Supabase auth for other users
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-    } catch (error) {
-      // If Supabase fails, allow demo mode for any other credentials
-      console.log('Supabase auth failed, using demo mode');
+    // Try Supabase auth for other users (if available)
+    if (supabase) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+      } catch (error) {
+        // If Supabase fails, allow demo mode for any other credentials
+        console.log('Supabase auth failed, using demo mode');
+        const demoUser = {
+          id: 'demo-user',
+          email: email,
+          name: 'Demo User',
+          avatar: undefined,
+        };
+        setUser(demoUser);
+      }
+    } else {
+      // No Supabase configured, allow demo mode
+      console.log('No Supabase configured, using demo mode');
       const demoUser = {
         id: 'demo-user',
         email: email,
@@ -140,10 +159,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
 
     // Also sign out from Supabase if there's a session
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.log('Supabase signout error (expected for admin):', error);
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        console.log('Supabase signout error (expected for admin):', error);
+      }
     }
   };
 
