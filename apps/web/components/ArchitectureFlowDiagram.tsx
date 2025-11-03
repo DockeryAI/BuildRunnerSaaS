@@ -3,6 +3,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
+interface Technology {
+  name: string;
+  category: string;
+  reasoning?: string;
+  difficulty?: string;
+  setupRequired?: boolean;
+  status?: string;
+  easierAlternative?: any;
+}
+
+interface Architecture {
+  recommendedStack?: string;
+  technologies: Technology[];
+}
+
+interface ArchitectureFlowDiagramProps {
+  architecture?: Architecture;
+}
+
 interface ArchComponent {
   id: string;
   name: string;
@@ -39,6 +58,197 @@ const LAYERS = [
   { id: 'data', name: 'Data Layer', color: '#E6F7F6', textColor: '#0F766E' },
   { id: 'integration', name: 'Integration Layer', color: '#F1F3F5', textColor: '#374151' },
 ];
+
+// Function to convert technologies to diagram nodes
+function generateNodesFromArchitecture(architecture?: Architecture): ArchNode[] {
+  if (!architecture || !architecture.technologies || architecture.technologies.length === 0) {
+    // Return default nodes if no architecture provided
+    return DEFAULT_NODES;
+  }
+
+  const nodes: ArchNode[] = [];
+
+  // Always add user node
+  nodes.push({
+    id: 'user',
+    name: 'User',
+    description: 'End user interacting with the application',
+    type: 'user',
+    layer: 'user',
+    x: 100,
+    y: 100,
+    progress: 0,
+    steps: ['User authentication', 'User interface interaction', 'Data input/output']
+  });
+
+  const technologies = architecture.technologies;
+
+  // Categorize technologies
+  const frontend = technologies.filter(t =>
+    t.category === 'frontend' ||
+    ['React', 'Next.js', 'React Native', 'Vue', 'Angular', 'Svelte'].includes(t.name)
+  );
+
+  const backend = technologies.filter(t =>
+    t.category === 'backend' ||
+    ['Node.js', 'Express', 'Fastify', 'NestJS'].includes(t.name)
+  );
+
+  const database = technologies.filter(t =>
+    t.category === 'database' ||
+    ['PostgreSQL', 'MySQL', 'MongoDB', 'Supabase', 'Firebase'].includes(t.name)
+  );
+
+  const services = technologies.filter(t =>
+    t.category === 'service' ||
+    ['OpenRouter', 'OpenAI', 'Anthropic', 'Stripe', 'Resend', 'SendGrid', 'Twilio', 'Agora.io'].includes(t.name)
+  );
+
+  const infrastructure = technologies.filter(t =>
+    t.category === 'infrastructure' ||
+    ['Vercel', 'Railway', 'AWS', 'Docker', 'Redis'].includes(t.name)
+  );
+
+  // Add frontend/presentation node
+  if (frontend.length > 0) {
+    const mainFrontend = frontend[0];
+    nodes.push({
+      id: 'webapp',
+      name: mainFrontend.name,
+      subtitle: mainFrontend.category || 'Frontend',
+      description: mainFrontend.reasoning || 'Frontend application interface',
+      type: 'webapp',
+      layer: 'presentation',
+      x: 100,
+      y: 300,
+      progress: 0,
+      steps: ['Setup project structure', 'Create components', 'Implement routing', 'Connect to backend']
+    });
+  }
+
+  // Add API gateway/backend node
+  if (backend.length > 0 || services.length > 0) {
+    nodes.push({
+      id: 'gateway',
+      name: 'API Gateway',
+      subtitle: backend.length > 0 ? backend[0].name : 'REST API',
+      description: 'API routing and business logic',
+      type: 'gateway',
+      layer: 'application',
+      x: 100,
+      y: 500,
+      progress: 0,
+      steps: ['Setup API routes', 'Implement authentication', 'Add rate limiting', 'Configure CORS']
+    });
+  }
+
+  // Add database nodes
+  database.forEach((db, index) => {
+    nodes.push({
+      id: `database-${index}`,
+      name: db.name,
+      subtitle: db.category || 'Database',
+      description: db.reasoning || 'Primary data storage',
+      type: 'database',
+      layer: 'data',
+      x: 300 + (index * 250),
+      y: 700,
+      progress: 0,
+      steps: ['Design schema', 'Create migrations', 'Setup connection', 'Configure backups']
+    });
+  });
+
+  // Add service/integration nodes
+  services.forEach((service, index) => {
+    const xPosition = 500 + (index * 200);
+    nodes.push({
+      id: `service-${index}`,
+      name: service.name,
+      subtitle: service.category || 'Service',
+      description: service.reasoning || 'External API integration',
+      type: index === 0 ? 'service' : 'external',
+      layer: index === 0 ? 'application' : 'integration',
+      x: index === 0 ? 500 : xPosition,
+      y: index === 0 ? 500 : 500,
+      progress: 0,
+      steps: ['Obtain API keys', 'Implement client', 'Add error handling', 'Write tests']
+    });
+  });
+
+  // Add cache for Redis or similar
+  const cache = infrastructure.find(t => t.name === 'Redis');
+  if (cache) {
+    nodes.push({
+      id: 'cache',
+      name: cache.name,
+      subtitle: 'Cache',
+      description: cache.reasoning || 'In-memory caching layer',
+      type: 'cache',
+      layer: 'data',
+      x: 700,
+      y: 700,
+      progress: 0,
+      steps: ['Setup instance', 'Define caching strategy', 'Implement invalidation']
+    });
+  }
+
+  return nodes;
+}
+
+// Function to generate connections based on nodes
+function generateConnectionsFromNodes(nodes: ArchNode[]): ArchConnection[] {
+  const connections: ArchConnection[] = [];
+
+  // User to webapp
+  const user = nodes.find(n => n.id === 'user');
+  const webapp = nodes.find(n => n.id === 'webapp');
+  if (user && webapp) {
+    connections.push({ from: 'user', to: 'webapp', type: 'sync' });
+  }
+
+  // Webapp to gateway
+  const gateway = nodes.find(n => n.id === 'gateway');
+  if (webapp && gateway) {
+    connections.push({ from: 'webapp', to: 'gateway', type: 'sync' });
+  }
+
+  // Gateway to databases
+  const databases = nodes.filter(n => n.type === 'database');
+  if (gateway && databases.length > 0) {
+    databases.forEach(db => {
+      connections.push({ from: 'gateway', to: db.id, type: 'sync' });
+    });
+  }
+
+  // Gateway to services
+  const services = nodes.filter(n => n.type === 'service');
+  if (gateway && services.length > 0) {
+    services.forEach(service => {
+      connections.push({ from: 'gateway', to: service.id, type: 'sync' });
+    });
+  }
+
+  // Gateway to external services
+  const externals = nodes.filter(n => n.type === 'external');
+  if (gateway && externals.length > 0) {
+    externals.forEach((ext, idx) => {
+      connections.push({
+        from: 'gateway',
+        to: ext.id,
+        type: idx % 2 === 0 ? 'sync' : 'async',
+        label: idx % 2 === 0 ? undefined : 'Queue'
+      });
+    });
+  }
+
+  // Gateway to cache
+  const cache = nodes.find(n => n.type === 'cache');
+  if (gateway && cache) {
+    connections.push({ from: 'gateway', to: 'cache', type: 'sync' });
+  }
+
+  return connections;
+}
 
 const DEFAULT_NODES: ArchNode[] = [
   {
@@ -158,9 +368,9 @@ const DEFAULT_CONNECTIONS: ArchConnection[] = [
   { from: 'service', to: 'external', type: 'async', label: 'Queue' },
 ];
 
-export default function ArchitectureFlowDiagram() {
-  const [nodes] = useState<ArchNode[]>(DEFAULT_NODES);
-  const [connections] = useState<ArchConnection[]>(DEFAULT_CONNECTIONS);
+export default function ArchitectureFlowDiagram({ architecture }: ArchitectureFlowDiagramProps) {
+  const [nodes, setNodes] = useState<ArchNode[]>([]);
+  const [connections, setConnections] = useState<ArchConnection[]>([]);
   const [selectedNode, setSelectedNode] = useState<ArchNode | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<ArchComponent | null>(null);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
@@ -169,6 +379,16 @@ export default function ArchitectureFlowDiagram() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Regenerate nodes and connections whenever architecture changes
+  useEffect(() => {
+    console.log('🔄 Architecture changed, regenerating diagram nodes...');
+    const generatedNodes = generateNodesFromArchitecture(architecture);
+    const generatedConnections = generateConnectionsFromNodes(generatedNodes);
+    setNodes(generatedNodes);
+    setConnections(generatedConnections);
+    console.log('✅ Generated', generatedNodes.length, 'nodes from architecture');
+  }, [architecture]);
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();

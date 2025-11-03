@@ -59,12 +59,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get API keys from headers
+    // Get API keys - prioritize environment variable over client-provided keys
+    let openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
+
+    // Parse client API keys for service detection
     const apiKeysHeader = request.headers.get('x-api-keys');
     const apiKeys = apiKeysHeader ? JSON.parse(apiKeysHeader) : {};
 
-    // Use OpenRouter API key from header or fallback to environment variable
-    const openrouterApiKey = apiKeys.openrouter || process.env.OPENROUTER_API_KEY;
+    // Only use client-provided key if no environment variable is set
+    if (!openrouterApiKey) {
+      openrouterApiKey = apiKeys.openrouter || '';
+      console.log('Using client-provided OpenRouter key:', !!openrouterApiKey);
+    } else {
+      console.log('Using environment OpenRouter key:', !!openrouterApiKey);
+    }
 
     if (!openrouterApiKey) {
       return NextResponse.json(
@@ -183,28 +191,40 @@ TECHNOLOGY RECOMMENDATIONS:
 - Mark setupRequired=false if its a standard development tool
 - Reasoning should be specific to the project requirements (max 150 chars)
 
-EASIER ALTERNATIVES SYSTEM:
-- If a technology has difficulty="medium" or "advanced", MUST include an easierAlternative
-- The easierAlternative should achieve the same goal with less complexity
-- Include name, reasoning (why its easier), difficulty (always "easy"), and tradeoffs
-- Example: Microsoft Graph (advanced) → easierAlternative: Gmail API (easy)
-- Example: AWS S3 (medium) → easierAlternative: Supabase Storage (easy)
-- Example: Auth0 (medium) → easierAlternative: Supabase Auth (easy)
-- Example: OpenAI API (medium) → easierAlternative: OpenRouter (easy)
-- DO NOT replace requested technologies - show BOTH the requested tech AND the easier alternative
-- User can choose to accept the alternative or proceed with the original
-- Tradeoffs should be honest (e.g., "Less enterprise features, but sufficient for most use cases")
+EASIER ALTERNATIVES SYSTEM (CRITICAL - ALWAYS RECOMMEND EASIER OPTIONS FIRST):
+- ALWAYS prioritize easier alternatives as the PRIMARY recommendation
+- If a complex technology is needed, recommend the EASIER alternative as the main "name" field
+- Include the harder option as "easierAlternative" (reversed from typical usage)
+- This way the UI will show the easier option first and the harder option as "Advanced"
 
-SPECIFIC ALTERNATIVE MAPPINGS:
-- Microsoft Graph/Outlook → Gmail API or Resend
-- AWS S3 → Supabase Storage
-- Auth0 → Supabase Auth
-- OpenAI/Anthropic direct → OpenRouter
-- SendGrid → Resend
-- Twilio → Avoid recommending (too complex)
-- Custom PostgreSQL → Supabase (includes auth, storage, API)
+EXAMPLES OF CORRECT RECOMMENDATIONS:
+- For email integration: Recommend "Resend" (easy) as primary, with "SendGrid" (medium) as easierAlternative
+- For auth: Recommend "Supabase Auth" (easy) as primary, with "Auth0" (medium) as easierAlternative
+- For storage: Recommend "Supabase Storage" (easy) as primary, with "AWS S3" (medium) as easierAlternative
+- For AI: Recommend "OpenRouter" (easy) as primary, with "OpenAI API" (medium) as easierAlternative
+- For database: Recommend "Supabase" (easy) as primary, with "Custom PostgreSQL" (advanced) as easierAlternative
 
-Prioritize services with easy=difficulty and setupRequired=true only for cloud services`
+WHEN PRD REQUESTS SPECIFIC TECHNOLOGY:
+- If PRD says "Outlook integration", recommend "Gmail API or Resend" (easy) as primary
+- Include "Microsoft Graph" (advanced) as the easierAlternative for those who specifically need Outlook
+- The tradeoff should explain: "Microsoft Graph provides full Outlook integration but requires complex OAuth setup"
+
+ALTERNATIVE MAPPING RULES:
+- Primary (easy): Resend → Alternative (medium): SendGrid
+- Primary (easy): Supabase Auth → Alternative (medium): Auth0
+- Primary (easy): Supabase Storage → Alternative (medium): AWS S3
+- Primary (easy): OpenRouter → Alternative (medium): OpenAI/Anthropic direct
+- Primary (easy): Gmail API or Resend → Alternative (advanced): Microsoft Graph/Outlook
+- Primary (easy): Supabase → Alternative (advanced): Custom PostgreSQL + separate auth
+
+TRADEOFF HONESTY:
+- Be clear about what the easier option provides vs the advanced option
+- Example: "Gmail API is easier to set up and works for most email needs. Microsoft Graph adds Outlook calendar and contacts but requires Azure AD setup"
+- Example: "Supabase provides auth, database, and storage in one platform. Custom setup gives more control but requires managing multiple services"
+
+NEVER recommend Twilio as primary (too complex) - always suggest easier SMS alternatives if needed
+
+This approach ensures non-technical users see the easiest path first while still having access to advanced options`
           },
           {
             role: 'user',

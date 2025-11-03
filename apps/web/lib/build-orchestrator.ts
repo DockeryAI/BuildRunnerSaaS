@@ -399,8 +399,11 @@ export class BuildOrchestrator extends EventEmitter {
       const completedComponents = this.state.components.filter(c => c.status === 'completed');
       const duration = this.state.endTime.getTime() - (this.state.startTime?.getTime() || 0);
 
-      // Check if this is a web app (has frontend components)
-      const hasWebApp = completedComponents.some(c => c.type === 'frontend');
+      // Check if this is a web app based on detected app type
+      const isWebApp = this.appConfig?.appType === 'web' ||
+                       this.appConfig?.framework?.toLowerCase().includes('next') ||
+                       this.appConfig?.framework?.toLowerCase().includes('react') ||
+                       completedComponents.some(c => c.type === 'frontend');
 
       this.emit('build:completed', {
         buildId: this.state.id,
@@ -410,7 +413,7 @@ export class BuildOrchestrator extends EventEmitter {
         status: 'completed' as const,
         buildDirectory: `builds/${this.projectId}/${this.state.id}`,
         duration,
-        isWebApp: hasWebApp,
+        isWebApp,
       });
 
     } catch (error) {
@@ -597,7 +600,10 @@ export class BuildOrchestrator extends EventEmitter {
           message: `Writing file: ${filePath}`
         });
 
-        await this.fileWriter.writeFile(filePath, code);
+        // Strip markdown code fences before writing
+        const cleanCode = this.stripMarkdownCodeFences(code);
+
+        await this.fileWriter.writeFile(filePath, cleanCode);
 
         this.emit('log', {
           level: 'success',
@@ -783,7 +789,9 @@ export class BuildOrchestrator extends EventEmitter {
         if (this.fileWriter && tests) {
           try {
             const testFilePath = `tests/${component.name}.test.ts`;
-            await this.fileWriter.writeFile(testFilePath, tests);
+            // Strip markdown code fences before writing
+            const cleanTests = this.stripMarkdownCodeFences(tests);
+            await this.fileWriter.writeFile(testFilePath, cleanTests);
             console.log(`✅ Wrote test file: ${testFilePath}`);
           } catch (error) {
             console.error(`Failed to write test file for ${component.name}:`, error);
@@ -1177,15 +1185,69 @@ export class BuildOrchestrator extends EventEmitter {
       .map(depId => this.state.components.find(c => c.id === depId))
       .filter(Boolean);
 
+    // Get detected framework and app type
+    const framework = this.appConfig?.framework || 'react';
+    const appType = this.appConfig?.appType || 'web';
+
+    // Build framework-specific constraints based on app type
+    let frameworkConstraints = '';
+
+    if (appType === 'ios' || framework.toLowerCase().includes('swift')) {
+      frameworkConstraints = `
+CRITICAL FRAMEWORK CONSTRAINTS:
+- This is an iOS application using ${framework}
+- Use Swift and SwiftUI for native iOS development
+- Use iOS-specific APIs and frameworks (UIKit, SwiftUI, Foundation, etc.)
+- DO NOT use web-specific libraries (React, Next.js, DOM APIs)
+- Follow iOS platform conventions and guidelines
+- Use proper Swift syntax and type safety
+`;
+    } else if (framework.toLowerCase().includes('react-native')) {
+      frameworkConstraints = `
+CRITICAL FRAMEWORK CONSTRAINTS:
+- This is a React Native cross-platform mobile application
+- Use React Native components and APIs
+- DO NOT use web-specific APIs (window, document, DOM)
+- DO NOT use native iOS/Android code directly (use React Native bridges)
+- Use platform-agnostic libraries compatible with React Native
+`;
+    } else if (framework.toLowerCase().includes('next')) {
+      frameworkConstraints = `
+CRITICAL FRAMEWORK CONSTRAINTS:
+- This is a Next.js web application
+- ONLY use Next.js compatible libraries and patterns
+- DO NOT use iOS/Swift/SwiftUI code or syntax
+- DO NOT use React Native or mobile-specific libraries
+- DO NOT import non-existent services or utilities
+- Use React components with TypeScript
+- Use Next.js App Router patterns ('use client' for client components)
+- Stick to standard React hooks and Next.js APIs only
+- Only use libraries that exist in package.json
+`;
+    } else if (framework.toLowerCase().includes('react')) {
+      frameworkConstraints = `
+CRITICAL FRAMEWORK CONSTRAINTS:
+- This is a React ${appType} application
+- ONLY use React and standard web APIs
+- DO NOT use mobile-specific libraries (iOS, Android, Swift, React Native)
+- Use only libraries that are in the project's package.json
+- Use React components with TypeScript
+`;
+    }
+
     return `
 Generate complete, production-ready code for this component:
 
 Component: ${component.name}
 Type: ${component.type}
 Priority: ${component.priority}
+Framework: ${framework}
+App Type: ${appType}
 
 Dependencies:
 ${dependencies.map(dep => `- ${dep?.name} (${dep?.id})`).join('\n')}
+
+${frameworkConstraints}
 
 Requirements:
 - Follow TypeScript best practices
@@ -1193,6 +1255,7 @@ Requirements:
 - Add comprehensive JSDoc comments
 - Use modern ES6+ features
 - Ensure type safety
+- ONLY use libraries and APIs compatible with ${framework}
 
 Provide only the code, no explanations.
     `.trim();
@@ -1333,6 +1396,24 @@ Provide only the code, no explanations.
   // ============================================================================
   // Utility Functions
   // ============================================================================
+
+  /**
+   * Strip markdown code fences from AI-generated code
+   * Removes ```typescript, ```tsx, ```javascript, ```jsx, ``` etc.
+   */
+  private stripMarkdownCodeFences(content: string): string {
+    if (!content) return content;
+
+    let cleaned = content.trim();
+
+    // Remove opening fence (```typescript, ```tsx, ```javascript, ```jsx, ```json, or just ```)
+    cleaned = cleaned.replace(/^```(?:typescript|tsx|javascript|jsx|json|ts|js)?\s*\n/i, '');
+
+    // Remove closing fence
+    cleaned = cleaned.replace(/\n```\s*$/, '');
+
+    return cleaned.trim();
+  }
 
   private topologicalSort(components: BuildComponent[]): BuildComponent[] {
     const sorted: BuildComponent[] = [];

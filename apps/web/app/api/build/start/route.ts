@@ -19,23 +19,22 @@ export async function POST(request: NextRequest) {
 
     console.log('Build API - Project ID:', projectId || 'using default');
 
-    // Get API keys from headers (sent from client)
-    const apiKeys = request.headers.get('x-api-keys');
-    let openrouterKey = '';
+    // Get API keys - prioritize environment variable over client-provided keys
+    let openrouterKey = process.env.OPENROUTER_API_KEY || '';
 
-    if (apiKeys) {
-      try {
-        const keys = JSON.parse(apiKeys);
-        openrouterKey = keys.openrouter || '';
-        console.log('API keys parsed from headers, OpenRouter key present:', !!openrouterKey);
-      } catch (e) {
-        console.warn('Failed to parse API keys from headers:', e);
-      }
-    }
-
-    // Fallback to environment variable
+    // Only use client-provided key if no environment variable is set
     if (!openrouterKey) {
-      openrouterKey = process.env.OPENROUTER_API_KEY || '';
+      const apiKeys = request.headers.get('x-api-keys');
+      if (apiKeys) {
+        try {
+          const keys = JSON.parse(apiKeys);
+          openrouterKey = keys.openrouter || '';
+          console.log('Using client-provided OpenRouter key:', !!openrouterKey);
+        } catch (e) {
+          console.warn('Failed to parse API keys from headers:', e);
+        }
+      }
+    } else {
       console.log('Using environment OpenRouter key:', !!openrouterKey);
     }
 

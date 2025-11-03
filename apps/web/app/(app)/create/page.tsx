@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   SparklesIcon,
   ArrowRightIcon,
@@ -595,7 +595,7 @@ function PRDSectionPanel({
       </div>
 
       <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-        {sections.map((section) => (
+        {sections?.map((section) => (
           <div key={section.id} className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center group relative">
@@ -880,6 +880,7 @@ Include business goals and success metrics if known`;
 
 function CreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Orchestration store integration
   const {
@@ -920,6 +921,23 @@ function CreatePage() {
 
   // Check for existing project on mount
   useEffect(() => {
+    // Check if user wants to start a new project
+    const isNewProject = searchParams.get('new') === 'true';
+
+    if (isNewProject) {
+      // Clear current project and reset ALL state to show fresh interface
+      localStorage.removeItem('currentProjectId');
+      setProjectId('');
+      setProductIdea('');
+      setProductName('');
+      setPrdSections({});
+      setAllSuggestions({});
+      setCurrentPhase(1);
+      setShowOnboarding(true);
+      console.log('🆕 Starting fresh project - showing idea input interface');
+      return;
+    }
+
     const currentProjectId = localStorage.getItem('currentProjectId');
     if (currentProjectId) {
       // Load project from localStorage
@@ -938,7 +956,7 @@ function CreatePage() {
         console.log('✅ Loaded existing project:', currentProjectId);
       }
     }
-  }, []);
+  }, [searchParams]);
 
   // Autosave state
   const [isSaving, setIsSaving] = useState(false);
@@ -2186,6 +2204,11 @@ function CreatePage() {
 
     // Update project status to 'plan' phase
     const currentProjectId = projectId || `project_${Date.now()}`;
+
+    // CRITICAL: Set the current project ID so the plan page uses the correct project
+    localStorage.setItem('currentProjectId', currentProjectId);
+    console.log('✅ Set currentProjectId:', currentProjectId);
+
     updateProjectStatus(currentProjectId, {
       status: 'active',
       currentPhase: 'plan',

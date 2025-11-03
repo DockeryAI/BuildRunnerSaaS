@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ChevronDownIcon,
   ChevronRightIcon,
@@ -80,7 +80,9 @@ interface ProjectPlan {
 
 export default function PlanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [projectPlan, setProjectPlan] = useState<ProjectPlan | null>(null);
+  const [projectName, setProjectName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
@@ -93,10 +95,18 @@ export default function PlanPage() {
   const [selectedTechnology, setSelectedTechnology] = useState<Technology | null>(null);
   const [generationStage, setGenerationStage] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [expandedAdvancedOptions, setExpandedAdvancedOptions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // Check if projectId is provided in URL parameter
+    const urlProjectId = searchParams.get('projectId');
+    if (urlProjectId) {
+      // Update currentProjectId in localStorage to match URL parameter
+      localStorage.setItem('currentProjectId', urlProjectId);
+      console.log('📌 Set currentProjectId from URL parameter:', urlProjectId);
+    }
     generateProjectPlan();
-  }, []);
+  }, [searchParams]);
 
   const handleOpenWizard = (tech: Technology) => {
     setSelectedTechnology(tech);
@@ -124,8 +134,48 @@ export default function PlanPage() {
       setError(null);
       setGenerationStage('Loading...');
 
-      // Get current project ID
-      const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+      // STEP 1: Determine the correct project ID FIRST
+      // Get PRD data from localStorage
+      const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
+      if (savedProjects.length === 0) {
+        setError('No PRD found. Please create a PRD first.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Get current project ID and determine which project to use
+      let currentProjectId = localStorage.getItem('currentProjectId') || '1';
+      let latestProject;
+
+      // If currentProjectId is set and valid, use that specific project
+      if (currentProjectId && currentProjectId !== '1') {
+        latestProject = savedProjects.find((p: any) => p.id === currentProjectId);
+        if (!latestProject) {
+          console.warn(`Project ${currentProjectId} not found, using most recent instead`);
+        }
+      }
+
+      // Fall back to most recent project if no specific project found
+      if (!latestProject) {
+        latestProject = savedProjects.sort(
+          (a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        )[0];
+
+        // Update currentProjectId to match the project we're actually using
+        if (latestProject && latestProject.id) {
+          currentProjectId = latestProject.id;
+          localStorage.setItem('currentProjectId', currentProjectId);
+          console.log('✅ Set currentProjectId to most recent project:', currentProjectId);
+        }
+      }
+
+      // Set the project name for display
+      if (latestProject) {
+        setProjectName(latestProject.productName || latestProject.productIdea || 'Unnamed Project');
+        console.log('📝 Viewing plan for project:', latestProject.productName || latestProject.productIdea);
+      }
+
+      // STEP 2: Now load cache using the CORRECT project ID
       const cacheKey = `project_plan_${currentProjectId}`;
       const progressKey = `plan_progress_${currentProjectId}`;
 
@@ -160,19 +210,6 @@ export default function PlanPage() {
         setProjectPlan(savedProgress.partialPlan);
         setGenerationStage(savedProgress.currentStage || 'Resuming...');
       }
-
-      // Get PRD data from localStorage
-      const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
-      if (savedProjects.length === 0) {
-        setError('No PRD found. Please create a PRD first.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Get the most recent project
-      const latestProject = savedProjects.sort(
-        (a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      )[0];
 
       // Get API keys
       const savedKeys = localStorage.getItem('buildrunner_api_keys');
@@ -302,6 +339,18 @@ export default function PlanPage() {
     });
   }
 
+  function toggleAdvancedOption(techName: string) {
+    setExpandedAdvancedOptions((prev) => {
+      const next = new Set(prev);
+      if (next.has(techName)) {
+        next.delete(techName);
+      } else {
+        next.add(techName);
+      }
+      return next;
+    });
+  }
+
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -361,7 +410,7 @@ export default function PlanPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center">
                 <SparklesIcon className="h-6 w-6 text-blue-600 mr-2" />
-                Project Plan
+                {projectName || 'Project Plan'}
               </h1>
               <p className="text-sm text-gray-600">
                 AI-generated • {projectPlan.totalEstimatedWeeks} weeks estimated
@@ -400,7 +449,7 @@ export default function PlanPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => router.push('/workbench')}
+                  onClick={() => router.push('/workbench?fresh=true')}
                   className="ml-4 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg text-sm font-semibold whitespace-nowrap"
                 >
                   Start Building Now →
@@ -594,133 +643,259 @@ export default function PlanPage() {
                         </h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {needsAccount.map((tech, i) => (
-                          <div
-                            key={i}
-                            className={`bg-white border-2 rounded-lg p-3 group hover:shadow-md transition-all relative ${
-                              tech.canIntegrateInApp ? 'border-green-300' : 'border-orange-300'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xl">{categoryIcons[tech.category]}</span>
-                                <span className="font-semibold text-gray-900">{tech.name}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                tech.canIntegrateInApp ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                              }`}>
-                                {tech.category}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  difficultyColors[tech.difficulty]
-                                }`}
-                              >
-                                {tech.difficulty}
-                              </span>
-                            </div>
-                            {tech.canIntegrateInApp && (
-                              <p className="text-xs text-green-700 mb-2 font-medium">
-                                ✨ Can be connected without leaving this app
-                              </p>
-                            )}
-                            <div className="mt-3 flex items-center space-x-2">
-                              {tech.canIntegrateInApp ? (
-                                <>
-                                  <button
-                                    onClick={() => handleOpenWizard(tech)}
-                                    className="flex-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-center font-medium"
-                                  >
-                                    Connect Now
-                                  </button>
-                                  {tech.setupGuideUrl && (
-                                    <a
-                                      href={tech.setupGuideUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex-1 text-xs px-3 py-1.5 border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors text-center font-medium"
+                        {needsAccount.map((tech, i) => {
+                          // Determine if we should show easier alternative first
+                          const hasEasierAlternative = tech.easierAlternative && !tech.usingAlternative;
+                          const isAdvancedExpanded = expandedAdvancedOptions.has(tech.name);
+
+                          return (
+                            <div key={i} className="space-y-3">
+                              {/* If there's an easier alternative, show it as the main card */}
+                              {hasEasierAlternative && (
+                                <div className="bg-white border-2 border-green-400 rounded-lg p-3 group hover:shadow-md transition-all relative">
+                                  {/* Recommended Badge */}
+                                  <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow-md">
+                                    Recommended
+                                  </div>
+
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xl">{categoryIcons[tech.category]}</span>
+                                      <span className="font-semibold text-gray-900">{tech.easierAlternative.name}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
+                                      {tech.category}
+                                    </span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      difficultyColors[tech.easierAlternative.difficulty as 'easy' | 'medium' | 'advanced'] || difficultyColors.easy
+                                    }`}>
+                                      {tech.easierAlternative.difficulty}
+                                    </span>
+                                  </div>
+
+                                  <p className="text-xs text-green-700 mb-2 font-medium">
+                                    ✨ Recommended for most users
+                                  </p>
+
+                                  <p className="text-xs text-gray-700 mb-3">
+                                    {tech.easierAlternative.reasoning}
+                                  </p>
+
+                                  <div className="mt-3 flex items-center space-x-2">
+                                    <button
+                                      onClick={() => {
+                                        // Create a modified tech object with the easier alternative
+                                        const easierTech: Technology = {
+                                          ...tech,
+                                          name: tech.easierAlternative!.name,
+                                          difficulty: (tech.easierAlternative!.difficulty as 'easy' | 'medium' | 'advanced') || 'easy',
+                                        };
+                                        handleOpenWizard(easierTech);
+                                      }}
+                                      className="flex-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-center font-medium"
                                     >
-                                      Docs
-                                    </a>
+                                      Connect Now
+                                    </button>
+                                    {tech.setupGuideUrl && (
+                                      <a
+                                        href={tech.setupGuideUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 text-xs px-3 py-1.5 border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors text-center font-medium"
+                                      >
+                                        Docs
+                                      </a>
+                                    )}
+                                  </div>
+
+                                  {/* Tooltip on hover */}
+                                  <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
+                                    <p className="font-semibold mb-1">Why {tech.easierAlternative.name}?</p>
+                                    <p>{tech.easierAlternative.reasoning}</p>
+                                    <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Advanced Option - shown as collapsible section if there's an easier alternative */}
+                              {hasEasierAlternative ? (
+                                <div className="bg-white border border-orange-300 rounded-lg overflow-hidden">
+                                  <button
+                                    onClick={() => toggleAdvancedOption(tech.name)}
+                                    className="w-full px-3 py-2 flex items-center justify-between hover:bg-orange-50 transition-colors"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full font-semibold">
+                                        Advanced Option
+                                      </span>
+                                      <span className="text-sm font-medium text-gray-900">{tech.name}</span>
+                                    </div>
+                                    {isAdvancedExpanded ? (
+                                      <ChevronDownIcon className="h-4 w-4 text-gray-600" />
+                                    ) : (
+                                      <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+                                    )}
+                                  </button>
+
+                                  {isAdvancedExpanded && (
+                                    <div className="px-3 pb-3 pt-1 border-t border-orange-200 bg-orange-50">
+                                      <div className="flex items-center space-x-2 mb-2">
+                                        <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full">
+                                          {tech.category}
+                                        </span>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                          difficultyColors[tech.difficulty]
+                                        }`}>
+                                          {tech.difficulty}
+                                        </span>
+                                      </div>
+
+                                      <p className="text-xs text-orange-900 mb-2 font-medium">
+                                        More features but harder setup
+                                      </p>
+
+                                      <p className="text-xs text-gray-700 mb-2">
+                                        {tech.reasoning}
+                                      </p>
+
+                                      <div className="bg-amber-50 border border-amber-200 rounded p-2 mb-3">
+                                        <p className="text-xs text-amber-900 font-semibold mb-1">Trade-offs:</p>
+                                        <p className="text-xs text-amber-800">{tech.easierAlternative.tradeoffs}</p>
+                                      </div>
+
+                                      <div className="flex items-center space-x-2">
+                                        {tech.canIntegrateInApp ? (
+                                          <>
+                                            <button
+                                              onClick={() => handleOpenWizard(tech)}
+                                              className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
+                                            >
+                                              Connect Now
+                                            </button>
+                                            {tech.setupGuideUrl && (
+                                              <a
+                                                href={tech.setupGuideUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
+                                              >
+                                                Docs
+                                              </a>
+                                            )}
+                                          </>
+                                        ) : (
+                                          <>
+                                            <button
+                                              onClick={() => handleOpenWizard(tech)}
+                                              className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
+                                            >
+                                              Add API Key
+                                            </button>
+                                            {tech.setupGuideUrl && (
+                                              <a
+                                                href={tech.setupGuideUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
+                                              >
+                                                Setup Guide
+                                              </a>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
                                   )}
-                                </>
+                                </div>
                               ) : (
-                                <>
-                                  <button
-                                    onClick={() => handleOpenWizard(tech)}
-                                    className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
-                                  >
-                                    Add API Key
-                                  </button>
-                                  {tech.setupGuideUrl && (
-                                    <a
-                                      href={tech.setupGuideUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
-                                    >
-                                      Setup Guide
-                                    </a>
+                                // No easier alternative - show the original card design
+                                <div
+                                  className={`bg-white border-2 rounded-lg p-3 group hover:shadow-md transition-all relative ${
+                                    tech.canIntegrateInApp ? 'border-green-300' : 'border-orange-300'
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xl">{categoryIcons[tech.category]}</span>
+                                      <span className="font-semibold text-gray-900">{tech.name}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      tech.canIntegrateInApp ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {tech.category}
+                                    </span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      difficultyColors[tech.difficulty]
+                                    }`}>
+                                      {tech.difficulty}
+                                    </span>
+                                  </div>
+
+                                  {tech.canIntegrateInApp && (
+                                    <p className="text-xs text-green-700 mb-2 font-medium">
+                                      ✨ Can be connected without leaving this app
+                                    </p>
                                   )}
-                                </>
+
+                                  <div className="mt-3 flex items-center space-x-2">
+                                    {tech.canIntegrateInApp ? (
+                                      <>
+                                        <button
+                                          onClick={() => handleOpenWizard(tech)}
+                                          className="flex-1 text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-center font-medium"
+                                        >
+                                          Connect Now
+                                        </button>
+                                        {tech.setupGuideUrl && (
+                                          <a
+                                            href={tech.setupGuideUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 text-xs px-3 py-1.5 border border-green-600 text-green-600 rounded hover:bg-green-50 transition-colors text-center font-medium"
+                                          >
+                                            Docs
+                                          </a>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button
+                                          onClick={() => handleOpenWizard(tech)}
+                                          className="flex-1 text-xs px-3 py-1.5 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-center font-medium"
+                                        >
+                                          Add API Key
+                                        </button>
+                                        {tech.setupGuideUrl && (
+                                          <a
+                                            href={tech.setupGuideUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 text-xs px-3 py-1.5 border border-orange-600 text-orange-600 rounded hover:bg-orange-50 transition-colors text-center font-medium"
+                                          >
+                                            Setup Guide
+                                          </a>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {/* Tooltip on hover */}
+                                  <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
+                                    <p className="font-semibold mb-1">Why {tech.name}?</p>
+                                    <p>{tech.reasoning}</p>
+                                    <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                  </div>
+                                </div>
                               )}
                             </div>
-
-                            {/* Easier Alternative Suggestion */}
-                            {tech.easierAlternative && !tech.usingAlternative && (
-                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <div className="flex items-start justify-between mb-2">
-                                  <p className="text-xs font-semibold text-blue-900">💡 Easier Alternative</p>
-                                  <button
-                                    onClick={() => {
-                                      // Dismiss the alternative
-                                      const updated = { ...projectPlan };
-                                      const techIndex = updated.architecture!.technologies.findIndex(
-                                        (t) => t.name === tech.name
-                                      );
-                                      updated.architecture!.technologies[techIndex].easierAlternative = undefined;
-                                      setProjectPlan(updated);
-                                    }}
-                                    className="text-blue-600 hover:text-blue-800 text-xs"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                                <p className="text-xs text-blue-900 font-medium mb-1">
-                                  {tech.easierAlternative.name}
-                                </p>
-                                <p className="text-xs text-blue-800 mb-2">{tech.easierAlternative.reasoning}</p>
-                                <p className="text-xs text-blue-700 mb-3">
-                                  <strong>Trade-offs:</strong> {tech.easierAlternative.tradeoffs}
-                                </p>
-                                <button
-                                  onClick={() => {
-                                    // Accept the alternative
-                                    const updated = { ...projectPlan };
-                                    const techIndex = updated.architecture!.technologies.findIndex(
-                                      (t) => t.name === tech.name
-                                    );
-                                    updated.architecture!.technologies[techIndex].usingAlternative = true;
-                                    updated.architecture!.technologies[techIndex].name = tech.easierAlternative!.name;
-                                    setProjectPlan(updated);
-                                  }}
-                                  className="w-full text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
-                                >
-                                  Use {tech.easierAlternative.name} Instead
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Tooltip on hover */}
-                            <div className="hidden group-hover:block absolute z-10 bottom-full left-0 right-0 mb-2 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl">
-                              <p className="font-semibold mb-1">Why {tech.name}?</p>
-                              <p>{tech.reasoning}</p>
-                              <div className="absolute bottom-0 left-6 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

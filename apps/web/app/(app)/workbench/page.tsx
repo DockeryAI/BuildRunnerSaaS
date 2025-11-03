@@ -54,10 +54,12 @@ interface BuildMessage {
 
 const ComponentCard = ({
   component,
-  onDoubleClick
+  onDoubleClick,
+  currentPhase
 }: {
   component: BuildComponent;
   onDoubleClick: () => void;
+  currentPhase?: string;
 }) => {
   const getStatusIcon = () => {
     switch (component.status) {
@@ -100,6 +102,21 @@ const ComponentCard = ({
     }
   };
 
+  const getPhaseIcon = (phase: string) => {
+    switch (phase) {
+      case 'planning':
+        return '📋';
+      case 'building':
+        return '🔨';
+      case 'verification':
+        return '✅';
+      case 'testing':
+        return '🧪';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div
       className={`absolute bg-white rounded-lg border-2 p-4 w-64 ${getCardBorderColor()} transition-all duration-300 cursor-pointer hover:shadow-xl`}
@@ -126,6 +143,15 @@ const ComponentCard = ({
           <span className="capitalize">{component.status}</span>
           <span>{component.progress}%</span>
         </div>
+
+        {/* Phase Indicator */}
+        {component.status === 'building' && currentPhase && currentPhase !== 'idle' && (
+          <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+            <span>{getPhaseIcon(currentPhase)}</span>
+            <span className="capitalize font-medium">{currentPhase}</span>
+          </div>
+        )}
+
         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
@@ -221,6 +247,8 @@ export default function WorkbenchPage() {
   const [terminalPosition, setTerminalPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [projectName, setProjectName] = useState<string>('');
+  const [projectPlan, setProjectPlan] = useState<any>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [showPreviewButton, setShowPreviewButton] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -236,15 +264,32 @@ export default function WorkbenchPage() {
         setIsLoadingPlan(true);
         setPlanError(null);
 
-        const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+        const currentProjectId = localStorage.getItem('currentProjectId');
+
+        if (!currentProjectId) {
+          setPlanError('No project selected. Please create or select a project first.');
+          setIsLoadingPlan(false);
+          console.error('❌ No currentProjectId found in localStorage');
+          return;
+        }
+
+        console.log('🔍 Loading build for project ID:', currentProjectId);
+
         const buildIdParam = searchParams.get('buildId');
         const restoreParam = searchParams.get('restore');
+        const freshParam = searchParams.get('fresh'); // New parameter to force fresh build
 
         // Try to auto-restore the last build for this project
         let buildToRestore = buildIdParam;
 
-        if (!buildToRestore) {
-          // Check localStorage for last build
+        // If 'fresh' parameter is present, clear previous build data and start fresh
+        if (freshParam === 'true') {
+          const lastBuildKey = `last_build_${currentProjectId}`;
+          localStorage.removeItem(lastBuildKey);
+          console.log('🆕 Starting fresh build (clearing previous data)');
+          buildToRestore = null;
+        } else if (!buildToRestore) {
+          // Check localStorage for last build (only if not starting fresh)
           const lastBuildKey = `last_build_${currentProjectId}`;
           const lastBuildId = localStorage.getItem(lastBuildKey);
 
@@ -321,6 +366,13 @@ export default function WorkbenchPage() {
                 // Auto-open file browser
                 setIsFeedMinimized(false);
                 setIsFilesOpen(true);
+
+                // Restore preview button state if this was a web app build
+                const savedPreviewButton = localStorage.getItem(`showPreviewButton_${currentProjectId}_${targetBuildId}`);
+                if (savedPreviewButton === 'true') {
+                  setShowPreviewButton(true);
+                  addLog('info', '🌐 Preview button available for this web app build');
+                }
               }
 
               setIsLoadingPlan(false);
@@ -342,6 +394,16 @@ export default function WorkbenchPage() {
 
         const plan = JSON.parse(savedPlan);
         console.log('✅ Loaded plan from localStorage:', plan);
+
+        // Store plan in state for architecture diagram
+        setProjectPlan(plan);
+
+        // Extract project name from plan or project data
+        const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
+        const project = savedProjects.find((p: any) => p.id === currentProjectId);
+        const name = project?.productName || project?.name || plan.projectName || 'Build Workbench';
+        setProjectName(name);
+        console.log('📛 Project name:', name);
 
         const extractedComponents = extractBuildComponents(plan);
         const positionedComponents = calculateComponentPositions(extractedComponents);
@@ -666,6 +728,9 @@ export default function WorkbenchPage() {
         // Check if this is a web app and show preview button
         if (buildData.isWebApp) {
           setShowPreviewButton(true);
+          // Save preview button state to localStorage so it persists
+          const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+          localStorage.setItem(`showPreviewButton_${currentProjectId}_${buildData.buildId}`, 'true');
           addLog('info', '🌐 Web app detected! Click "Preview Demo" to start dev server.');
         }
 
@@ -1089,7 +1154,7 @@ export default function WorkbenchPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {currentProject?.name || 'Build Workbench'}
+                {projectName || currentProject?.name || 'Build Workbench'}
               </h1>
               <p className="text-sm text-gray-500 mt-1">
                 Monitor and manage your build process
@@ -1266,7 +1331,7 @@ export default function WorkbenchPage() {
                 </div>
               </div>
             ) : (
-              <ArchitectureFlowDiagram />
+              <ArchitectureFlowDiagram architecture={projectPlan?.architecture} />
             )}
           </div>
         </main>
