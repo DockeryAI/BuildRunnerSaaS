@@ -600,15 +600,35 @@ export class BuildOrchestrator extends EventEmitter {
             level: 'success',
             message: `✅ Loaded PRD: ${this.prdContext.productName} (${this.prdContext.features.length} features)`
           });
+        } else if (this.productIdea) {
+          // Auto-generate simple PRD from prompt (brainstorm is optional enhancement)
+          this.emit('log', {
+            level: 'info',
+            message: '📝 Auto-generating simple PRD from prompt...'
+          });
+          this.prdContext = {
+            productName: this.projectId || 'Unnamed Project',
+            productIdea: this.productIdea,
+            description: this.productIdea,
+            features: [],
+            targetAudience: '',
+            valueProposition: '',
+            technicalRequirements: [],
+            generatedAt: new Date().toISOString(),
+            source: 'auto-generated-from-prompt'
+          };
+          this.emit('log', {
+            level: 'success',
+            message: '✅ Simple PRD created - brainstorm can enhance later'
+          });
         } else {
-          // CRITICAL: Enforce PRD as single source of truth - NO BUILD WITHOUT PRD
+          // No PRD and no prompt - this is an error
           this.emit('log', {
             level: 'error',
-            message: '❌ BLOCKED: No PRD found - BuildRunner requires a PRD as the single source of truth'
+            message: '❌ BLOCKED: No PRD or prompt found'
           });
           throw new Error(
-            'PRD_REQUIRED: Builds require a PRD as the single source of truth. ' +
-            'Please complete the brainstorm phase first to create a PRD.'
+            'PROMPT_REQUIRED: Provide a product description or complete brainstorm to create a PRD.'
           );
         }
       }

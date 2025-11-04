@@ -582,7 +582,7 @@ export default function WorkbenchPage() {
       const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
       const currentProject = savedProjects.find((p: any) => p.id === currentProjectId);
 
-      // CRITICAL: Load full PRD as single source of truth
+      // CRITICAL: Load PRD as single source of truth (enhanced or simple)
       const prdCacheKey = `prd_cache_${currentProjectId}`;
       const cachedPRDData = localStorage.getItem(prdCacheKey);
       let fullPRD = null;
@@ -590,17 +590,20 @@ export default function WorkbenchPage() {
       if (cachedPRDData) {
         try {
           fullPRD = JSON.parse(cachedPRDData);
-          console.log('✅ Loaded full PRD from cache for build');
+          console.log('✅ Loaded enhanced PRD from brainstorm session');
         } catch (e) {
           console.warn('Failed to parse cached PRD:', e);
         }
       }
 
-      // If no PRD found, we should block the build
+      if (!fullPRD && currentProject?.productIdea) {
+        console.log('📝 Using prompt-only mode - simple PRD will be auto-generated');
+      }
+
+      // Only error if we have neither PRD nor prompt
       if (!fullPRD && !currentProject?.productIdea) {
         throw new Error(
-          'No PRD found - BuildRunner requires a PRD as the single source of truth. ' +
-          'Please complete the brainstorm phase first.'
+          'No product description found. Please describe what you want to build.'
         );
       }
 

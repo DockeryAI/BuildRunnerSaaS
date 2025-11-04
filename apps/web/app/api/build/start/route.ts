@@ -17,20 +17,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // CRITICAL: Enforce PRD as single source of truth
-    if (!prd && !productIdea) {
-      console.error('❌ BLOCKED: No PRD provided - builds require PRD context');
+    // CRITICAL: PRD is single source of truth - auto-generate from prompt if needed
+    let finalPRD = prd;
+
+    if (!prd && productIdea) {
+      // Auto-generate simple PRD from prompt (brainstorm is optional enhancement)
+      console.log('📝 Auto-generating simple PRD from prompt...');
+      finalPRD = {
+        productName: projectId || 'Unnamed Project',
+        productIdea: productIdea,
+        description: productIdea,
+        features: [],
+        targetAudience: '',
+        valueProposition: '',
+        technicalRequirements: [],
+        generatedAt: new Date().toISOString(),
+        source: 'auto-generated-from-prompt'
+      };
+      console.log('✅ Simple PRD auto-generated - brainstorm can enhance later');
+    } else if (!prd && !productIdea) {
+      // No prompt at all - this is an error
+      console.error('❌ BLOCKED: No prompt or PRD provided');
       return NextResponse.json(
         {
-          error: 'PRD required - BuildRunner requires a PRD as the single source of truth. Please complete the brainstorm phase first.',
-          code: 'PRD_REQUIRED'
+          error: 'Product idea or PRD required - provide a description of what you want to build',
+          code: 'PROMPT_REQUIRED'
         },
         { status: 400 }
       );
     }
 
     console.log('Build API - Project ID:', projectId || 'using default');
-    console.log('Build API - PRD present:', !!prd);
+    console.log('Build API - PRD type:', finalPRD?.source || (prd ? 'full-brainstorm' : 'unknown'));
     console.log('Build API - Product Idea:', productIdea ? `"${productIdea.substring(0, 50)}..."` : 'not provided');
 
     // Get API keys - prioritize client-provided keys (from UI) over environment variable
@@ -69,13 +87,14 @@ export async function POST(request: NextRequest) {
     // Create orchestrator with API key, optional custom config, and projectId
     const orchestrator = new BuildOrchestrator(openrouterKey, config, projectId);
 
-    // CRITICAL: Set PRD as single source of truth
-    if (prd) {
-      console.log('✅ Setting full PRD as single source of truth');
-      (orchestrator as any).prdContext = prd;
+    // CRITICAL: Always set PRD as single source of truth (auto-generated or full)
+    if (finalPRD) {
+      const prdType = finalPRD.source === 'auto-generated-from-prompt' ? 'simple' : 'enhanced';
+      console.log(`✅ Setting ${prdType} PRD as single source of truth`);
+      (orchestrator as any).prdContext = finalPRD;
     }
 
-    // Set product idea and app config for design system generation (fallback for legacy)
+    // Set product idea for backwards compatibility
     if (productIdea) {
       (orchestrator as any).productIdea = productIdea;
     }
