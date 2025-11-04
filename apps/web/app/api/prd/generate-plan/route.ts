@@ -419,12 +419,23 @@ Return ONLY the JSON object.`
         console.log('🔄 Regenerating plan with fixes...');
 
         // Regenerate plan with validation feedback
-        const regenerationPrompt = `${productPrompt}\n\n${validationResult.regenerationPrompt}`;
+        const regenerationPrompt = `Product: ${productName || 'Product'}
+
+Product Idea: ${productIdea}
+
+PRD Content:
+${prdContext}
+
+Generate a comprehensive BUILD PLAN with properly scoped, independently buildable components. Each component must be ready for direct code generation by AI models. Focus on creating a clear dependency graph that can be built sequentially without issues.
+
+${validationResult.regenerationPrompt}
+
+Return ONLY the JSON object.`;
 
         const regenerateResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openrouterKey}`,
+            'Authorization': `Bearer ${openrouterApiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://buildrunner.cloud',
             'X-Title': 'BuildRunner - Plan Generator (Regeneration)',
