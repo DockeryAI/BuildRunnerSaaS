@@ -418,6 +418,71 @@
 
   "planned_features": [
     {
+      "id": "auto-healing-error-detection",
+      "name": "Real-Time Error Detection & Auto-Fix Loop",
+      "status": "planned",
+      "version": "1.2.0",
+      "description": "3-layer auto-healing system that injects error collectors into preview apps, captures browser errors (console.error, runtime, React, promises), categorizes errors (imports, props, JSX, runtime, hooks), generates AI fixes with strategy hints, applies fixes with hot reload, learns from successful fixes, and achieves 30-60s automatic healing vs 20-30min manual debugging. Includes browser error collection via WebSocket, intelligent auto-fixer with retry logic and rollback, fix pattern learning across projects, and confidence-based fix application.",
+      "components": [
+        "apps/web/lib/error-collector.ts",
+        "apps/web/lib/auto-fixer.ts",
+        "apps/web/lib/fix-learner.ts",
+        "apps/web/lib/preview-manager.ts",
+        "apps/web/components/auto-healing/FixMonitor.tsx",
+        "apps/web/components/auto-healing/FixHistoryPanel.tsx"
+      ],
+      "apis": [
+        "/api/auto-fix/collect",
+        "/api/auto-fix/apply",
+        "/api/auto-fix/rollback",
+        "/api/auto-fix/patterns"
+      ],
+      "priority": "critical",
+      "implementation_phases": [
+        {
+          "phase": "week_1",
+          "name": "Basic Auto-Healing",
+          "tasks": [
+            "Error collection script with WebSocket",
+            "Simple auto-fixer for common errors (imports, props, JSX)",
+            "Hot reload integration",
+            "Fix attempt tracking"
+          ]
+        },
+        {
+          "phase": "week_2",
+          "name": "Smart Fixing",
+          "tasks": [
+            "Error categorization (6 categories)",
+            "Fix strategy selection with hints",
+            "Learning from successful fixes",
+            "Cross-project pattern database"
+          ]
+        },
+        {
+          "phase": "week_3",
+          "name": "Production Ready",
+          "tasks": [
+            "Rollback mechanism",
+            "Fix confidence scoring",
+            "Dashboard to monitor fixes",
+            "Visual regression detection"
+          ]
+        }
+      ],
+      "expected_impact": {
+        "time_savings": "95% reduction in manual debugging (30-60s vs 20-30min)",
+        "error_fix_rate": "85% auto-fix success on first attempt",
+        "user_experience": "Apps self-heal in preview, reducing frustration",
+        "learning_curve": "Improves over time as patterns accumulate"
+      },
+      "dependencies": [
+        "plan-validation-quality",
+        "build-orchestrator"
+      ],
+      "docs": ["docs/AUTO_HEALING_SYSTEM.md"]
+    },
+    {
       "id": "github-auto-push",
       "name": "Enhanced GitHub Integration",
       "status": "planned",
@@ -470,8 +535,8 @@
   "metrics": {
     "features_complete": 26,
     "features_in_progress": 8,
-    "features_planned": 6,
-    "completion_percentage": 90,
+    "features_planned": 7,
+    "completion_percentage": 89,
     "components_count": 63,
     "api_endpoints_count": 58,
     "typescript_files": 11700,
