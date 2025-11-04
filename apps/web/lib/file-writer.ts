@@ -805,9 +805,42 @@ export { Label }
   }
 
   /**
+   * Check if a component is a tech stack component (should be filtered out)
+   */
+  private isTechStackComponent(componentName: string): boolean {
+    const techTerms = [
+      'nextjs', 'next.js', 'next-js',
+      'react', 'reactjs',
+      'typescript', 'type-script',
+      'tailwindcss', 'tailwind-css', 'tailwind',
+      'shadcnui', 'shadcn-ui', 'shadcn',
+      'shadcnuisetup', 'shadcn-ui-setup',
+      'supabase',
+      'postgresql', 'postgres',
+      'prisma',
+      'node.js', 'nodejs',
+      'express',
+      'mongodb',
+      'firebase',
+      'vercel',
+    ];
+
+    const normalized = componentName.toLowerCase()
+      .replace(/\s+/g, '')  // Remove all spaces
+      .replace(/-/g, '');    // Remove hyphens
+
+    return techTerms.some(term => {
+      const normalizedTerm = term.replace(/-/g, '').replace(/\./g, '');
+      return normalized === normalizedTerm || normalized.includes(normalizedTerm);
+    });
+  }
+
+  /**
    * Generate smart tabs-based page layout (Layer 3)
    * Instead of dumping all components vertically, use organized tabs
    * Built with Tailwind CSS (no shadcn dependencies)
+   *
+   * FILTERS OUT tech stack components to show only real features
    */
   private generateTabsPage(components: any[]): string {
     const imports: string[] = [
@@ -820,7 +853,25 @@ export { Label }
     const tabButtons: string[] = [];
     const tabContents: string[] = [];
 
-    for (const [index, component] of components.entries()) {
+    // Filter out tech stack components - only show real features
+    const featureComponents = components.filter(component => {
+      const componentName = this.sanitizeComponentName(component.name);
+      const isTechStack = this.isTechStackComponent(componentName);
+
+      if (isTechStack) {
+        console.log(`🚫 Filtered out tech stack component: ${componentName}`);
+      }
+
+      return !isTechStack;
+    });
+
+    // If ALL components were tech stack, use a default empty state
+    if (featureComponents.length === 0) {
+      console.warn('⚠️  All components were tech stack! Generating empty state page.');
+      return this.generateEmptyStatePage();
+    }
+
+    for (const [index, component] of featureComponents.entries()) {
       const componentName = this.sanitizeComponentName(component.name);
       const filePath = component.filePath || inferFilePath(component);
       const importPath = `../${filePath.replace('.tsx', '').replace('.jsx', '')}`;
@@ -881,6 +932,58 @@ ${tabButtons.join('\n')}
         {/* Tab Content */}
         <div className="bg-white rounded-b-lg shadow-sm border border-gray-200">
 ${tabContents.join('\n')}
+        </div>
+      </div>
+    </main>
+  );
+}
+`;
+  }
+
+  /**
+   * Generate empty state page when all components are tech stack
+   */
+  private generateEmptyStatePage(): string {
+    return `'use client';
+
+import { Rocket } from 'lucide-react';
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-6">
+            <Rocket className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+          </div>
+
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Your App is Ready!
+          </h1>
+
+          <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+            The foundation has been built. Start adding your features and components to bring your vision to life.
+          </p>
+
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 text-left">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Next Steps:
+            </h2>
+            <ul className="space-y-3 text-gray-700 dark:text-gray-300">
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">→</span>
+                Add your first feature component
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">→</span>
+                Configure your database and API connections
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">→</span>
+                Customize the design system to match your brand
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </main>

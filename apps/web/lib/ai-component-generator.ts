@@ -173,11 +173,37 @@ export default function ComponentDemo() {
 }
 \`\`\`
 
-TAILWIND COMPONENT PATTERNS:
-- Button: className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-- Card: className="p-6 bg-white rounded-lg shadow-md border border-gray-200"
-- Input: className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-- Badge: className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
+TAILWIND COMPONENT PATTERNS (Production-Quality):
+
+MODERN SAAS STYLE (Linear, Notion, Stripe):
+- Background: className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800"
+- Container: className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+- Card: className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 shadow-lg shadow-black/5"
+- Button Primary: className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-150 font-medium text-sm shadow-md hover:shadow-lg active:scale-95"
+- Button Secondary: className="px-4 py-2 bg-white/[0.08] text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.12] transition-all duration-150 font-medium text-sm border border-gray-200 dark:border-gray-700"
+- Input: className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all duration-150"
+- Badge: className="px-3 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 rounded-full text-xs font-medium border border-indigo-200 dark:border-indigo-500/30"
+
+OUTDOOR ADVENTURE STYLE (AllTrails, REI):
+- Background: className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800"
+- Card: className="bg-gray-800 rounded-xl border border-gray-700 p-6 hover:border-emerald-500/50 transition-all duration-200 shadow-lg shadow-black/30"
+- Button Primary: className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors duration-150 font-medium shadow-md hover:shadow-lg active:scale-95"
+- Badge: className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium border border-emerald-500/30"
+
+CLEAN MINIMAL STYLE (Vercel, Apple):
+- Background: className="min-h-screen bg-white"
+- Card: className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow duration-200"
+- Button: className="px-5 py-2.5 bg-black text-white rounded-full hover:bg-gray-800 transition-colors duration-150 font-medium text-sm tracking-wide shadow-sm hover:shadow-md active:scale-95"
+
+IMPORTANT DESIGN RULES:
+1. ALWAYS use dark mode support (dark: prefix) for modern look
+2. ALWAYS use smooth transitions (transition-all duration-200)
+3. ALWAYS use hover states on interactive elements
+4. ALWAYS use shadow-lg shadow-black/5 for subtle depth
+5. ALWAYS use responsive breakpoints (sm:, md:, lg:)
+6. ALWAYS use proper spacing (gap-4, space-y-4, not margins)
+7. NEVER use default browser styling
+8. NEVER use primary colors without hover states
 
 Return ONLY the complete component code, no explanations or markdown formatting.`
               },

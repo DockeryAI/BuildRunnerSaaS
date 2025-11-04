@@ -1,7 +1,11 @@
 /**
  * Design System Generator
  * Phase 1: Generate beautiful, cohesive design specifications before code generation
+ *
+ * Integrates with design-presets.ts for consistent, professional styling
  */
+
+import { DESIGN_PRESETS, inferDesignPreset, DesignPreset } from './design-presets';
 
 export interface ColorPalette {
   primary: string;
@@ -137,7 +141,83 @@ export class DesignSystemGenerator {
     }
   }
 
+  /**
+   * Convert design preset to DesignSpec format
+   */
+  private presetToDesignSpec(preset: DesignPreset): DesignSpec {
+    return {
+      visualStyle: 'modern-minimal',
+      colorPalette: {
+        primary: preset.colors.primary,
+        primaryForeground: preset.colors.text.primary,
+        secondary: preset.colors.secondary || preset.colors.primary,
+        secondaryForeground: preset.colors.text.primary,
+        accent: preset.colors.accent || preset.colors.primary,
+        accentForeground: preset.colors.text.primary,
+        muted: preset.colors.surface,
+        mutedForeground: preset.colors.text.secondary,
+        background: preset.colors.background,
+        foreground: preset.colors.text.primary,
+        border: preset.colors.border,
+        ring: preset.colors.primary,
+        destructive: 'rgb(239, 68, 68)',
+        destructiveForeground: 'rgb(255, 255, 255)',
+      },
+      typography: {
+        fontFamily: {
+          sans: 'Inter, system-ui, sans-serif',
+          mono: 'JetBrains Mono, monospace',
+        },
+        scale: {
+          xs: '0.75rem',
+          sm: '0.875rem',
+          base: '1rem',
+          lg: '1.125rem',
+          xl: '1.25rem',
+          '2xl': '1.5rem',
+          '3xl': '1.875rem',
+          '4xl': '2.25rem',
+        },
+        weights: {
+          normal: 400,
+          medium: 500,
+          semibold: 600,
+          bold: 700,
+        },
+      },
+      designTokens: {
+        spacing: {
+          unit: 4,
+          scale: [0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16],
+        },
+        borderRadius: {
+          sm: '0.25rem',
+          md: '0.375rem',
+          lg: '0.5rem',
+          xl: '0.75rem',
+          full: '9999px',
+        },
+        shadows: {
+          sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+          md: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+          lg: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+          xl: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+        },
+      },
+      componentPatterns: {
+        navigation: 'topnav',
+        layout: 'centered',
+        cardStyle: 'elevated',
+      },
+      inspiration: [preset.inspiration],
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
   private buildDesignPrompt(productIdea: string, appType: string): string {
+    // Get the best matching preset for context
+    const suggestedPreset = inferDesignPreset('', productIdea);
+
     return `You are a world-class UI/UX designer specializing in modern web applications. Create a comprehensive design system for this product:
 
 **Product Idea:**
@@ -147,6 +227,15 @@ ${productIdea}
 
 **Your Task:**
 Design a beautiful, cohesive design system that would make this app look professional and modern. Consider apps like Linear, Notion, Stripe, and Vercel as quality benchmarks.
+
+**Suggested Design Direction:**
+Based on the product idea, we recommend the "${suggestedPreset.name}" style inspired by ${suggestedPreset.inspiration}.
+You may use this as a starting point or create something completely different if it better fits the product.
+
+**Available Design Presets for Reference:**
+${Object.entries(DESIGN_PRESETS).map(([key, preset]) =>
+  `- ${preset.name}: ${preset.inspiration}`
+).join('\n')}
 
 **Requirements:**
 
@@ -261,7 +350,19 @@ Generate a design system that will make this app look AMAZING. Think carefully a
     };
   }
 
+  /**
+   * Get fallback design using predefined preset
+   */
   private getFallbackDesign(): DesignSpec {
+    console.log('🎨 Using fallback design preset: Modern SaaS');
+    return this.presetToDesignSpec(DESIGN_PRESETS['modern-saas']);
+  }
+
+  /**
+   * DEPRECATED: Legacy fallback - kept for reference
+   * Use getFallbackDesign() instead which uses design presets
+   */
+  private getLegacyFallbackDesign(): DesignSpec {
     return {
       visualStyle: 'modern-minimal',
       colorPalette: {
