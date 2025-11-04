@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { injectLearnedRules } from '../../../../lib/consensus-learning';
 
 // Helper function to get setup guide URLs
 function getSetupGuideUrl(techName: string): string | undefined {
@@ -6,7 +7,7 @@ function getSetupGuideUrl(techName: string): string | undefined {
     'Twilio': 'https://www.twilio.com/docs/usage/tutorials/how-to-use-your-free-trial-account',
     'SendGrid': 'https://docs.sendgrid.com/for-developers/sending-email/api-getting-started',
     'Resend': 'https://resend.com/docs/send-with-nextjs',
-    'Supabase': '/settings/api-keys', // Internal setup
+    'Supabase': '/settings/api-keys',
     'Vercel': 'https://vercel.com/docs/getting-started-with-vercel',
     'Railway': 'https://docs.railway.app/getting-started',
     'Stripe': 'https://stripe.com/docs/development/quickstart',
@@ -35,14 +36,55 @@ function getSignupUrl(techName: string): string | undefined {
 // Helper function to create a simple hash from PRD content
 function createPRDHash(productIdea: string, prdSections: any): string {
   const content = JSON.stringify({ productIdea, prdSections });
-  // Simple hash function (for production, consider using crypto)
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
     const char = content.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash & hash;
   }
   return hash.toString();
+}
+
+// Helper function to infer criticality level from component metadata
+// Uses same pattern matching as build-orchestrator.ts for consistency
+function inferCriticality(component: any): 'ULTRA_CRITICAL' | 'CRITICAL' | 'IMPORTANT' | 'STANDARD' {
+  const text = `${component.name || ''} ${component.description || ''}`.toLowerCase();
+
+  // ULTRA_CRITICAL (7 models): Passwords, payments, admin access
+  const ultraCriticalPatterns = [
+    /\b(password|encrypt|decrypt|hash|private.?key|secret|credential)\b/i,
+    /\b(stripe|payment|credit.?card|billing|transaction|charge)\b/i,
+    /\b(admin|superuser|root|privilege.?escalation|sudo)\b/i,
+    /\b(oauth|saml|sso|authentication.?provider)\b/i
+  ];
+  if (ultraCriticalPatterns.some(p => p.test(text))) {
+    return 'ULTRA_CRITICAL';
+  }
+
+  // CRITICAL (5 models): Auth, database, file operations, PII
+  const criticalPatterns = [
+    /\b(auth|login|signup|jwt|session|token|cookie)\b/i,
+    /\b(sql|database|query|injection|migration)\b/i,
+    /\b(upload|download|file.?system|s3|storage)\b/i,
+    /\b(PII|GDPR|personal.?data|privacy|consent)\b/i,
+    /\b(permission|authorization|access.?control|role)\b/i
+  ];
+  if (criticalPatterns.some(p => p.test(text))) {
+    return 'CRITICAL';
+  }
+
+  // IMPORTANT (3 models): API endpoints, validation, business logic
+  const importantPatterns = [
+    /\b(api|endpoint|route|controller|handler)\b/i,
+    /\b(validation|sanitize|verify|check)\b/i,
+    /\b(service|business.?logic|workflow)\b/i
+  ];
+  if (importantPatterns.some(p => p.test(text))) {
+    return 'IMPORTANT';
+  }
+
+  // STANDARD (1 model): UI components, utilities, config
+  return 'STANDARD';
 }
 
 export async function POST(request: NextRequest) {
@@ -54,24 +96,25 @@ export async function POST(request: NextRequest) {
     if (cachedPlanHash && productIdea && prdSections) {
       const currentHash = createPRDHash(productIdea, prdSections);
       if (currentHash === cachedPlanHash) {
-        // PRD hasn't changed, signal client to use cached plan
         return NextResponse.json({ useCache: true });
       }
     }
 
-    // Get API keys - prioritize environment variable over client-provided keys
-    let openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
-
-    // Parse client API keys for service detection
+    // Get API keys
+    let openrouterApiKey = '';
     const apiKeysHeader = request.headers.get('x-api-keys');
     const apiKeys = apiKeysHeader ? JSON.parse(apiKeysHeader) : {};
 
-    // Only use client-provided key if no environment variable is set
+    if (apiKeys.openrouter) {
+      openrouterApiKey = apiKeys.openrouter;
+      console.log('Using client-provided OpenRouter key from UI');
+    }
+
     if (!openrouterApiKey) {
-      openrouterApiKey = apiKeys.openrouter || '';
-      console.log('Using client-provided OpenRouter key:', !!openrouterApiKey);
-    } else {
-      console.log('Using environment OpenRouter key:', !!openrouterApiKey);
+      openrouterApiKey = process.env.OPENROUTER_API_KEY || '';
+      if (openrouterApiKey) {
+        console.log('Using environment OpenRouter key');
+      }
     }
 
     if (!openrouterApiKey) {
@@ -96,170 +139,241 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Call OpenRouter API
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openrouterApiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://buildrunner.cloud',
-        'X-Title': 'BuildRunner SaaS - Project Plan Generator',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-4-sonnet-20250522',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a project planning expert and software architect. Generate a detailed project implementation plan with Milestones, Steps, and Microsteps based on a PRD.
+    // Enhanced prompt that generates build-ready component plans
+    // Base system prompt (before learning injection)
+    const baseSystemPrompt = `You are a software architect generating BUILD PLANS (structure + metadata only).
 
-Return a JSON object with this exact schema:
+Quality enforcement happens LATER during code generation. Your job: define WHAT to build and HOW to classify it.
+
+=== OUTPUT FORMAT ===
+
 {
+  "appType": "web",
+  "framework": "nextjs",
   "architecture": {
-    "recommendedStack": "Brief summary of recommended technology stack",
+    "recommendedStack": "Next.js 14 + React 18 + TypeScript + Tailwind CSS + Supabase",
     "technologies": [
-      {
-        "name": "Technology name",
-        "category": "frontend|backend|database|infrastructure|service",
-        "reasoning": "Why this technology is recommended for this project",
-        "difficulty": "easy|medium|advanced",
-        "setupRequired": true,
-        "easierAlternative": {
-          "name": "Alternative technology name (ONLY if original is medium/advanced difficulty)",
-          "reasoning": "Why this is easier and achieves same goal",
-          "difficulty": "easy",
-          "tradeoffs": "What you give up by using the easier option"
-        }
-      }
+      {"name": "Next.js", "category": "frontend", "reasoning": "Modern React framework", "difficulty": "medium", "setupRequired": false},
+      {"name": "React", "category": "frontend", "reasoning": "UI library", "difficulty": "medium", "setupRequired": false},
+      {"name": "TypeScript", "category": "frontend", "reasoning": "Type safety", "difficulty": "medium", "setupRequired": false},
+      {"name": "Tailwind CSS", "category": "frontend", "reasoning": "Utility-first CSS", "difficulty": "easy", "setupRequired": false},
+      {"name": "Supabase", "category": "database", "reasoning": "PostgreSQL database + Auth", "difficulty": "easy", "setupRequired": true},
+      {"name": "Resend", "category": "service", "reasoning": "Transactional emails", "difficulty": "easy", "setupRequired": true}
     ]
   },
   "milestones": [
     {
-      "id": "unique_id",
-      "title": "Milestone title",
-      "description": "What this milestone achieves",
-      "estimatedWeeks": 2,
-      "dependencies": [],
-      "status": "pending",
-      "steps": [
+      "id": "milestone-1",
+      "name": "Design System & Infrastructure",
+      "components": [
         {
-          "id": "unique_id",
-          "title": "Step title",
-          "description": "What this step involves",
-          "estimatedDays": 3,
+          "id": "design-system",
+          "name": "DesignSystem",
+          "type": "design-system",
+          "description": "Generate design system (include security keywords for classification)",
+          "filePath": "lib/design-system/index.ts",
           "dependencies": [],
-          "status": "pending",
-          "microsteps": [
-            {
-              "id": "unique_id",
-              "title": "Microstep title",
-              "description": "Specific action to take",
-              "estimatedHours": 4,
-              "dependencies": [],
-              "status": "pending"
-            }
-          ]
+          "criticality": "CRITICAL",
+          "estimatedHours": 2
         }
       ]
     }
-  ],
-  "totalEstimatedWeeks": 8,
-  "generatedAt": "2025-11-01T08:00:00Z"
+  ]
 }
 
-CRITICAL JSON FORMATTING RULES:
-- Use simple, short descriptions (max 200 characters each)
-- Do NOT use special characters, quotes, or apostrophes in descriptions
-- Keep descriptions factual and technical
-- ALL string values must be properly escaped
-- Ensure valid JSON syntax throughout
+=== RULE 1: MILESTONE 1 = DESIGN SYSTEM ===
 
-PROJECT PLANNING RULES:
-- Create 3-5 milestones for a complete project
-- Each milestone should have 2-3 steps
-- Each step should have 2-3 microsteps
-- Keep milestone/step/microstep titles concise (max 60 characters)
-- Include realistic time estimates
-- Focus on technical implementation based on the PRD features
-- First milestone should always be Architecture & Setup
-- Include recommended technology stack and architecture decisions
+First milestone MUST be "Design System & Infrastructure" with:
+1. design-system (type: design-system, path: lib/design-system/index.ts)
+2. shadcn-setup (type: component, path: components/ui/button.tsx, deps: design-system)
+3. app-layout (type: layout, path: app/(app)/layout.tsx, deps: shadcn-setup)
 
-TECHNOLOGY RECOMMENDATIONS:
-- For each technology, explain WHY it is recommended for THIS specific project
-- RESPECT THE PRD: If the PRD mentions specific technologies (e.g., "Outlook integration"), include those technologies
-- Consider difficulty level for non-technical users
-- Mark setupRequired=true if user needs to create account or install
-- Mark setupRequired=false if its a standard development tool
-- Reasoning should be specific to the project requirements (max 150 chars)
+=== RULE 2: CRITICALITY CLASSIFICATION ===
 
-EASIER ALTERNATIVES SYSTEM (CRITICAL - ALWAYS RECOMMEND EASIER OPTIONS FIRST):
-- ALWAYS prioritize easier alternatives as the PRIMARY recommendation
-- If a complex technology is needed, recommend the EASIER alternative as the main "name" field
-- Include the harder option as "easierAlternative" (reversed from typical usage)
-- This way the UI will show the easier option first and the harder option as "Advanced"
+**ULTRA_CRITICAL** (7 models): passwords, encryption, payments, admin, OAuth
+**CRITICAL** (5 models): auth, database, file operations, PII, permissions
+**IMPORTANT** (3 models): API endpoints, validation, business logic
+**STANDARD** (1 model): UI components, utilities, static pages
 
-EXAMPLES OF CORRECT RECOMMENDATIONS:
-- For email integration: Recommend "Resend" (easy) as primary, with "SendGrid" (medium) as easierAlternative
-- For auth: Recommend "Supabase Auth" (easy) as primary, with "Auth0" (medium) as easierAlternative
-- For storage: Recommend "Supabase Storage" (easy) as primary, with "AWS S3" (medium) as easierAlternative
-- For AI: Recommend "OpenRouter" (easy) as primary, with "OpenAI API" (medium) as easierAlternative
-- For database: Recommend "Supabase" (easy) as primary, with "Custom PostgreSQL" (advanced) as easierAlternative
+Include keywords in descriptions for auto-detection:
+- "authentication" → CRITICAL
+- "payment" → ULTRA_CRITICAL
+- "validation" → IMPORTANT
+- "button" → STANDARD
 
-WHEN PRD REQUESTS SPECIFIC TECHNOLOGY:
-- If PRD says "Outlook integration", recommend "Gmail API or Resend" (easy) as primary
-- Include "Microsoft Graph" (advanced) as the easierAlternative for those who specifically need Outlook
-- The tradeoff should explain: "Microsoft Graph provides full Outlook integration but requires complex OAuth setup"
+=== RULE 3: NEXT.JS 14 FILE PATHS (STRICT) ===
 
-ALTERNATIVE MAPPING RULES:
-- Primary (easy): Resend → Alternative (medium): SendGrid
-- Primary (easy): Supabase Auth → Alternative (medium): Auth0
-- Primary (easy): Supabase Storage → Alternative (medium): AWS S3
-- Primary (easy): OpenRouter → Alternative (medium): OpenAI/Anthropic direct
-- Primary (easy): Gmail API or Resend → Alternative (advanced): Microsoft Graph/Outlook
-- Primary (easy): Supabase → Alternative (advanced): Custom PostgreSQL + separate auth
+✅ Pages: app/(app)/[route]/page.tsx
+✅ Layouts: app/(app)/[route]/layout.tsx
+✅ API: app/api/[resource]/route.ts
+✅ Components: components/[name].tsx or components/ui/[name].tsx
+✅ Modular libs: lib/[module]/index.ts (NOT lib/[module].ts)
+✅ Middleware: middleware.ts (root only, NOT in app/ or lib/)
+✅ Manifest: app/manifest.ts (NOT public/manifest.json)
+✅ DB Schema: lib/db/schema.ts (TypeScript, NOT .sql)
 
-TRADEOFF HONESTY:
-- Be clear about what the easier option provides vs the advanced option
-- Example: "Gmail API is easier to set up and works for most email needs. Microsoft Graph adds Outlook calendar and contacts but requires Azure AD setup"
-- Example: "Supabase provides auth, database, and storage in one platform. Custom setup gives more control but requires managing multiple services"
+❌ NEVER: *.sql, *.json as components
+❌ NEVER: react-router-dom (use next/navigation)
+❌ NEVER: middleware.ts in subdirectories
 
-NEVER recommend Twilio as primary (too complex) - always suggest easier SMS alternatives if needed
+=== RULE 4: DEPENDENCIES ===
 
-This approach ensures non-technical users see the easiest path first while still having access to advanced options`
-          },
-          {
-            role: 'user',
-            content: `Product: ${productName || 'Product'}
+⚠️ CRITICAL: Dependencies MUST reference EXACT component IDs from the same plan
+
+- Order components by dependencies (no circular refs)
+- Dependencies array uses FULL component IDs (e.g., "m1-design-system", NOT "design-system")
+- ONLY reference components that exist in the current milestone or earlier milestones
+- Design system FIRST, then shadcn, then layouts, then pages
+- API routes typically have no dependencies
+
+❌ INVALID: dependencies: ["design-system", "auth-system"]
+✅ VALID: dependencies: ["m1-design-system", "m1-auth-system"]
+
+=== RULE 5: EASY TECH STACK ===
+
+✅ Prefer: Resend, Supabase Auth, Supabase DB, shadcn/ui, Tailwind, React Hook Form
+❌ Avoid: Complex solutions when easier alternatives exist
+
+=== RULE 6: COMPREHENSIVE ARCHITECTURE ===
+
+**CRITICAL**: The "architecture.technologies" array must include ALL major technologies needed:
+
+1. **Frontend** (category: "frontend"):
+   - Always include: Next.js, React, TypeScript, Tailwind CSS, shadcn/ui
+   - Add any project-specific UI libraries
+
+2. **Database** (category: "database"):
+   - Include: Supabase (or other database)
+   - Add any caching layers (Redis, etc)
+
+3. **Services** (category: "service"):
+   - Include ANY external APIs/services the project needs:
+     - Email: Resend, SendGrid, etc
+     - Payments: Stripe, etc
+     - Auth providers: if using OAuth
+     - Any third-party integrations
+
+4. **Backend** (category: "backend"):
+   - Include: Any backend frameworks or API layers
+
+Each technology must have:
+- "name": Technology name
+- "category": frontend | backend | database | service
+- "reasoning": Why this technology was chosen
+- "difficulty": easy | medium | advanced
+- "setupRequired": true if needs API keys/setup, false otherwise
+
+=== VALIDATION ===
+
+Before returning, CRITICALLY verify:
+✅ Architecture has "recommendedStack" string
+✅ Architecture.technologies has AT LEAST 5-8 technologies (frontend, database, services)
+✅ Each technology has name, category, reasoning, difficulty, setupRequired
+✅ Milestone 1 has design-system first
+✅ All file paths follow Next.js 14 conventions
+✅ No circular dependencies
+✅ All components have criticality
+✅ ALL dependencies reference EXACT component IDs from this plan
+   - Build complete list of all component IDs first
+   - Check EVERY dependency against this list
+   - If dependency doesn't exist, it's INVALID - fix it!
+✅ No component references non-existent dependencies
+
+⚠️ CRITICAL: If ANY dependency is invalid, FIX IT before returning!
+
+Return ONLY the JSON. No markdown fences, no extra text.`;
+
+    // Inject learned rules from consensus history
+    const { enhancedPrompt, appliedPatternIds } = await injectLearnedRules(baseSystemPrompt, 'plan_verification');
+    console.log(`🧠 Injected ${appliedPatternIds.length} learned patterns into plan generator prompt`);
+
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
+    let content: string;
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openrouterApiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://buildrunner.cloud',
+          'X-Title': 'BuildRunner SaaS - Build Plan Generator',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'anthropic/claude-4-sonnet-20250522',
+          messages: [
+            {
+              role: 'system',
+              content: enhancedPrompt // Use enhanced prompt with learned rules
+            },
+            {
+              role: 'user',
+              content: `Product: ${productName || 'Product'}
 
 Product Idea: ${productIdea}
 
 PRD Content:
 ${prdContext}
 
-Generate a comprehensive project implementation plan with milestones, steps, and microsteps. Include realistic time estimates and dependencies. Return ONLY the JSON object.`
+Generate a comprehensive BUILD PLAN with properly scoped, independently buildable components. Each component must be ready for direct code generation by AI models. Focus on creating a clear dependency graph that can be built sequentially without issues.
+
+Return ONLY the JSON object.`
           }
-        ],
-        temperature: 0.2,
-        max_tokens: 8000,
-      }),
-    });
+          ],
+          temperature: 0.2, // Low temp for consistent, structured output
+          max_tokens: 8000, // Reduced to prevent timeout issues
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenRouter API error:', errorText);
-      return NextResponse.json(
-        { error: 'Failed to generate project plan' },
-        { status: response.status }
-      );
+      clearTimeout(timeoutId); // Clear timeout on successful response
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenRouter API error:', errorText);
+        return NextResponse.json(
+          { error: 'Failed to generate project plan' },
+          { status: response.status }
+        );
+      }
+
+      // Parse response with better error handling
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log(`📊 Response size: ${responseText.length} characters`);
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        console.error('❌ Failed to parse OpenRouter response:', jsonError);
+        throw new Error('Invalid response from AI provider - response may be incomplete');
+      }
+
+      content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        console.error('❌ No content in API response. Full response:', JSON.stringify(data).substring(0, 500));
+        throw new Error('No content in API response');
+      }
+
+      console.log(`✅ Received AI response: ${content.length} characters`);
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+
+      if (fetchError.name === 'AbortError') {
+        console.error('❌ Request timeout: OpenRouter took longer than 2 minutes');
+        return NextResponse.json(
+          { error: 'Request timeout - plan generation took too long. Try with a simpler product description.' },
+          { status: 504 }
+        );
+      }
+
+      console.error('❌ Fetch error:', fetchError);
+      throw fetchError;
     }
 
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No content in API response');
-    }
-
-    // Extract JSON from response (might be wrapped in markdown)
+    // Extract JSON from response
     let jsonStr = content.trim();
     if (jsonStr.startsWith('```json')) {
       jsonStr = jsonStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
@@ -267,7 +381,7 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       jsonStr = jsonStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
 
-    // Try to parse JSON with better error handling
+    // Parse JSON with error handling
     let plan;
     try {
       plan = JSON.parse(jsonStr);
@@ -277,11 +391,10 @@ Generate a comprehensive project implementation plan with milestones, steps, and
 
       // Try to fix common JSON issues
       try {
-        // Remove any trailing commas before closing braces/brackets
         const fixedJson = jsonStr
           .replace(/,\s*}/g, '}')
           .replace(/,\s*]/g, ']')
-          .replace(/[\u0000-\u001F]+/g, ''); // Remove control characters
+          .replace(/[\u0000-\u001F]+/g, '');
 
         plan = JSON.parse(fixedJson);
         console.log('Successfully parsed JSON after fixing common issues');
@@ -290,48 +403,69 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       }
     }
 
-    // Ensure all items have IDs
+    // Validate plan structure
     if (!plan.milestones) {
       throw new Error('Invalid plan structure: missing milestones');
     }
 
+    // Ensure all components have proper IDs and structure
     plan.milestones.forEach((milestone: any, mIndex: number) => {
-      if (!milestone.id) milestone.id = `milestone-${mIndex}`;
-      if (!milestone.steps) milestone.steps = [];
+      if (!milestone.id) milestone.id = `milestone-${mIndex + 1}`;
+      if (!milestone.components) milestone.components = [];
+      if (!milestone.priority) milestone.priority = 'medium';
+      if (!milestone.estimatedHours) {
+        milestone.estimatedHours = milestone.components.reduce((sum: number, c: any) =>
+          sum + (c.estimatedHours || 4), 0
+        );
+      }
 
-      milestone.steps.forEach((step: any, sIndex: number) => {
-        if (!step.id) step.id = `step-${mIndex}-${sIndex}`;
-        if (!step.microsteps) step.microsteps = [];
+      milestone.components.forEach((component: any, cIndex: number) => {
+        if (!component.id) component.id = `${milestone.id}-comp-${cIndex + 1}`;
+        if (!component.dependencies) component.dependencies = [];
+        if (!component.interfaces) component.interfaces = { props: [], exports: [], apiEndpoints: [] };
+        if (!component.testStrategy) component.testStrategy = 'Unit tests for core functionality';
+        if (!component.estimatedHours) component.estimatedHours = 4;
 
-        step.microsteps.forEach((microstep: any, msIndex: number) => {
-          if (!microstep.id) microstep.id = `microstep-${mIndex}-${sIndex}-${msIndex}`;
-          if (!microstep.dependencies) microstep.dependencies = [];
-          if (!microstep.status) microstep.status = 'pending';
-        });
+        // Add criticality classification (auto-detect if not provided)
+        if (!component.criticality) {
+          component.criticality = inferCriticality(component);
+        }
 
-        if (!step.dependencies) step.dependencies = [];
-        if (!step.status) step.status = 'pending';
+        // Add quality requirements if missing
+        if (!component.qualityRequirements) {
+          component.qualityRequirements = {
+            typescript: 'strict',
+            accessibility: true,
+            responsive: true,
+            errorHandling: true,
+            loadingStates: component.type === 'page' || component.type === 'component',
+            maxLines: 200
+          };
+        }
+
+        // Add PRD features array if missing
+        if (!component.prdFeatures) {
+          component.prdFeatures = [];
+        }
       });
-
-      if (!milestone.dependencies) milestone.dependencies = [];
-      if (!milestone.status) milestone.status = 'pending';
     });
 
     if (!plan.generatedAt) {
       plan.generatedAt = new Date().toISOString();
     }
 
+    // Set defaults
+    if (!plan.appType) plan.appType = 'web';
+    if (!plan.framework) plan.framework = 'nextjs';
+
     // Detect existing services and enrich technology data
     if (plan.architecture && plan.architecture.technologies) {
       const existingServices = new Set();
 
-      // Check if Supabase is setup (from API keys)
       if (apiKeys.supabase || apiKeys.supabase_url) {
         existingServices.add('Supabase');
         existingServices.add('PostgreSQL');
       }
-
-      // Check other API keys
       if (apiKeys.openrouter) existingServices.add('OpenRouter');
       if (apiKeys.anthropic) existingServices.add('Anthropic');
       if (apiKeys.openai) existingServices.add('OpenAI');
@@ -340,34 +474,23 @@ Generate a comprehensive project implementation plan with milestones, steps, and
       if (apiKeys.vercel) existingServices.add('Vercel');
       if (apiKeys.railway) existingServices.add('Railway');
 
-      // Services that can be fully integrated in-app (account/project creation via API)
-      // Currently only Supabase supports full programmatic setup
       const inAppIntegrations = new Set(['Supabase', 'PostgreSQL']);
 
-      // Services that could potentially support OAuth (future enhancement)
-      const oauthCapable = new Set(['Vercel', 'Railway', 'Stripe']);
-
-      // Enrich each technology with status
       plan.architecture.technologies = plan.architecture.technologies.map((tech: any) => {
         const techName = tech.name || '';
-        let status = 'needs_account'; // Default status
+        let status = 'needs_account';
         let canIntegrateInApp = inAppIntegrations.has(techName);
 
-        // Check if already setup
         if (existingServices.has(techName)) {
           status = 'already_setup';
           tech.statusNote = canIntegrateInApp
             ? 'Integrated with your account'
             : 'Already configured in your account';
-        }
-        // Check if it's a standard dev tool (no account needed)
-        else if (['Node.js', 'npm', 'React', 'Next.js', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'Tailwind CSS'].includes(techName)) {
+        } else if (['Node.js', 'npm', 'React', 'Next.js', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'Tailwind CSS'].includes(techName)) {
           status = 'standard_tool';
           tech.statusNote = 'Already included';
           canIntegrateInApp = false;
-        }
-        // Check if it's already installed locally
-        else if (['VS Code', 'Git', 'Docker'].includes(techName)) {
+        } else if (['VS Code', 'Git', 'Docker'].includes(techName)) {
           status = 'likely_installed';
           tech.statusNote = 'Commonly pre-installed';
           canIntegrateInApp = false;
