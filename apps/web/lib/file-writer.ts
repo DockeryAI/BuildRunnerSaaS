@@ -807,17 +807,17 @@ export { Label }
   /**
    * Generate smart tabs-based page layout (Layer 3)
    * Instead of dumping all components vertically, use organized tabs
+   * Built with Tailwind CSS (no shadcn dependencies)
    */
   private generateTabsPage(components: any[]): string {
     const imports: string[] = [
       `'use client';`,
       ``,
-      `import { useState } from 'react';`,
-      `import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";`
+      `import { useState } from 'react';`
     ];
 
     const componentImports: string[] = [];
-    const tabTriggers: string[] = [];
+    const tabButtons: string[] = [];
     const tabContents: string[] = [];
 
     for (const [index, component] of components.entries()) {
@@ -834,13 +834,24 @@ export { Label }
         .replace(/([A-Z])/g, ' $1')
         .trim();
 
-      // Add tab trigger
-      tabTriggers.push(`            <TabsTrigger value="${tabId}">${tabLabel}</TabsTrigger>`);
+      // Add tab button
+      tabButtons.push(`            <button
+              onClick={() => setActiveTab('${tabId}')}
+              className={\`px-4 py-2 rounded-t-lg font-medium transition-colors \${
+                activeTab === '${tabId}'
+                  ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }\`}
+            >
+              ${tabLabel}
+            </button>`);
 
       // Add tab content
-      tabContents.push(`          <TabsContent value="${tabId}" className="mt-4">
+      tabContents.push(`        {activeTab === '${tabId}' && (
+          <div className="p-6">
             <${componentName} />
-          </TabsContent>`);
+          </div>
+        )}`);
     }
 
     // Combine all imports
@@ -855,18 +866,22 @@ export { Label }
     return `${allImports}
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('${defaultTab}');
+
   return (
-    <main className="min-h-screen p-8">
+    <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Generated App</h1>
+        <h1 className="text-4xl font-bold mb-8 text-gray-900">Generated App</h1>
 
-        <Tabs defaultValue="${defaultTab}" className="w-full">
-          <TabsList className="grid w-full grid-cols-${Math.min(components.length, 5)}" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
-${tabTriggers.join('\n')}
-          </TabsList>
+        {/* Tab Navigation */}
+        <div className="mb-4 flex gap-1 border-b-2 border-gray-200">
+${tabButtons.join('\n')}
+        </div>
 
+        {/* Tab Content */}
+        <div className="bg-white rounded-b-lg shadow-sm border border-gray-200">
 ${tabContents.join('\n')}
-        </Tabs>
+        </div>
       </div>
     </main>
   );

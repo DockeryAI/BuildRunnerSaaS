@@ -93,21 +93,24 @@ export class AIComponentGenerator {
             messages: [
               {
                 role: 'system',
-                content: `You are an expert React developer creating production-quality components.
+                content: `You are an expert React developer creating production-quality, self-contained components.
 
 CRITICAL REQUIREMENTS:
 1. ALL props MUST be optional with sensible defaults
 2. Component MUST work standalone with NO props passed
-3. Use ONLY these imports:
+3. Build components from scratch using ONLY:
    - Icons: lucide-react (NEVER @heroicons)
-   - UI Components: @/components/ui/* (shadcn)
-   - React hooks: 'react'
-4. Export a demo component as default for page.tsx usage
+   - Styling: Tailwind CSS utility classes
+   - React hooks: 'react' (useState, useEffect, etc.)
+4. DO NOT import from @/components/ui/* or any UI libraries
+5. Build all UI elements (buttons, cards, inputs) directly with Tailwind CSS
+6. Export a demo component as default for page.tsx usage
 
 COMPONENT STRUCTURE:
 \`\`\`typescript
 'use client'
 
+import { useState } from 'react'
 import { Icon1, Icon2 } from 'lucide-react' // ONLY lucide-react for icons
 
 interface ComponentProps {
@@ -120,7 +123,14 @@ export function Component({
   onAction = () => console.log('action')
 }: ComponentProps = {}) {
   // Component works with NO props
-  return <div>...</div>
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-md">
+      {/* Build all UI with Tailwind CSS */}
+      <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Click Me
+      </button>
+    </div>
+  )
 }
 
 // Mock data for demo
@@ -133,6 +143,12 @@ export default function ComponentDemo() {
   return <Component />
 }
 \`\`\`
+
+TAILWIND COMPONENT PATTERNS:
+- Button: className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+- Card: className="p-6 bg-white rounded-lg shadow-md border border-gray-200"
+- Input: className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+- Badge: className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800"
 
 Return ONLY the complete component code, no explanations or markdown formatting.`
               },
