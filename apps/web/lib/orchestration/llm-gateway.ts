@@ -356,51 +356,106 @@ export class LLMGateway {
     }
     console.log('✅ API key loaded successfully');
 
-    // Call OpenRouter API
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-        'X-Title': 'BuildRunner SaaS',
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: route.temperature,
-        max_tokens: route.max_tokens,
-        ...(request.require_json && { response_format: { type: 'json_object' } }),
-      }),
-    });
+    // Retry with exponential backoff
+    const maxRetries = 3;
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenRouter API error: ${error}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Call OpenRouter API
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+            'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+            'X-Title': 'BuildRunner SaaS',
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: route.temperature,
+            max_tokens: route.max_tokens,
+            ...(request.require_json && { response_format: { type: 'json_object' } }),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          const statusCode = response.status;
+
+          // Handle specific errors
+          if (statusCode === 401) {
+            console.error(`❌ LLM Gateway API error: Authentication failed (401). Check your OPENROUTER_API_KEY.`);
+            throw new Error('OpenRouter API authentication failed (401). Please check your API key in Settings → API Keys.');
+          } else if (statusCode === 429) {
+            console.warn(`⚠️  LLM Gateway rate limited (429). Retrying attempt ${attempt}/${maxRetries}...`);
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt))); // Exponential backoff
+              continue;
+            }
+          } else if (statusCode === 400) {
+            console.error(`❌ LLM Gateway API error: Bad Request (400). ${errorText.substring(0, 200)}`);
+            throw new Error(`OpenRouter API bad request (400): ${errorText.substring(0, 200)}`);
+          } else if (statusCode >= 500) {
+            console.warn(`⚠️  LLM Gateway server error (${statusCode}). Retrying attempt ${attempt}/${maxRetries}...`);
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+              continue;
+            }
+          } else {
+            console.error(`❌ LLM Gateway API error (${statusCode}): ${errorText.substring(0, 200)}`);
+          }
+
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+            continue;
+          }
+
+          throw new Error(`OpenRouter API error (${statusCode}): ${errorText}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        const tokensUsed = data.usage?.total_tokens || 0;
+        const cost = this.calculateCost(model, tokensUsed);
+
+        // Track cost
+        const currentCost = this.costTracker.get(model) || 0;
+        this.costTracker.set(model, currentCost + cost);
+
+        const timeTaken = Date.now() - startTime;
+        console.log(
+          `✅ ${model} responded in ${timeTaken}ms (${tokensUsed} tokens, $${cost.toFixed(4)})`
+        );
+
+        return {
+          model,
+          content,
+          timestamp: new Date(),
+          cost,
+          tokens_used: tokensUsed,
+          cached: false,
+        };
+
+      } catch (error) {
+        // If it's an auth error or bad request, don't retry
+        if (error instanceof Error && (error.message.includes('401') || error.message.includes('400'))) {
+          throw error;
+        }
+
+        console.error(`Failed to call model ${model} (attempt ${attempt}/${maxRetries}):`, error);
+
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+
+        throw error;
+      }
     }
 
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    const tokensUsed = data.usage?.total_tokens || 0;
-    const cost = this.calculateCost(model, tokensUsed);
-
-    // Track cost
-    const currentCost = this.costTracker.get(model) || 0;
-    this.costTracker.set(model, currentCost + cost);
-
-    const timeTaken = Date.now() - startTime;
-    console.log(
-      `✅ ${model} responded in ${timeTaken}ms (${tokensUsed} tokens, $${cost.toFixed(4)})`
-    );
-
-    return {
-      model,
-      content,
-      timestamp: new Date(),
-      cost,
-      tokens_used: tokensUsed,
-      cached: false,
-    };
+    throw new Error(`Failed to call model ${model} after ${maxRetries} attempts`);
   }
 
   private checkCache(request: LLMRequest): LLMResponse | null {
