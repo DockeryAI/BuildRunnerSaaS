@@ -531,9 +531,37 @@ export { Label }
         files.map(file => this.writeFile(file.path, file.content))
       );
       console.log(`✅ Wrote ${files.length} files`);
+
+      // Run TypeScript validation and auto-fix errors (Layer 2)
+      if (process.env.VALIDATION_ENABLED !== 'false') {
+        await this.validateAndFixTypeScript();
+      }
     } catch (error) {
       console.error('Failed to write files:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Validate TypeScript and auto-fix common errors (Layer 2)
+   */
+  private async validateAndFixTypeScript(): Promise<void> {
+    try {
+      const { BuildValidator } = await import('./build-validator');
+      const validator = new BuildValidator();
+
+      const result = await validator.validateAndFix(this.buildPath);
+
+      if (result.success) {
+        console.log('✅ TypeScript validation passed');
+      } else if (result.fixed.length > 0) {
+        console.log(`🔧 Auto-fixed ${result.fixed.length} issues, ${result.errors.length} remaining`);
+      } else {
+        console.warn(`⚠️  ${result.errors.length} TypeScript errors remain (no auto-fixes available)`);
+      }
+    } catch (error) {
+      console.warn('⚠️  TypeScript validation skipped:', error);
+      // Don't fail the build if validation fails
     }
   }
 
@@ -762,44 +790,88 @@ export { Label }
   }
 
   /**
-   * Assemble Next.js web app
+   * Assemble Next.js web app (Layer 3: Smart Page Generation)
    */
   private async assembleNextJSApp(components: any[]): Promise<void> {
-    // Generate imports for all components
-    const imports: string[] = [];
-    const componentRenders: string[] = [];
-
     const frontendComponents = components.filter(c =>
       c.type === 'frontend' || c.type === 'component'
     );
 
-    for (const component of frontendComponents) {
+    // Generate tabs-based layout (Layer 3)
+    const pageContent = this.generateTabsPage(frontendComponents);
+
+    // Write smart page
+    await this.writeFile('app/page.tsx', pageContent);
+  }
+
+  /**
+   * Generate smart tabs-based page layout (Layer 3)
+   * Instead of dumping all components vertically, use organized tabs
+   */
+  private generateTabsPage(components: any[]): string {
+    const imports: string[] = [
+      `'use client';`,
+      ``,
+      `import { useState } from 'react';`,
+      `import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";`
+    ];
+
+    const componentImports: string[] = [];
+    const tabTriggers: string[] = [];
+    const tabContents: string[] = [];
+
+    for (const [index, component] of components.entries()) {
       const componentName = this.sanitizeComponentName(component.name);
       const filePath = component.filePath || inferFilePath(component);
+      const importPath = `../${filePath.replace('.tsx', '').replace('.jsx', '')}`;
 
       // Add import
-      const importPath = `../${filePath.replace('.tsx', '').replace('.jsx', '')}`;
-      imports.push(`import ${componentName} from '${importPath}';`);
+      componentImports.push(`import ${componentName} from '${importPath}';`);
 
-      // Add component render
-      componentRenders.push(`        <div className="mb-8">
-          <${componentName} />
-        </div>`);
+      // Generate tab ID from component name
+      const tabId = componentName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const tabLabel = componentName
+        .replace(/([A-Z])/g, ' $1')
+        .trim();
+
+      // Add tab trigger
+      tabTriggers.push(`            <TabsTrigger value="${tabId}">${tabLabel}</TabsTrigger>`);
+
+      // Add tab content
+      tabContents.push(`          <TabsContent value="${tabId}" className="mt-4">
+            <${componentName} />
+          </TabsContent>`);
     }
 
-    // Read existing page template
-    let pageContent = await fs.readFile(
-      path.join(this.buildDir, 'app/page.tsx'),
-      'utf-8'
-    );
+    // Combine all imports
+    const allImports = [...imports, ...componentImports].join('\n');
 
-    // Replace placeholders
-    pageContent = pageContent
-      .replace('{{IMPORTS}}', imports.join('\n'))
-      .replace('{{COMPONENTS}}', componentRenders.join('\n'));
+    // Default to first tab
+    const defaultTab = components.length > 0
+      ? this.sanitizeComponentName(components[0].name).toLowerCase().replace(/[^a-z0-9]/g, '-')
+      : 'home';
 
-    // Write updated page
-    await this.writeFile('app/page.tsx', pageContent);
+    // Generate complete page
+    return `${allImports}
+
+export default function Home() {
+  return (
+    <main className="min-h-screen p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8">Generated App</h1>
+
+        <Tabs defaultValue="${defaultTab}" className="w-full">
+          <TabsList className="grid w-full grid-cols-${Math.min(components.length, 5)}" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
+${tabTriggers.join('\n')}
+          </TabsList>
+
+${tabContents.join('\n')}
+        </Tabs>
+      </div>
+    </main>
+  );
+}
+`;
   }
 
   /**
@@ -1023,38 +1095,48 @@ export function inferFilePath(component: {
   const ext = language === 'typescript' ? 'ts' : 'js';
   const tsxExt = language === 'typescript' ? 'tsx' : 'jsx';
 
+  // Sanitize component name to kebab-case for file paths
+  // "React with Vite" → "react-with-vite"
+  const sanitizedName = name
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1-$2')  // camelCase → kebab-case
+    .replace(/[\s_]+/g, '-')               // spaces/underscores → hyphens
+    .replace(/[^a-zA-Z0-9-]/g, '')         // remove special chars
+    .toLowerCase()
+    .replace(/^-+|-+$/g, '');              // trim hyphens
+
   switch (type) {
     case 'frontend':
     case 'component':
-      return `src/components/${name}.${tsxExt}`;
+      return `src/components/${sanitizedName}.${tsxExt}`;
 
     case 'api':
     case 'endpoint':
-      return `src/api/${name}.${ext}`;
+      return `src/api/${sanitizedName}.${ext}`;
 
     case 'service':
-      return `src/services/${name}.${ext}`;
+      return `src/services/${sanitizedName}.${ext}`;
 
     case 'backend':
     case 'server':
-      return `src/server/${name}.${ext}`;
+      return `src/server/${sanitizedName}.${ext}`;
 
     case 'database':
     case 'schema':
-      return `src/database/${name}.${ext}`;
+      return `src/database/${sanitizedName}.${ext}`;
 
     case 'util':
     case 'helper':
-      return `src/utils/${name}.${ext}`;
+      return `src/utils/${sanitizedName}.${ext}`;
 
     case 'type':
     case 'interface':
-      return `src/types/${name}.${ext}`;
+      return `src/types/${sanitizedName}.${ext}`;
 
     case 'test':
-      return `tests/${name}.test.${ext}`;
+      return `tests/${sanitizedName}.test.${ext}`;
 
     default:
-      return `src/${name}.${ext}`;
+      return `src/${sanitizedName}.${ext}`;
   }
 }

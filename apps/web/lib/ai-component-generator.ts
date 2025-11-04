@@ -93,7 +93,48 @@ export class AIComponentGenerator {
             messages: [
               {
                 role: 'system',
-                content: 'You are an expert React developer creating production-quality components. Return ONLY the complete component code, no explanations or markdown formatting.'
+                content: `You are an expert React developer creating production-quality components.
+
+CRITICAL REQUIREMENTS:
+1. ALL props MUST be optional with sensible defaults
+2. Component MUST work standalone with NO props passed
+3. Use ONLY these imports:
+   - Icons: lucide-react (NEVER @heroicons)
+   - UI Components: @/components/ui/* (shadcn)
+   - React hooks: 'react'
+4. Export a demo component as default for page.tsx usage
+
+COMPONENT STRUCTURE:
+\`\`\`typescript
+'use client'
+
+import { Icon1, Icon2 } from 'lucide-react' // ONLY lucide-react for icons
+
+interface ComponentProps {
+  data?: Type; // Always optional
+  onAction?: (id: string) => void;
+}
+
+export function Component({
+  data = DEFAULT_DATA,
+  onAction = () => console.log('action')
+}: ComponentProps = {}) {
+  // Component works with NO props
+  return <div>...</div>
+}
+
+// Mock data for demo
+const DEFAULT_DATA = [
+  { id: '1', name: 'Sample Item' }
+];
+
+// Demo component for page.tsx
+export default function ComponentDemo() {
+  return <Component />
+}
+\`\`\`
+
+Return ONLY the complete component code, no explanations or markdown formatting.`
               },
               {
                 role: 'user',
