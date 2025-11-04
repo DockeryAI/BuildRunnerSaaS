@@ -88,7 +88,7 @@ Focus on patterns that are:
           'X-Title': 'BuildRunner Pattern Extraction',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4-20250514', // Fast and accurate
+          model: 'anthropic/claude-3.5-sonnet', // Fast and accurate
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.2, // Lower for more consistent extraction
           max_tokens: 2000

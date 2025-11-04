@@ -310,7 +310,7 @@ export async function generatePatternEmbedding(
           'X-Title': 'BuildRunner Pattern Embedding',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4-20250514',
+          model: 'anthropic/claude-3.5-sonnet',
           messages: [{
             role: 'user',
             content: `Generate a semantic embedding vector (10 dimensions) for this pattern. Return only a JSON array of 10 numbers between -1 and 1 representing the semantic meaning:\n\n"${pattern}"`
