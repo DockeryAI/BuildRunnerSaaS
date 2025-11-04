@@ -68,15 +68,16 @@ export class AIComponentGenerator {
    * Call AI API with proper error handling and retries
    */
   private async callAI(prompt: string, retries = 3): Promise<string> {
-    // Increase max_tokens on retries to handle truncation
-    let maxTokens = 16000;
+    // Start with 24k tokens to avoid truncation on first attempt
+    // (Most components need 20-24k with full PRD context + design system)
+    let maxTokens = 24000;
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        // Increase max_tokens progressively on retries
+        // Increase max_tokens progressively on retries (only if needed)
         if (attempt > 1) {
-          maxTokens = Math.min(32000, maxTokens * 1.5); // Up to 32k tokens
-          console.log(`📈 Retry ${attempt}: Increasing max_tokens to ${Math.floor(maxTokens)}`);
+          maxTokens = 32000; // Jump to max on retry to avoid multiple attempts
+          console.log(`📈 Retry ${attempt}: Using max_tokens ${maxTokens}`);
         }
 
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
