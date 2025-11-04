@@ -601,10 +601,15 @@ export class BuildOrchestrator extends EventEmitter {
             message: `✅ Loaded PRD: ${this.prdContext.productName} (${this.prdContext.features.length} features)`
           });
         } else {
+          // CRITICAL: Enforce PRD as single source of truth - NO BUILD WITHOUT PRD
           this.emit('log', {
-            level: 'warning',
-            message: '⚠️ No PRD found, using basic context'
+            level: 'error',
+            message: '❌ BLOCKED: No PRD found - BuildRunner requires a PRD as the single source of truth'
           });
+          throw new Error(
+            'PRD_REQUIRED: Builds require a PRD as the single source of truth. ' +
+            'Please complete the brainstorm phase first to create a PRD.'
+          );
         }
       }
 

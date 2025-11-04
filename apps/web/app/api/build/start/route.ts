@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { components, config, projectId, productIdea, appConfig } = body;
+    const { components, config, projectId, productIdea, appConfig, prd } = body;
 
     if (!components || !Array.isArray(components)) {
       console.error('Invalid components:', components);
@@ -17,7 +17,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // CRITICAL: Enforce PRD as single source of truth
+    if (!prd && !productIdea) {
+      console.error('❌ BLOCKED: No PRD provided - builds require PRD context');
+      return NextResponse.json(
+        {
+          error: 'PRD required - BuildRunner requires a PRD as the single source of truth. Please complete the brainstorm phase first.',
+          code: 'PRD_REQUIRED'
+        },
+        { status: 400 }
+      );
+    }
+
     console.log('Build API - Project ID:', projectId || 'using default');
+    console.log('Build API - PRD present:', !!prd);
     console.log('Build API - Product Idea:', productIdea ? `"${productIdea.substring(0, 50)}..."` : 'not provided');
 
     // Get API keys - prioritize client-provided keys (from UI) over environment variable
@@ -56,7 +69,13 @@ export async function POST(request: NextRequest) {
     // Create orchestrator with API key, optional custom config, and projectId
     const orchestrator = new BuildOrchestrator(openrouterKey, config, projectId);
 
-    // Set product idea and app config for design system generation
+    // CRITICAL: Set PRD as single source of truth
+    if (prd) {
+      console.log('✅ Setting full PRD as single source of truth');
+      (orchestrator as any).prdContext = prd;
+    }
+
+    // Set product idea and app config for design system generation (fallback for legacy)
     if (productIdea) {
       (orchestrator as any).productIdea = productIdea;
     }

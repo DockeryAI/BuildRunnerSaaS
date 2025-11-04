@@ -582,6 +582,28 @@ export default function WorkbenchPage() {
       const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
       const currentProject = savedProjects.find((p: any) => p.id === currentProjectId);
 
+      // CRITICAL: Load full PRD as single source of truth
+      const prdCacheKey = `prd_cache_${currentProjectId}`;
+      const cachedPRDData = localStorage.getItem(prdCacheKey);
+      let fullPRD = null;
+
+      if (cachedPRDData) {
+        try {
+          fullPRD = JSON.parse(cachedPRDData);
+          console.log('✅ Loaded full PRD from cache for build');
+        } catch (e) {
+          console.warn('Failed to parse cached PRD:', e);
+        }
+      }
+
+      // If no PRD found, we should block the build
+      if (!fullPRD && !currentProject?.productIdea) {
+        throw new Error(
+          'No PRD found - BuildRunner requires a PRD as the single source of truth. ' +
+          'Please complete the brainstorm phase first.'
+        );
+      }
+
       const response = await fetch('/api/build/start', {
         method: 'POST',
         headers: {
@@ -592,6 +614,7 @@ export default function WorkbenchPage() {
           components: buildComponents,
           projectId: currentProjectId,
           productIdea: currentProject?.productIdea || '',
+          prd: fullPRD, // Pass full PRD as single source of truth
           appConfig: {
             appType: projectPlan?.appType || 'web',
             framework: projectPlan?.framework || 'nextjs',
