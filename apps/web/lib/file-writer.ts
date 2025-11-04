@@ -1156,7 +1156,86 @@ export default function Home() {
       'utf-8'
     );
 
+    // Create dependency-specific lib files
+    await this.createDependencyLibFiles(requiredPackages, components);
+
     console.log(`✅ Dependencies updated`);
+  }
+
+  /**
+   * Create library files for specific dependencies
+   */
+  private async createDependencyLibFiles(
+    requiredPackages: Set<string>,
+    components: any[]
+  ): Promise<void> {
+    // Create Supabase client if Supabase is used
+    if (requiredPackages.has('@supabase/supabase-js') || this.hasSupabaseImport(components)) {
+      console.log('  📦 Creating Supabase client library file...');
+      const supabaseClient = `import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.')
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+`;
+      await this.writeFile('lib/supabase.ts', supabaseClient);
+
+      // Create .env.local template if it doesn't exist
+      const envLocalPath = path.join(this.buildDir, '.env.local');
+      try {
+        await fs.access(envLocalPath);
+        // File exists, don't overwrite
+      } catch {
+        // File doesn't exist, create template
+        const envTemplate = `# Supabase Configuration
+# Replace these with your actual Supabase project credentials
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+`;
+        await fs.writeFile(envLocalPath, envTemplate, 'utf-8');
+        console.log('  ✓ Created .env.local template');
+      }
+    }
+
+    // Create Firebase config if Firebase is used
+    if (requiredPackages.has('firebase')) {
+      console.log('  📦 Creating Firebase config library file...');
+      const firebaseConfig = `import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+`;
+      await this.writeFile('lib/firebase.ts', firebaseConfig);
+    }
+  }
+
+  /**
+   * Check if any component imports from @/lib/supabase
+   */
+  private hasSupabaseImport(components: any[]): boolean {
+    for (const component of components) {
+      if (component.code && component.code.includes("from '@/lib/supabase'")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
