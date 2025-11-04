@@ -1,0 +1,262 @@
+[
+  {
+    "sessionId": "session_1762237078928",
+    "group": {
+      "id": "ab_session_1762237078928",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T06:17:58.928Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T06:17:58.928Z"
+  },
+  {
+    "sessionId": "session_1762237092349",
+    "group": {
+      "id": "ab_session_1762237092349",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T06:18:12.349Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T06:18:12.349Z"
+  },
+  {
+    "sessionId": "session_1762239059491",
+    "group": {
+      "id": "ab_session_1762239059491",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T06:50:59.491Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T06:50:59.491Z"
+  },
+  {
+    "sessionId": "session_1762239060401",
+    "group": {
+      "id": "ab_session_1762239060401",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T06:51:00.401Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T06:51:00.401Z"
+  },
+  {
+    "sessionId": "session_1762239610755",
+    "group": {
+      "id": "ab_session_1762239610755",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T07:00:10.755Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T07:00:10.755Z"
+  },
+  {
+    "sessionId": "session_1762239624482",
+    "group": {
+      "id": "ab_session_1762239624482",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T07:00:24.482Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T07:00:24.482Z"
+  },
+  {
+    "sessionId": "session_1762241118911",
+    "group": {
+      "id": "ab_session_1762241118911",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T07:25:18.911Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T07:25:18.911Z"
+  },
+  {
+    "sessionId": "session_1762241136872",
+    "group": {
+      "id": "ab_session_1762241136872",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T07:25:36.872Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T07:25:36.872Z"
+  },
+  {
+    "sessionId": "session_1762242060008",
+    "group": {
+      "id": "ab_session_1762242060008",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T07:41:00.008Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T07:41:00.008Z"
+  },
+  {
+    "sessionId": "session_1762242064465",
+    "group": {
+      "id": "ab_session_1762242064465",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T07:41:04.465Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T07:41:04.465Z"
+  },
+  {
+    "sessionId": "session_1762274431758",
+    "group": {
+      "id": "ab_session_1762274431758",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T16:40:31.758Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T16:40:31.758Z"
+  },
+  {
+    "sessionId": "session_1762274431819",
+    "group": {
+      "id": "ab_session_1762274431819",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T16:40:31.819Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T16:40:31.819Z"
+  },
+  {
+    "sessionId": "session_1762275374152",
+    "group": {
+      "id": "ab_session_1762275374152",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T16:56:14.152Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T16:56:14.152Z"
+  },
+  {
+    "sessionId": "session_1762275584957",
+    "group": {
+      "id": "ab_session_1762275584957",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T16:59:44.958Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T16:59:44.957Z"
+  },
+  {
+    "sessionId": "session_1762275804900",
+    "group": {
+      "id": "ab_session_1762275804900",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T17:03:24.900Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T17:03:24.900Z"
+  },
+  {
+    "sessionId": "session_1762276489539",
+    "group": {
+      "id": "ab_session_1762276489539",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T17:14:49.539Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T17:14:49.539Z"
+  },
+  {
+    "sessionId": "session_1762279412064",
+    "group": {
+      "id": "ab_session_1762279412064",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T18:03:32.064Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T18:03:32.064Z"
+  },
+  {
+    "sessionId": "session_1762279420996",
+    "group": {
+      "id": "ab_session_1762279420996",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T18:03:40.996Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T18:03:40.996Z"
+  },
+  {
+    "sessionId": "session_1762280576404",
+    "group": {
+      "id": "ab_session_1762280576404",
+      "type": "test",
+      "patterns": [],
+      "timestamp": "2025-11-04T18:22:56.404Z"
+    },
+    "achieved": true,
+    "iterations": 1,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T18:22:56.404Z"
+  },
+  {
+    "sessionId": "session_1762282176955",
+    "group": {
+      "id": "ab_session_1762282176955",
+      "type": "control",
+      "patterns": [],
+      "timestamp": "2025-11-04T18:49:36.955Z"
+    },
+    "achieved": true,
+    "iterations": 2,
+    "fixesApplied": 0,
+    "timestamp": "2025-11-04T18:49:36.955Z"
+  }
+]

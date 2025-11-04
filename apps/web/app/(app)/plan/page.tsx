@@ -82,6 +82,14 @@ export default function PlanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [projectPlan, setProjectPlan] = useState<ProjectPlan | null>(null);
+  const [planVerification, setPlanVerification] = useState<{
+    verified: boolean;
+    consensusAchieved: boolean;
+    healthScore: { score: number; grade: string; issues: string[]; strengths: string[] };
+    iterations: number;
+    consensusLog?: any; // Full consensus discussion log
+  } | null>(null);
+  const [showConsensusLog, setShowConsensusLog] = useState(false);
   const [projectName, setProjectName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,8 +124,7 @@ export default function PlanPage() {
   const handleWizardComplete = (apiKey: string) => {
     console.log('API key saved for', selectedTechnology?.name);
     // Clear cache and refresh the plan to update technology status
-    const currentProjectId = localStorage.getItem('currentProjectId') || '1';
-    localStorage.removeItem(`project_plan_${currentProjectId}`);
+    clearPlanCache();
     generateProjectPlan();
   };
 
@@ -125,7 +132,10 @@ export default function PlanPage() {
   const clearPlanCache = () => {
     const currentProjectId = localStorage.getItem('currentProjectId') || '1';
     localStorage.removeItem(`project_plan_${currentProjectId}`);
-    console.log('🗑️ Cleared plan cache for project:', currentProjectId);
+    localStorage.removeItem(`plan_hash_${currentProjectId}`);
+    localStorage.removeItem(`plan_verification_${currentProjectId}`);
+    localStorage.removeItem(`buildrunner_plan_${currentProjectId}`);
+    console.log('🗑️ Cleared ALL plan cache data for project:', currentProjectId);
   };
 
   async function generateProjectPlan() {
@@ -171,8 +181,10 @@ export default function PlanPage() {
 
       // Set the project name for display
       if (latestProject) {
-        setProjectName(latestProject.productName || latestProject.productIdea || 'Unnamed Project');
-        console.log('📝 Viewing plan for project:', latestProject.productName || latestProject.productIdea);
+        // Set short project name (not the full idea)
+        const shortName = latestProject.productName || latestProject.name || 'Unnamed Project';
+        setProjectName(shortName);
+        console.log('📝 Viewing plan for project:', shortName);
       }
 
       // STEP 2: Now load cache using the CORRECT project ID
@@ -267,7 +279,68 @@ export default function PlanPage() {
       // Update with fresh data
       setProjectPlan(data.plan);
 
-      // Update cache with fresh data
+      // ========================================
+      // PLAN VERIFICATION WITH 5-MODEL CONSENSUS
+      // ========================================
+      setGenerationStage('Verifying plan with AI consensus (5 models)...');
+      console.log('🔍 Starting plan verification with 5-model consensus...');
+
+      try {
+        const verificationResponse = await fetch('/api/plan/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-keys': JSON.stringify(apiKeys),
+          },
+          body: JSON.stringify({
+            plan: data.plan,
+            productIdea: latestProject.productIdea,
+            productName: latestProject.productName || latestProject.name,
+          }),
+        });
+
+        if (!verificationResponse.ok) {
+          throw new Error('Plan verification failed');
+        }
+
+        const verificationResult = await verificationResponse.json();
+        console.log('✅ Plan verification complete:', verificationResult);
+
+        // Update plan with verified/fixed version if consensus made changes
+        if (verificationResult.finalPlan) {
+          setProjectPlan(verificationResult.finalPlan);
+          data.plan = verificationResult.finalPlan; // Update for saving below
+        }
+
+        // Store verification results
+        const verificationData = {
+          verified: true,
+          consensusAchieved: verificationResult.consensusAchieved,
+          healthScore: verificationResult.healthScore,
+          iterations: verificationResult.iterations,
+          consensusLog: verificationResult.consensusLog, // Include full consensus log
+          timestamp: new Date().toISOString(),
+        };
+        localStorage.setItem(`plan_verification_${currentProjectId}`, JSON.stringify(verificationData));
+        setPlanVerification(verificationData);
+
+        if (!verificationResult.consensusAchieved) {
+          setError(`Plan verification incomplete: ${verificationResult.healthScore?.issues?.[0] || 'Consensus not achieved'}`);
+          console.warn('⚠️ Plan did not pass consensus verification');
+        } else {
+          console.log(`✅ Plan verified with ${verificationResult.healthScore?.grade} grade (${verificationResult.healthScore?.score}/100)`);
+        }
+      } catch (verificationError) {
+        console.error('❌ Plan verification error:', verificationError);
+        // Don't block the plan from being saved, but mark as unverified
+        localStorage.setItem(`plan_verification_${currentProjectId}`, JSON.stringify({
+          verified: false,
+          error: verificationError instanceof Error ? verificationError.message : 'Verification failed',
+          timestamp: new Date().toISOString(),
+        }));
+      }
+
+      // Update cache with fresh data (possibly updated by verification)
       localStorage.setItem(cacheKey, JSON.stringify(data.plan));
 
       // Save PRD hash for future cache validation
@@ -277,7 +350,7 @@ export default function PlanPage() {
 
       // Also save to legacy key for workbench access
       localStorage.setItem(`buildrunner_plan_${currentProjectId}`, JSON.stringify(data.plan));
-      console.log('✅ Saved fresh plan to cache for project:', currentProjectId);
+      console.log('✅ Saved verified plan to cache for project:', currentProjectId);
 
       // Update project status to 'plan' phase complete
       updateProjectStatus(currentProjectId, {
@@ -439,13 +512,248 @@ export default function PlanPage() {
             </h2>
             <p className="text-gray-700 mb-4">{projectPlan.architecture.recommendedStack}</p>
 
+            {/* Plan Health Check Badge */}
+            {planVerification && (
+              <div className={`border-2 rounded-lg p-4 mb-4 ${
+                planVerification.consensusAchieved
+                  ? 'bg-green-50 border-green-300'
+                  : 'bg-yellow-50 border-yellow-300'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`text-3xl font-bold ${
+                      planVerification.consensusAchieved ? 'text-green-700' : 'text-yellow-700'
+                    }`}>
+                      {planVerification.healthScore.grade}
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-bold ${
+                        planVerification.consensusAchieved ? 'text-green-900' : 'text-yellow-900'
+                      }`}>
+                        {planVerification.consensusAchieved
+                          ? '✅ Plan Verified by 5 AI Models'
+                          : '⚠️ Plan Needs Improvement'
+                        }
+                      </h4>
+                      <p className="text-xs text-gray-600">
+                        Health Score: {planVerification.healthScore.score}/100
+                        {planVerification.iterations > 1 && ` • ${planVerification.iterations} iterations`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {planVerification.healthScore.strengths.length > 0 && (
+                      <p className="text-xs text-green-700 mb-1">
+                        ✓ {planVerification.healthScore.strengths[0]}
+                      </p>
+                    )}
+                    {planVerification.healthScore.issues.length > 0 && (
+                      <p className="text-xs text-yellow-700">
+                        ! {planVerification.healthScore.issues[0]}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Consensus Log Viewer */}
+            {planVerification?.consensusLog && (
+              <div className="border border-gray-300 rounded-lg mb-4 overflow-hidden">
+                <button
+                  onClick={() => setShowConsensusLog(!showConsensusLog)}
+                  className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex items-center justify-between transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{showConsensusLog ? '▼' : '▶'}</span>
+                    <h4 className="text-sm font-bold text-gray-900">
+                      5-Model Consensus Discussion Log
+                    </h4>
+                    <span className="text-xs text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200">
+                      {planVerification.consensusLog.summary?.totalMessages || 0} messages
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {planVerification.consensusLog.summary?.modelsInvolved?.join(', ') || ''}
+                  </span>
+                </button>
+
+                {showConsensusLog && planVerification.consensusLog && (
+                  <div className="p-4 bg-white max-h-[600px] overflow-y-auto">
+                    {/* Summary Header */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <h5 className="text-sm font-bold text-blue-900 mb-2">Verification Summary</h5>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <span className="text-gray-600">Status:</span>{' '}
+                          <span className={`font-semibold ${
+                            planVerification.consensusLog.finalStatus === 'consensus_achieved'
+                              ? 'text-green-700'
+                              : 'text-yellow-700'
+                          }`}>
+                            {planVerification.consensusLog.finalStatus?.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Iterations:</span>{' '}
+                          <span className="font-semibold">{planVerification.consensusLog.totalIterations}/{planVerification.consensusLog.maxIterationsAllowed}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Issues Found:</span>{' '}
+                          <span className="font-semibold text-orange-700">{planVerification.consensusLog.summary?.totalIssuesFound || 0}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Consensus Score:</span>{' '}
+                          <span className="font-semibold">{planVerification.consensusLog.summary?.finalConsensusScore?.toFixed(1) || 0}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Iteration-by-Iteration Discussion */}
+                    {planVerification.consensusLog.iterations?.map((iteration: any, idx: number) => (
+                      <div key={idx} className="mb-6 border-l-4 border-blue-300 pl-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h6 className="text-sm font-bold text-gray-900">
+                            Iteration {iteration.iteration}
+                          </h6>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                              {iteration.phase}
+                            </span>
+                            {iteration.consensusScore !== undefined && (
+                              <span className={`text-xs px-2 py-1 rounded font-medium ${
+                                iteration.consensusScore >= 80
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {iteration.consensusScore.toFixed(0)}% consensus
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Messages from this iteration */}
+                        <div className="space-y-3">
+                          {iteration.messages?.map((message: any, msgIdx: number) => (
+                            <div
+                              key={msgIdx}
+                              className={`rounded-lg p-3 text-xs ${
+                                message.messageType === 'system'
+                                  ? 'bg-gray-50 border border-gray-200'
+                                  : message.messageType === 'agreement'
+                                  ? 'bg-green-50 border border-green-200'
+                                  : message.messageType === 'disagreement'
+                                  ? 'bg-red-50 border border-red-200'
+                                  : message.messageType === 'verification'
+                                  ? 'bg-blue-50 border border-blue-200'
+                                  : 'bg-white border border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-mono font-semibold ${
+                                    message.speaker === 'system'
+                                      ? 'text-gray-700'
+                                      : message.messageType === 'agreement'
+                                      ? 'text-green-700'
+                                      : message.messageType === 'disagreement'
+                                      ? 'text-red-700'
+                                      : 'text-blue-700'
+                                  }`}>
+                                    {message.speaker === 'system' ? '🤖 System' : `🧠 ${message.speaker}`}
+                                  </span>
+                                  <span className="text-gray-400">•</span>
+                                  <span className="text-gray-500 capitalize">
+                                    {message.messageType.replace('_', ' ')}
+                                  </span>
+                                </div>
+                                <span className="text-gray-400 text-[10px]">
+                                  {new Date(message.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+
+                              {/* Message content */}
+                              <div className="text-gray-700 whitespace-pre-wrap font-mono text-[11px] leading-relaxed">
+                                {message.content}
+                              </div>
+
+                              {/* Metadata (verdict, confidence, etc.) */}
+                              {message.metadata && (
+                                <div className="mt-2 pt-2 border-t border-gray-200 flex gap-3">
+                                  {message.metadata.verdict && (
+                                    <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                                      message.metadata.verdict === 'PASS'
+                                        ? 'bg-green-200 text-green-900'
+                                        : 'bg-red-200 text-red-900'
+                                    }`}>
+                                      {message.metadata.verdict}
+                                    </span>
+                                  )}
+                                  {message.metadata.confidence !== undefined && (
+                                    <span className="text-[10px] text-gray-600">
+                                      Confidence: {message.metadata.confidence}%
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Iteration result summary */}
+                        {iteration.result && (
+                          <div className={`mt-3 p-2 rounded text-xs font-medium ${
+                            iteration.result === 'consensus_achieved'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {iteration.action || iteration.result.replace('_', ' ').toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Final Summary */}
+                    {planVerification.consensusLog.summary && (
+                      <div className="border-t-2 border-gray-300 pt-4 mt-4">
+                        <h6 className="text-sm font-bold text-gray-900 mb-2">Final Summary</h6>
+                        <div className="grid grid-cols-3 gap-3 text-xs">
+                          <div className="bg-gray-50 rounded p-2">
+                            <div className="text-gray-600 mb-1">Total Messages</div>
+                            <div className="text-lg font-bold text-gray-900">
+                              {planVerification.consensusLog.summary.totalMessages}
+                            </div>
+                          </div>
+                          <div className="bg-orange-50 rounded p-2">
+                            <div className="text-gray-600 mb-1">Issues Found</div>
+                            <div className="text-lg font-bold text-orange-700">
+                              {planVerification.consensusLog.summary.totalIssuesFound}
+                            </div>
+                          </div>
+                          <div className="bg-green-50 rounded p-2">
+                            <div className="text-gray-600 mb-1">Fixes Applied</div>
+                            <div className="text-lg font-bold text-green-700">
+                              {planVerification.consensusLog.summary.totalFixesApplied || 0}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Start Building Now Button */}
             <div className="bg-white border-2 border-blue-300 rounded-lg p-4 mb-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="text-sm font-bold text-blue-900 mb-1">Ready to Start Building?</h3>
                   <p className="text-xs text-gray-700">
-                    You can set up API keys later. Start building your project now and add integrations as you go.
+                    {planVerification?.consensusAchieved
+                      ? 'Your plan has been verified by AI consensus. You can start building with confidence!'
+                      : 'You can start building now. The plan will be further refined during the build process.'
+                    }
                   </p>
                 </div>
                 <button
@@ -916,7 +1224,7 @@ export default function PlanPage() {
           </div>
 
           <div className="p-4 space-y-2">
-            {projectPlan.milestones.map((milestone, mIndex) => (
+            {(projectPlan?.milestones || []).map((milestone, mIndex) => (
               <div key={milestone.id} className="space-y-1">
                 {/* Milestone */}
                 <button
@@ -948,7 +1256,7 @@ export default function PlanPage() {
                 {/* Steps */}
                 {expandedMilestones.has(milestone.id) && (
                   <div className="ml-6 space-y-1">
-                    {milestone.steps.map((step, sIndex) => (
+                    {(milestone.steps || []).map((step, sIndex) => (
                       <div key={step.id} className="space-y-1">
                         <button
                           onClick={() => {
@@ -979,7 +1287,7 @@ export default function PlanPage() {
                         {/* Microsteps */}
                         {expandedSteps.has(step.id) && (
                           <div className="ml-6 space-y-1">
-                            {step.microsteps.map((microstep, msIndex) => (
+                            {(step.microsteps || []).map((microstep, msIndex) => (
                               <button
                                 key={microstep.id}
                                 onClick={() =>
@@ -1062,7 +1370,7 @@ export default function PlanPage() {
                     Dependencies
                   </h3>
                   <ul className="space-y-1">
-                    {selectedItem.data.dependencies.map((dep, index) => (
+                    {(selectedItem.data.dependencies || []).map((dep, index) => (
                       <li key={index} className="text-sm text-gray-600 flex items-start">
                         <span className="mr-2">→</span>
                         <span>{dep}</span>
@@ -1079,14 +1387,14 @@ export default function PlanPage() {
                     Steps
                   </h3>
                   <div className="space-y-2">
-                    {(selectedItem.data as Milestone).steps.map((step, index) => (
+                    {((selectedItem.data as Milestone).steps || []).map((step, index) => (
                       <div key={step.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="font-medium text-sm text-gray-900">
                           {index + 1}. {step.title}
                         </div>
                         <div className="text-xs text-gray-600 mt-1">{step.description}</div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {step.microsteps.length} microsteps • {step.estimatedDays} days
+                          {(step.microsteps || []).length} microsteps • {step.estimatedDays} days
                         </div>
                       </div>
                     ))}
@@ -1100,7 +1408,7 @@ export default function PlanPage() {
                     Microsteps
                   </h3>
                   <div className="space-y-2">
-                    {(selectedItem.data as Step).microsteps.map((microstep, index) => (
+                    {((selectedItem.data as Step).microsteps || []).map((microstep, index) => (
                       <div key={microstep.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="font-medium text-sm text-gray-900">
                           {index + 1}. {microstep.title}

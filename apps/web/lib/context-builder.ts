@@ -1,0 +1,463 @@
+/**
+ * Context-Aware Prompt Builder
+ * Builds v0.dev-quality prompts with full PRD context, design system, and feature details
+ */
+
+import { DesignSpec } from './design-system-generator';
+
+export interface PRDContext {
+  productName: string;
+  productIdea: string;
+  executiveSummary?: string;
+  problemStatement?: string;
+  targetAudience?: string;
+  valueProposition?: string;
+  features: Array<{
+    id: string;
+    title: string;
+    description: string;
+    section: string;
+  }>;
+  prdSections?: any;
+}
+
+export interface ComponentContext {
+  componentName: string;
+  componentType: string;
+  description?: string;
+  relatedFeatures: string[];
+  dataModels: Record<string, any>;
+  dependencies: string[];
+  // New: Metadata from build plan for tiered prompts
+  criticality?: 'ULTRA_CRITICAL' | 'CRITICAL' | 'IMPORTANT' | 'STANDARD';
+  qualityRequirements?: {
+    typescript?: 'strict' | 'standard';
+    accessibility?: boolean;
+    responsive?: boolean;
+    errorHandling?: boolean;
+    loadingStates?: boolean;
+    maxLines?: number;
+  };
+  prdFeatures?: string[];
+}
+
+export interface BuildContext {
+  prd: PRDContext;
+  design: DesignSpec;
+  component: ComponentContext;
+  appConfig: {
+    framework: string;
+    styling: string;
+    typescript: boolean;
+    mobileFirst: boolean;
+  };
+}
+
+export class ContextBuilder {
+  /**
+   * Build a comprehensive, v0.dev-quality prompt for component generation
+   */
+  static buildComponentPrompt(context: BuildContext): string {
+    const { prd, design, component, appConfig } = context;
+
+    return `You are an expert React developer building a production-quality web application.
+
+${this.buildAppSection(prd)}
+
+${this.buildFeatureSection(component, prd)}
+
+${this.buildDesignSystemSection(design, prd)}
+
+${this.buildTechnicalSection(appConfig, component)}
+
+${this.buildDataModelSection(component)}
+
+${this.buildRequirementsSection(prd, component)}
+
+${this.buildTieredQualityStandards(component)}
+
+Return complete, production-ready code ready to save to a file. Include all imports and exports.`;
+  }
+
+  private static buildAppSection(prd: PRDContext): string {
+    return `APP CONTEXT:
+App Name: ${prd.productName}
+Purpose: ${prd.productIdea}
+${prd.targetAudience ? `Target Users: ${prd.targetAudience}` : ''}
+${prd.valueProposition ? `Value Proposition: ${prd.valueProposition}` : ''}
+
+Core Features:
+${prd.features.slice(0, 5).map(f => `- ${f.title}: ${f.description}`).join('\n')}`;
+  }
+
+  private static buildFeatureSection(component: ComponentContext, prd: PRDContext): string {
+    const relatedFeatures = prd.features.filter(f =>
+      component.relatedFeatures.includes(f.id) ||
+      f.title.toLowerCase().includes(component.componentName.toLowerCase())
+    );
+
+    return `CURRENT COMPONENT:
+Component: ${component.componentName}
+Type: ${component.componentType}
+${component.description ? `Description: ${component.description}` : ''}
+
+Related PRD Features:
+${relatedFeatures.length > 0
+  ? relatedFeatures.map(f => `- ${f.title}: ${f.description}`).join('\n')
+  : '- This component supports the core functionality described above'}
+
+User Stories:
+${this.generateUserStories(component, prd)}`;
+  }
+
+  private static buildDesignSystemSection(design: DesignSpec, prd: PRDContext): string {
+    return `DESIGN SYSTEM (MUST USE EXACTLY):
+Brand Personality: ${this.inferBrandPersonality(prd.productIdea)}
+Visual Style: ${design.visualStyle}
+
+Colors (USE THESE EXACT VALUES):
+- Primary: ${design.colorPalette.primary}
+- Primary Foreground: ${design.colorPalette.primaryForeground}
+- Secondary: ${design.colorPalette.secondary}
+- Accent: ${design.colorPalette.accent}
+- Background: ${design.colorPalette.background}
+- Foreground: ${design.colorPalette.foreground}
+- Border: ${design.colorPalette.border}
+- Muted: ${design.colorPalette.muted}
+- Destructive: ${design.colorPalette.destructive}
+
+Typography:
+- Font Family: ${design.typography.fontFamily.sans}
+- Mono Font: ${design.typography.fontFamily.mono}
+- Font Sizes: ${JSON.stringify(design.typography.scale)}
+- Font Weights: ${JSON.stringify(design.typography.weights)}
+
+Spacing (8px base unit):
+- Use Tailwind spacing: p-2 (8px), p-4 (16px), p-6 (24px), p-8 (32px)
+- Gap: gap-2, gap-3, gap-4, gap-6
+- Component Scale: ${design.designTokens.spacing.scale.join(', ')}
+
+Border Radius:
+- Small: ${design.designTokens.borderRadius.sm}
+- Medium: ${design.designTokens.borderRadius.md}
+- Large: ${design.designTokens.borderRadius.lg}
+- Extra Large: ${design.designTokens.borderRadius.xl}
+
+Shadows:
+- Small: ${design.designTokens.shadows.sm}
+- Medium: ${design.designTokens.shadows.md}
+- Large: ${design.designTokens.shadows.lg}
+
+Component Patterns:
+- Navigation: ${design.componentPatterns.navigation}
+- Layout: ${design.componentPatterns.layout}
+- Card Style: ${design.componentPatterns.cardStyle}
+
+Design Inspiration:
+${design.inspiration.join(', ')}`;
+  }
+
+  private static buildTechnicalSection(appConfig: any, component: ComponentContext): string {
+    return `TECHNICAL REQUIREMENTS:
+Framework: ${appConfig.framework || 'Next.js 14 (App Router)'}
+Styling: ${appConfig.styling || 'Tailwind CSS'} + shadcn/ui components
+TypeScript: ${appConfig.typescript !== false ? 'Required (strict mode)' : 'Optional'}
+Mobile-First: ${appConfig.mobileFirst !== false ? 'Required (90% mobile users)' : 'Desktop-first'}
+
+Component Dependencies:
+${component.dependencies.length > 0
+  ? component.dependencies.map(d => `- ${d}`).join('\n')
+  : '- shadcn/ui base components (Button, Card, Input, etc.)'}
+
+Architecture:
+- Server Components by default
+- Use 'use client' only when needed (state, effects, events)
+- Proper error boundaries
+- Loading states with Suspense
+- Optimistic UI updates where appropriate`;
+  }
+
+  private static buildDataModelSection(component: ComponentContext): string {
+    if (Object.keys(component.dataModels).length === 0) {
+      return `DATA MODELS:
+Define appropriate TypeScript interfaces based on the component's purpose.`;
+    }
+
+    return `DATA MODELS (USE THESE EXACT TYPES):
+${Object.entries(component.dataModels).map(([name, schema]) =>
+  `interface ${name} ${JSON.stringify(schema, null, 2)}`
+).join('\n\n')}
+
+State Management:
+- Use React Server Components where possible
+- Client state: useState, useReducer for complex state
+- Form state: react-hook-form for forms
+- URL state: useSearchParams for filters/pagination`;
+  }
+
+  private static buildRequirementsSection(prd: PRDContext, component: ComponentContext): string {
+    const isMobile = this.detectMobileApp(prd.productIdea);
+    const needsOffline = this.detectOfflineNeed(prd.productIdea);
+
+    return `SPECIFIC REQUIREMENTS:
+1. Design Tokens Application:
+   - ALL colors must use the exact hex values from Design System
+   - Use bg-[${component.componentType === 'Button' ? '#primary' : '#background'}] syntax for custom colors
+   - Font must be ${component.componentType === 'heading' ? 'font-bold' : 'font-medium'}
+   - Apply shadows from design system (shadow-${component.componentType === 'Card' ? 'lg' : 'md'})
+
+2. Accessibility (WCAG 2.1 AA):
+   - Proper ARIA labels on all interactive elements
+   - Keyboard navigation (Tab, Enter, Escape)
+   - Focus indicators (ring-2 ring-offset-2)
+   - Screen reader support
+   - Color contrast ratio ≥ 4.5:1
+
+3. Mobile Optimization${isMobile ? ' (CRITICAL - Primary Platform)' : ''}:
+   - Touch targets ≥ 44px × 44px
+   - Responsive breakpoints: sm (640px), md (768px), lg (1024px)
+   - Test on mobile viewport first
+   - Thumb-friendly layouts (important actions at bottom)
+   - No hover-only interactions
+
+4. Performance:
+   - Code splitting (dynamic imports for heavy components)
+   - Image optimization (next/image with proper sizing)
+   - Lazy loading for below-fold content
+   - Debounce search/filter inputs (300ms)
+   - Virtualization for long lists (react-window)
+
+5. User Experience:
+   - Loading states: Skeleton screens (not spinners)
+   - Error handling: User-friendly messages with retry
+   - Empty states: Helpful guidance, not just "No data"
+   - Success feedback: Toasts or inline confirmation
+   - Optimistic updates: Instant UI response
+
+${needsOffline ? `6. Offline Support:
+   - Service worker caching for critical resources
+   - IndexedDB for local data persistence
+   - Sync queue for actions when offline
+   - Clear online/offline status indicator` : ''}`;
+  }
+
+  /**
+   * Build quality standards scaled to component criticality
+   * ULTRA_CRITICAL: Comprehensive security + all quality checks
+   * CRITICAL: Core quality + error handling
+   * IMPORTANT: Essential quality standards
+   * STANDARD: Basic clean code
+   */
+  private static buildTieredQualityStandards(component: ComponentContext): string {
+    const criticality = component.criticality || 'STANDARD';
+    const requirements = component.qualityRequirements || {};
+
+    // Start with base requirements (all tiers get these)
+    let standards = `CODE QUALITY STANDARDS (${criticality} tier):\n\n`;
+
+    // TIER 1: Basic TypeScript (everyone gets this)
+    standards += `1. TypeScript:\n`;
+    if (requirements.typescript === 'strict' || criticality !== 'STANDARD') {
+      standards += `   - Strict mode enabled\n`;
+      standards += `   - No 'any' types (use 'unknown' if needed)\n`;
+      standards += `   - Proper interfaces for all props and state\n`;
+    } else {
+      standards += `   - Use TypeScript types for props\n`;
+      standards += `   - Define clear interfaces\n`;
+    }
+
+    // TIER 2: Code Organization (IMPORTANT and above)
+    if (criticality !== 'STANDARD') {
+      standards += `\n2. Code Organization:\n`;
+      standards += `   - Max ${requirements.maxLines || 200} lines per component\n`;
+      standards += `   - Extract complex logic to custom hooks\n`;
+      standards += `   - Clear, descriptive variable names\n`;
+
+      if (criticality === 'CRITICAL' || criticality === 'ULTRA_CRITICAL') {
+        standards += `   - Separate business logic from UI\n`;
+        standards += `   - Single responsibility principle\n`;
+      }
+    }
+
+    // TIER 3: Error Handling (CRITICAL and above)
+    if (requirements.errorHandling || criticality === 'CRITICAL' || criticality === 'ULTRA_CRITICAL') {
+      standards += `\n3. Error Handling:\n`;
+      standards += `   - Try-catch for ALL async operations\n`;
+      standards += `   - Fallback UI for all error states\n`;
+      standards += `   - User-friendly error messages\n`;
+
+      if (criticality === 'ULTRA_CRITICAL') {
+        standards += `   - Error boundaries for component errors\n`;
+        standards += `   - Comprehensive error logging\n`;
+        standards += `   - Graceful degradation on failures\n`;
+      }
+    }
+
+    // TIER 4: Accessibility (if required or CRITICAL+)
+    if (requirements.accessibility || criticality === 'CRITICAL' || criticality === 'ULTRA_CRITICAL') {
+      standards += `\n4. Accessibility:\n`;
+      standards += `   - ARIA labels for interactive elements\n`;
+      standards += `   - Alt text for all images\n`;
+      standards += `   - Keyboard navigation support\n`;
+      standards += `   - Semantic HTML elements\n`;
+    }
+
+    // TIER 5: Responsive Design (if required)
+    if (requirements.responsive) {
+      standards += `\n5. Responsive Design:\n`;
+      standards += `   - Mobile-first approach\n`;
+      standards += `   - Tailwind breakpoints (sm:, md:, lg:, xl:)\n`;
+      standards += `   - Touch-friendly tap targets (min 44px)\n`;
+    }
+
+    // TIER 6: Loading States (if required)
+    if (requirements.loadingStates) {
+      standards += `\n6. Loading States:\n`;
+      standards += `   - Loading indicators for async operations\n`;
+      standards += `   - Skeleton screens for data fetching\n`;
+      standards += `   - Disabled state for buttons during submission\n`;
+    }
+
+    // TIER 7: ULTRA_CRITICAL Security Best Practices
+    if (criticality === 'ULTRA_CRITICAL') {
+      standards += `\n7. SECURITY (ULTRA_CRITICAL):\n`;
+      standards += `   - NEVER expose secrets or API keys in code\n`;
+      standards += `   - Validate ALL user inputs (XSS prevention)\n`;
+      standards += `   - Sanitize data before database operations (SQL injection prevention)\n`;
+      standards += `   - Use parameterized queries, NEVER string concatenation\n`;
+      standards += `   - Implement rate limiting for sensitive operations\n`;
+      standards += `   - HTTPS only for auth/payment operations\n`;
+      standards += `   - No sensitive data in console.log statements\n`;
+      standards += `   - Implement CSRF protection for state-changing operations\n`;
+      standards += `   - Use secure password hashing (bcrypt, argon2)\n`;
+      standards += `   - Implement proper session management\n`;
+    }
+
+    // Output format (everyone gets this)
+    standards += `\nOUTPUT FORMAT:\n`;
+    standards += `Return a single, complete React component file including:\n`;
+    standards += `- All necessary imports\n`;
+    standards += `- TypeScript interfaces/types\n`;
+    standards += `- Main component with proper props\n`;
+    standards += `- All sub-components or helper functions\n`;
+    standards += `- Default export\n`;
+    standards += `- No TODO comments or placeholder code\n`;
+    standards += `- Production-ready, copy-paste-able code\n`;
+
+    // Add note about verification level
+    const modelCount = {
+      'ULTRA_CRITICAL': 7,
+      'CRITICAL': 5,
+      'IMPORTANT': 3,
+      'STANDARD': 1
+    }[criticality];
+
+    standards += `\nNOTE: This ${criticality} component will be verified by ${modelCount} AI models for quality.\n`;
+    standards += `Ensure code meets ALL standards above to pass consensus verification.\n`;
+
+    return standards;
+  }
+
+  // Helper methods
+  private static generateUserStories(component: ComponentContext, prd: PRDContext): string {
+    const appType = this.inferAppType(prd.productIdea);
+    const persona = this.inferUserPersona(prd.targetAudience || prd.productIdea);
+
+    // Generate contextual user stories based on component type
+    if (component.componentName.toLowerCase().includes('location')) {
+      return `- As a ${persona}, I want to search for locations so I can plan my ${appType}
+- As a ${persona}, I want to save favorite locations so I can quickly access them later
+- As a ${persona}, I want to see location details (terrain, difficulty) so I can make informed decisions`;
+    }
+
+    if (component.componentName.toLowerCase().includes('task')) {
+      return `- As a ${persona}, I want to assign tasks to group members so everyone knows their responsibilities
+- As a ${persona}, I want to see who's assigned to what so I can track progress
+- As a ${persona}, I want to mark tasks complete so the team sees real-time updates`;
+    }
+
+    if (component.componentName.toLowerCase().includes('weather')) {
+      return `- As a ${persona}, I want to see current weather conditions so I can prepare appropriately
+- As a ${persona}, I want to see 7-day forecasts so I can plan ahead
+- As a ${persona}, I want weather alerts so I can avoid dangerous conditions`;
+    }
+
+    return `- As a ${persona}, I want to ${this.inferPrimaryAction(component)} so I can ${this.inferGoal(prd.productIdea)}`;
+  }
+
+  private static inferBrandPersonality(productIdea: string): string {
+    const idea = productIdea.toLowerCase();
+
+    if (idea.includes('off-road') || idea.includes('outdoor') || idea.includes('trail')) {
+      return 'Adventurous, rugged, trustworthy, community-focused';
+    }
+    if (idea.includes('professional') || idea.includes('business') || idea.includes('enterprise')) {
+      return 'Professional, reliable, efficient, modern';
+    }
+    if (idea.includes('creative') || idea.includes('design') || idea.includes('art')) {
+      return 'Creative, inspiring, bold, innovative';
+    }
+    if (idea.includes('education') || idea.includes('learning') || idea.includes('teaching')) {
+      return 'Friendly, encouraging, accessible, supportive';
+    }
+
+    return 'Modern, approachable, reliable, user-focused';
+  }
+
+  private static inferAppType(productIdea: string): string {
+    const idea = productIdea.toLowerCase();
+    if (idea.includes('trip') || idea.includes('travel')) return 'trip';
+    if (idea.includes('event')) return 'event';
+    if (idea.includes('project')) return 'project';
+    if (idea.includes('task')) return 'tasks';
+    return 'activity';
+  }
+
+  private static inferUserPersona(text: string): string {
+    const lower = text.toLowerCase();
+    if (lower.includes('off-road') || lower.includes('outdoor')) return 'outdoor enthusiast';
+    if (lower.includes('developer') || lower.includes('engineer')) return 'developer';
+    if (lower.includes('designer')) return 'designer';
+    if (lower.includes('manager')) return 'project manager';
+    if (lower.includes('teacher') || lower.includes('student')) return 'educator';
+    return 'user';
+  }
+
+  private static inferPrimaryAction(component: ComponentContext): string {
+    const name = component.componentName.toLowerCase();
+    if (name.includes('selector') || name.includes('picker')) return 'select options';
+    if (name.includes('form')) return 'submit information';
+    if (name.includes('list') || name.includes('table')) return 'view and manage items';
+    if (name.includes('card')) return 'view detailed information';
+    if (name.includes('modal') || name.includes('dialog')) return 'complete a focused task';
+    return 'interact with this feature';
+  }
+
+  private static inferGoal(productIdea: string): string {
+    const idea = productIdea.toLowerCase();
+    if (idea.includes('plan')) return 'plan effectively';
+    if (idea.includes('organize')) return 'stay organized';
+    if (idea.includes('track')) return 'track progress';
+    if (idea.includes('collaborate')) return 'work together';
+    if (idea.includes('manage')) return 'manage efficiently';
+    return 'accomplish my goals';
+  }
+
+  private static detectMobileApp(productIdea: string): boolean {
+    const idea = productIdea.toLowerCase();
+    return idea.includes('mobile') ||
+           idea.includes('on-the-go') ||
+           idea.includes('outdoor') ||
+           idea.includes('off-road') ||
+           idea.includes('field');
+  }
+
+  private static detectOfflineNeed(productIdea: string): boolean {
+    const idea = productIdea.toLowerCase();
+    return idea.includes('offline') ||
+           idea.includes('remote') ||
+           idea.includes('off-road') ||
+           idea.includes('outdoor') ||
+           idea.includes('no connectivity');
+  }
+}

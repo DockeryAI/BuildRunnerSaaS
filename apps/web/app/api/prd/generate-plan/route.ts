@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { injectLearnedRules } from '../../../../lib/consensus-learning';
+import { PlanValidator } from '../../../../lib/plan-validator';
 
 // Helper function to get setup guide URLs
 function getSetupGuideUrl(techName: string): string | undefined {
@@ -401,6 +402,82 @@ Return ONLY the JSON object.`
       } catch (secondError) {
         throw new Error(`Failed to parse AI response as JSON: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
       }
+    }
+
+    // ========================================
+    // PLAN VALIDATION - Prevent tech stack confusion
+    // ========================================
+    console.log('🔍 Validating plan for quality issues...');
+    const validator = new PlanValidator();
+    const validationResult = await validator.validatePlan(plan);
+
+    if (!validationResult.valid) {
+      console.warn('⚠️  Plan validation failed!');
+      console.warn(validator.getValidationReport(validationResult));
+
+      if (validationResult.shouldRegenerate) {
+        console.log('🔄 Regenerating plan with fixes...');
+
+        // Regenerate plan with validation feedback
+        const regenerationPrompt = `${productPrompt}\n\n${validationResult.regenerationPrompt}`;
+
+        const regenerateResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openrouterKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://buildrunner.cloud',
+            'X-Title': 'BuildRunner - Plan Generator (Regeneration)',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.0-flash-exp:free',
+            messages: [
+              {
+                role: 'system',
+                content: enhancedPrompt
+              },
+              {
+                role: 'user',
+                content: regenerationPrompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 16000,
+          }),
+        });
+
+        if (!regenerateResponse.ok) {
+          throw new Error(`Failed to regenerate plan: ${regenerateResponse.statusText}`);
+        }
+
+        const regenerateData = await regenerateResponse.json();
+        let regeneratedContent = regenerateData.choices[0]?.message?.content || '';
+
+        // Extract JSON from regenerated response
+        let regeneratedJsonStr = regeneratedContent.trim();
+        if (regeneratedJsonStr.startsWith('```json')) {
+          regeneratedJsonStr = regeneratedJsonStr.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (regeneratedJsonStr.startsWith('```')) {
+          regeneratedJsonStr = regeneratedJsonStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+
+        try {
+          plan = JSON.parse(regeneratedJsonStr);
+          console.log('✅ Successfully regenerated plan');
+
+          // Validate again
+          const revalidation = await validator.validatePlan(plan);
+          if (!revalidation.valid) {
+            console.warn('⚠️  Regenerated plan still has issues, but proceeding...');
+            console.warn(validator.getValidationReport(revalidation));
+          }
+        } catch (regenerateError) {
+          console.error('❌ Failed to parse regenerated plan, using original');
+          // Keep the original plan if regeneration fails
+        }
+      }
+    } else {
+      console.log('✅ Plan validation passed!');
     }
 
     // Validate plan structure

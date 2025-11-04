@@ -11,6 +11,7 @@ import FileBrowser from '../../../components/FileBrowser';
 import ChatPanel from '../../../components/ChatPanel';
 import TerminalPanel, { TerminalLog } from '../../../components/TerminalPanel';
 import ArchitectureFlowDiagram from '../../../components/ArchitectureFlowDiagram';
+import ConsensusLogPanel, { ConsensusMessage, ConsensusIteration } from '../../../components/ConsensusLogPanel';
 import { updateProjectStatus } from '../../../lib/autosave';
 import {
   PlayIcon,
@@ -243,6 +244,10 @@ export default function WorkbenchPage() {
     models: number;
   }
   const [consensusVotes, setConsensusVotes] = useState<ConsensusVote[]>([]);
+  const [consensusMessages, setConsensusMessages] = useState<ConsensusMessage[]>([]);
+  const [consensusIterations, setConsensusIterations] = useState<ConsensusIteration[]>([]);
+  const [consensusModelsUsed, setConsensusModelsUsed] = useState<number>(5);
+  const [isConsensusLogMinimized, setIsConsensusLogMinimized] = useState(true);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [planError, setPlanError] = useState<string | null>(null);
   const [messages, setMessages] = useState<BuildMessage[]>([
@@ -261,8 +266,6 @@ export default function WorkbenchPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [projectName, setProjectName] = useState<string>('');
-  const [productIdea, setProductIdea] = useState<string>('');
-  const [ideaExpanded, setIdeaExpanded] = useState<boolean>(false);
   const [projectPlan, setProjectPlan] = useState<any>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [showPreviewButton, setShowPreviewButton] = useState(false);
@@ -588,7 +591,7 @@ export default function WorkbenchPage() {
         body: JSON.stringify({
           components: buildComponents,
           projectId: currentProjectId,
-          productIdea: currentProject?.productIdea || productIdea || '',
+          productIdea: currentProject?.productIdea || '',
           appConfig: {
             appType: projectPlan?.appType || 'web',
             framework: projectPlan?.framework || 'nextjs',
@@ -756,7 +759,10 @@ export default function WorkbenchPage() {
       // Consensus events
       eventSource.addEventListener('consensus_started', (event) => {
         const data = JSON.parse(event.data);
+        setConsensusModelsUsed(data.models || 5);
         addLog('info', `🗳️  Starting consensus vote: ${data.task} (${data.models} models)`);
+        // Auto-show consensus log when consensus starts
+        setIsConsensusLogMinimized(false);
       });
 
       eventSource.addEventListener('consensus_completed', (event) => {
@@ -767,7 +773,7 @@ export default function WorkbenchPage() {
           timestamp: new Date(),
           agreed: data.agreed,
           agreementRatio: data.agreementRatio,
-          models: 3, // Default to 3 models
+          models: data.models || 5,
         };
 
         setConsensusVotes((prev) => [...prev, vote]);
@@ -779,6 +785,24 @@ export default function WorkbenchPage() {
           data.agreed ? 'success' : 'warning',
           `${icon} Consensus ${result}: ${data.task} (${percentage}% agreement)`
         );
+      });
+
+      // Consensus message event (detailed logging)
+      eventSource.addEventListener('consensus:message', (event) => {
+        const message: ConsensusMessage = JSON.parse(event.data);
+        setConsensusMessages((prev) => [...prev, message]);
+      });
+
+      // Consensus iteration complete event
+      eventSource.addEventListener('consensus:iteration', (event) => {
+        const iteration: ConsensusIteration = JSON.parse(event.data);
+        setConsensusIterations((prev) => [...prev, iteration]);
+      });
+
+      // Consensus achieved event
+      eventSource.addEventListener('consensus:achieved', (event) => {
+        const data = JSON.parse(event.data);
+        addLog('success', `✅ Consensus achieved after ${data.iterations} iteration(s)`);
       });
 
       eventSource.addEventListener('build_completed', (event) => {
@@ -1634,6 +1658,30 @@ export default function WorkbenchPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Consensus Log Panel */}
+      {!isConsensusLogMinimized && (consensusMessages.length > 0 || consensusIterations.length > 0) && (
+        <div className="fixed bottom-6 left-6 z-40 w-[500px] max-w-[90vw]">
+          <ConsensusLogPanel
+            messages={consensusMessages}
+            iterations={consensusIterations}
+            modelsUsed={consensusModelsUsed}
+            isMinimized={false}
+            onToggleMinimize={() => setIsConsensusLogMinimized(true)}
+          />
+        </div>
+      )}
+
+      {/* Minimized Consensus Log Button */}
+      {isConsensusLogMinimized && (consensusMessages.length > 0 || buildStatus === 'running') && (
+        <ConsensusLogPanel
+          messages={consensusMessages}
+          iterations={consensusIterations}
+          modelsUsed={consensusModelsUsed}
+          isMinimized={true}
+          onToggleMinimize={() => setIsConsensusLogMinimized(false)}
+        />
       )}
 
       {/* Minimized Terminal Icon (Bottom Right) */}

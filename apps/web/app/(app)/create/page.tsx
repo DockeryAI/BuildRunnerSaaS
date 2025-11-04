@@ -938,23 +938,30 @@ function CreatePage() {
       return;
     }
 
-    const currentProjectId = localStorage.getItem('currentProjectId');
-    if (currentProjectId) {
-      // Load project from localStorage
+    // Check if explicitly resuming a project via projectId query parameter
+    const resumeProjectId = searchParams.get('projectId');
+
+    if (resumeProjectId) {
+      // Load specific project from localStorage
       const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
-      const project = savedProjects.find((p: any) => p.id === currentProjectId);
+      const project = savedProjects.find((p: any) => p.id === resumeProjectId);
 
       if (project && project.prdSections) {
         // Load the existing project
-        setProjectId(currentProjectId);
+        setProjectId(resumeProjectId);
         setProductIdea(project.productIdea || '');
         setProductName(project.productName || project.name || '');
         setPrdSections(project.prdSections || {});
         setAllSuggestions(project.allSuggestions || {});
         setCurrentPhase(project.currentPhase || 1);
         setShowOnboarding(false);
-        console.log('✅ Loaded existing project:', currentProjectId);
+        localStorage.setItem('currentProjectId', resumeProjectId);
+        console.log('✅ Loaded existing project:', resumeProjectId);
       }
+    } else {
+      // No explicit project to load - always show brainstorm page
+      setShowOnboarding(true);
+      console.log('💡 Showing brainstorm page (no project specified)');
     }
   }, [searchParams]);
 
@@ -1146,8 +1153,9 @@ function CreatePage() {
 
     console.log('🚀 Starting PRD build for idea:', idea);
 
-    // Don't auto-fill PRD - keep it empty
-    // User will drag suggestions from the suggestion box to populate the PRD
+    // Auto-fill PRD with initial content from the user's prompt
+    autoFillPRD(idea);
+    console.log('✅ PRD auto-populated from prompt');
 
     // Generate AI suggestions for all phases automatically
     // Backend will use OpenRouter if key is available, otherwise returns mock suggestions
@@ -2130,9 +2138,9 @@ function CreatePage() {
     await generateSuggestions(message, currentPhase);
   }
 
-  function handleSaveProgress() {
+  function handleSaveProgress(): string {
     // Get project name - prioritize productName field
-    let projectName = productIdea.substring(0, 100); // Limit length
+    let projectName: string;
 
     // First check if productName is set
     if (productName && productName.trim()) {
@@ -2144,7 +2152,13 @@ function CreatePage() {
         const firstItem = execSummarySection.items[0];
         if (firstItem.title && firstItem.title !== 'Executive Summary' && !firstItem.title.includes('[Name]')) {
           projectName = firstItem.title;
+        } else {
+          // Use first sentence of productIdea as fallback
+          projectName = getFirstLine(productIdea);
         }
+      } else {
+        // Use first sentence of productIdea as fallback
+        projectName = getFirstLine(productIdea);
       }
     }
 
@@ -2196,14 +2210,14 @@ function CreatePage() {
 
     // Clear autosave since we've saved to project
     clearPRDDraft(projectData.id);
+
+    // Return the project ID that was used
+    return projectData.id;
   }
 
   function handleNextStage() {
-    // Save current progress
-    handleSaveProgress();
-
-    // Update project status to 'plan' phase
-    const currentProjectId = projectId || `project_${Date.now()}`;
+    // Save current progress and get the project ID that was used
+    const currentProjectId = handleSaveProgress();
 
     // CRITICAL: Set the current project ID so the plan page uses the correct project
     localStorage.setItem('currentProjectId', currentProjectId);

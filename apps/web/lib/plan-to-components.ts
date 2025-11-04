@@ -34,23 +34,42 @@ export function extractBuildComponents(plan: ProjectPlan): BuildComponent[] {
 
   // 2. Extract high-level components from milestones
   plan.milestones.forEach((milestone, milestoneIndex) => {
-    milestone.steps.forEach((step) => {
-      // Group microsteps into logical components
-      const componentGroups = groupMicrostepsIntoComponents(step.microsteps, milestone.id, step.id);
-
-      componentGroups.forEach((group, groupIndex) => {
+    // Handle new plan format with components directly in milestones
+    if (milestone.components) {
+      milestone.components.forEach((component, componentIndex) => {
         components.push({
-          id: group.id,
-          name: group.name,
-          type: group.type,
-          dependencies: group.dependencies,
+          id: component.id,
+          name: component.name,
+          type: component.type || 'frontend',
+          dependencies: component.dependencies || [],
           status: 'pending',
-          priority: (milestoneIndex + 1) * 100 + groupIndex,
-          description: group.description,
-          microsteps: group.microsteps,
+          priority: (milestoneIndex + 1) * 100 + componentIndex,
+          description: component.description,
+          filePath: component.filePath,
+          criticality: component.criticality,
         });
       });
-    });
+    }
+    // Handle old plan format with steps and microsteps
+    else if (milestone.steps) {
+      milestone.steps.forEach((step) => {
+        // Group microsteps into logical components
+        const componentGroups = groupMicrostepsIntoComponents(step.microsteps, milestone.id, step.id);
+
+        componentGroups.forEach((group, groupIndex) => {
+          components.push({
+            id: group.id,
+            name: group.name,
+            type: group.type,
+            dependencies: group.dependencies,
+            status: 'pending',
+            priority: (milestoneIndex + 1) * 100 + groupIndex,
+            description: group.description,
+            microsteps: group.microsteps,
+          });
+        });
+      });
+    }
   });
 
   // 3. Resolve dependencies based on plan structure

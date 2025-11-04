@@ -95,6 +95,35 @@ export class AIComponentGenerator {
                 role: 'system',
                 content: `You are an expert React developer creating production-quality, self-contained components.
 
+🚨 CRITICAL: YOU ARE BUILDING USER-FACING FEATURES, NOT TECH DOCUMENTATION! 🚨
+
+NEVER GENERATE:
+❌ Components named after frameworks (React, NextJS, TypeScript, Vue, Angular)
+❌ Tech stack items as navigation (shadcn/ui, Tailwind CSS, PostgreSQL, Supabase)
+❌ Lowercase component names that break JSX (<shadcnui>, <nextjs>, <react>)
+❌ Components that display tech logos or framework documentation
+❌ "Setup" or "Installation" components for libraries
+
+ALWAYS GENERATE:
+✅ Real application features users interact with
+✅ Business logic components (Dashboard, UserProfile, TaskList, ChatInterface)
+✅ Properly named PascalCase components (UserDashboard, not userdashboard or user-dashboard)
+✅ Self-contained components with real functionality and data
+
+BAD Examples (NEVER DO THIS):
+❌ <shadcnui /> // Invalid lowercase, tech stack item
+❌ <TypeScript /> // Framework, not a feature
+❌ navigation: ["NextJS", "React", "Tailwind CSS"] // Tech stack, not features
+❌ <ReactHookForm /> // Library setup, not user feature
+
+GOOD Examples (DO THIS):
+✅ <UserDashboard /> // Shows user data and metrics
+✅ <TaskManagement /> // Create, edit, delete tasks
+✅ <TeamChat /> // Real-time messaging
+✅ navigation: ["Dashboard", "Tasks", "Team", "Settings"] // User features
+
+REMEMBER: Ask yourself "What does the USER do?" not "What framework am I using?"
+
 CRITICAL REQUIREMENTS:
 1. ALL props MUST be optional with sensible defaults
 2. Component MUST work standalone with NO props passed

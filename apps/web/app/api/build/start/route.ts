@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { components, config, projectId } = body;
+    const { components, config, projectId, productIdea, appConfig } = body;
 
     if (!components || !Array.isArray(components)) {
       console.error('Invalid components:', components);
@@ -18,24 +18,31 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Build API - Project ID:', projectId || 'using default');
+    console.log('Build API - Product Idea:', productIdea ? `"${productIdea.substring(0, 50)}..."` : 'not provided');
 
-    // Get API keys - prioritize environment variable over client-provided keys
-    let openrouterKey = process.env.OPENROUTER_API_KEY || '';
+    // Get API keys - prioritize client-provided keys (from UI) over environment variable
+    let openrouterKey = '';
 
-    // Only use client-provided key if no environment variable is set
-    if (!openrouterKey) {
-      const apiKeys = request.headers.get('x-api-keys');
-      if (apiKeys) {
-        try {
-          const keys = JSON.parse(apiKeys);
-          openrouterKey = keys.openrouter || '';
-          console.log('Using client-provided OpenRouter key:', !!openrouterKey);
-        } catch (e) {
-          console.warn('Failed to parse API keys from headers:', e);
+    // First check for client-provided key from UI
+    const apiKeys = request.headers.get('x-api-keys');
+    if (apiKeys) {
+      try {
+        const keys = JSON.parse(apiKeys);
+        openrouterKey = keys.openrouter || '';
+        if (openrouterKey) {
+          console.log('Using client-provided OpenRouter key from UI');
         }
+      } catch (e) {
+        console.warn('Failed to parse API keys from headers:', e);
       }
-    } else {
-      console.log('Using environment OpenRouter key:', !!openrouterKey);
+    }
+
+    // Fall back to environment variable if no client key provided
+    if (!openrouterKey) {
+      openrouterKey = process.env.OPENROUTER_API_KEY || '';
+      if (openrouterKey) {
+        console.log('Using environment OpenRouter key');
+      }
     }
 
     if (!openrouterKey) {
@@ -48,6 +55,14 @@ export async function POST(request: NextRequest) {
 
     // Create orchestrator with API key, optional custom config, and projectId
     const orchestrator = new BuildOrchestrator(openrouterKey, config, projectId);
+
+    // Set product idea and app config for design system generation
+    if (productIdea) {
+      (orchestrator as any).productIdea = productIdea;
+    }
+    if (appConfig) {
+      (orchestrator as any).appConfig = appConfig;
+    }
 
     // Store orchestrator instance in shared manager
     const buildId = (orchestrator as any).state.id;

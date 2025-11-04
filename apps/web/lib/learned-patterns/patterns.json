@@ -1,0 +1,680 @@
+[
+  {
+    "id": "pattern_p67h4c",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Clean dependency graph with no circular references",
+    "confidence": 89.42857142857143,
+    "occurrences": 6,
+    "successRate": 100,
+    "sources": [
+      null,
+      null
+    ],
+    "firstSeen": "2025-11-04T06:18:12.346Z",
+    "lastSeen": "2025-11-04T16:58:59.387Z",
+    "consensusType": "plan_verification"
+  },
+  {
+    "id": "pattern_nyn0cb",
+    "type": "rule",
+    "category": "general",
+    "pattern": "should be revised to explicitly state the dependencies between milestones and components, and to provide more clarity on the integration and testing process.",
+    "confidence": 48,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      null
+    ],
+    "firstSeen": "2025-11-04T07:00:24.400Z",
+    "lastSeen": "2025-11-04T07:00:24.401Z",
+    "consensusType": "plan_verification"
+  },
+  {
+    "id": "pattern_1154450880",
+    "type": "example",
+    "category": "criticality",
+    "pattern": "Components marked as CRITICAL require dedicated test suites",
+    "confidence": 95,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T16:57:51.844Z",
+    "lastSeen": "2025-11-04T16:57:51.844Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Critical components like DesignSystem and AuthSystem were explicitly flagged as high-priority, indicating a need for thorough testing",
+      "examples": [
+        "DesignSystem",
+        "AuthSystem"
+      ]
+    }
+  },
+  {
+    "id": "pattern_843621379",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Component dependencies must follow linear progression without circular references",
+    "confidence": 98,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T16:57:51.844Z",
+    "lastSeen": "2025-11-04T16:57:51.844Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Discussion explicitly praised the lack of circular dependencies, suggesting this is a key success factor",
+      "examples": [
+        "Well-structured separation of concerns across milestones"
+      ]
+    }
+  },
+  {
+    "id": "pattern_815382011",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Implementation code must be verified against component design specs",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T16:57:51.844Z",
+    "lastSeen": "2025-11-04T16:57:51.844Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Reviewer specifically requested code review to ensure implementation matches design, indicating this is a critical verification step",
+      "examples": [
+        "need to review code for each component to ensure implementation matches design"
+      ]
+    }
+  },
+  {
+    "id": "pattern_598409234",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Mobile-first technologies must be included in frontend stack",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T16:57:51.844Z",
+    "lastSeen": "2025-11-04T16:57:51.844Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Both Next.js and Tailwind CSS were specifically chosen for mobile optimization capabilities",
+      "examples": [
+        "Next.js - 'Modern React framework with mobile optimization'",
+        "Tailwind CSS - 'Mobile-first responsive design'"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1361829800",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Core tools should be pre-configured in initial setup",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T16:57:51.844Z",
+    "lastSeen": "2025-11-04T16:57:51.844Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Most foundational tools are marked as 'setupRequired: false' and 'Already included', indicating they should be part of base configuration",
+      "examples": [
+        "Next.js, React, TypeScript, Tailwind CSS all marked as 'setupRequired: false'"
+      ]
+    }
+  },
+  {
+    "id": "pattern_811227774",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Core infrastructure components (auth, database) MUST be implemented before application features",
+    "confidence": 95,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:03:57.701Z",
+    "lastSeen": "2025-11-04T17:03:57.701Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures foundational services are stable before building features that depend on them",
+      "examples": [
+        "Authentication and database setup precede trip management features"
+      ]
+    }
+  },
+  {
+    "id": "pattern_363671628",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Mobile-first stack components MUST be included from project start (Next.js + Tailwind)",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:03:57.701Z",
+    "lastSeen": "2025-11-04T17:03:57.701Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Prevents responsive design issues and refactoring costs later",
+      "examples": [
+        "Next.js with mobile optimization, Tailwind CSS mobile-first approach"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1102169202",
+    "type": "example",
+    "category": "criticality",
+    "pattern": "Real-time features MUST use database with subscription support",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:03:57.701Z",
+    "lastSeen": "2025-11-04T17:03:57.701Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Chat functionality requires real-time capabilities, Supabase chosen specifically for this",
+      "examples": [
+        "Supabase selected for PostgreSQL with real-time subscriptions"
+      ]
+    }
+  },
+  {
+    "id": "pattern_332556492",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Components within same milestone MUST have explicit dependency checks",
+    "confidence": 80,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:03:57.701Z",
+    "lastSeen": "2025-11-04T17:03:57.701Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Prevents hidden dependencies from causing integration issues",
+      "examples": [
+        "Consensus noted need for detailed dependency checks within milestones"
+      ]
+    }
+  },
+  {
+    "id": "pattern_640064476",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "UI components MUST use accessibility-focused libraries when available",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:03:57.701Z",
+    "lastSeen": "2025-11-04T17:03:57.701Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures consistent accessibility compliance across application",
+      "examples": [
+        "shadcn/ui chosen specifically for pre-built accessible components"
+      ]
+    }
+  },
+  {
+    "id": "pattern_211666702",
+    "type": "anti-pattern",
+    "category": "dependencies",
+    "pattern": "APIs (TripAPI, TaskAPI) MUST explicitly depend on DatabaseSchema component",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:08.500Z",
+    "lastSeen": "2025-11-04T17:04:08.500Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Data-driven APIs require schema definition first to ensure type safety and data consistency",
+      "examples": [
+        "TripAPI and TaskAPI components are listed as IMPORTANT but lack explicit DatabaseSchema dependencies"
+      ]
+    }
+  },
+  {
+    "id": "pattern_2018275470",
+    "type": "anti-pattern",
+    "category": "dependencies",
+    "pattern": "Services requiring auth (CalendarService, EmailService) MUST declare AuthSystem as dependency",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:08.500Z",
+    "lastSeen": "2025-11-04T17:04:08.500Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Authentication dependencies need to be explicit to prevent security gaps and ensure proper access control",
+      "examples": [
+        "CalendarService and EmailService components lack explicit AuthSystem dependencies"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1632423021",
+    "type": "anti-pattern",
+    "category": "criticality",
+    "pattern": "CRITICAL components MUST have explicit dependents or consumers listed",
+    "confidence": 95,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:08.500Z",
+    "lastSeen": "2025-11-04T17:04:08.500Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Components marked as CRITICAL should justify their criticality through clear usage patterns",
+      "examples": [
+        "DesignSystem and AuthMiddleware marked as CRITICAL but lack clear dependent components"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1007429870",
+    "type": "anti-pattern",
+    "category": "architecture",
+    "pattern": "Service components MUST declare all upstream dependencies in component metadata",
+    "confidence": 80,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:08.500Z",
+    "lastSeen": "2025-11-04T17:04:08.500Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Missing dependency declarations lead to unclear build order and potential runtime issues",
+      "examples": [
+        "Services like CalendarService missing critical upstream dependencies"
+      ]
+    }
+  },
+  {
+    "id": "pattern_702795363",
+    "type": "anti-pattern",
+    "category": "dependencies",
+    "pattern": "Component priority level (CRITICAL, IMPORTANT) MUST align with its dependency graph position",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:08.500Z",
+    "lastSeen": "2025-11-04T17:04:08.500Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Components with many dependents should have higher priority than leaf components",
+      "examples": [
+        "DesignSystem marked CRITICAL but appears to have few/no dependents"
+      ]
+    }
+  },
+  {
+    "id": "pattern_128601623",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Core infrastructure (design system, auth, database) MUST be initialized before feature development",
+    "confidence": 95,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:17.153Z",
+    "lastSeen": "2025-11-04T17:04:17.153Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures stable foundation and prevents architectural rework",
+      "examples": [
+        "Design system, auth, database listed as initial dependencies in stack"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1265669518",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Three-tier dependency ordering: infrastructure -> core features -> auxiliary features",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:17.153Z",
+    "lastSeen": "2025-11-04T17:04:17.153Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Creates clear build progression and prevents circular dependencies",
+      "examples": [
+        "Critical infrastructure first, followed by core features, then auxiliary features"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1393507248",
+    "type": "example",
+    "category": "criticality",
+    "pattern": "Mobile optimization components (PWAManifest) SHOULD be placed in early infrastructure phase",
+    "confidence": 75,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:17.153Z",
+    "lastSeen": "2025-11-04T17:04:17.153Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Enables mobile-first development approach and prevents retrofit issues",
+      "examples": [
+        "Minor concern: PWAManifest might benefit from earlier placement"
+      ]
+    }
+  },
+  {
+    "id": "pattern_494911812",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Standard tools (Next.js, React, TypeScript) MUST be marked as non-integrable and pre-setup",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:17.153Z",
+    "lastSeen": "2025-11-04T17:04:17.153Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Prevents duplicate setup attempts and clarifies base infrastructure",
+      "examples": [
+        "setupRequired: false, canIntegrateInApp: false for standard tools"
+      ]
+    }
+  },
+  {
+    "id": "pattern_472381100",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "External services requiring accounts MUST be flagged with status: 'needs_account'",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:17.153Z",
+    "lastSeen": "2025-11-04T17:04:17.153Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures proper setup preparation and prevents deployment blockers",
+      "examples": [
+        "shadcn/ui marked with status: needs_account"
+      ]
+    }
+  },
+  {
+    "id": "pattern_75770576",
+    "type": "example",
+    "category": "criticality",
+    "pattern": "Core infrastructure components (Design System, Auth, DB) MUST be implemented in first 30% of build phases",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:26.737Z",
+    "lastSeen": "2025-11-04T17:04:26.737Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Early implementation of core components prevents architectural rework and technical debt",
+      "examples": [
+        "Design System, Authentication, and Database are addressed early in the plan"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1851061432",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Standard tools (Next.js, React, TypeScript) MUST be marked as setupRequired: false",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:26.737Z",
+    "lastSeen": "2025-11-04T17:04:26.737Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Prevents redundant setup steps for framework-provided tools",
+      "examples": [
+        "Next.js, React, and TypeScript marked as setupRequired: false"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1043817912",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "External services requiring accounts MUST be tagged with status: needs_account",
+    "confidence": 80,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:26.737Z",
+    "lastSeen": "2025-11-04T17:04:26.737Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Helps identify setup prerequisites before development begins",
+      "examples": [
+        "shadcn/ui marked as status: needs_account"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1376818071",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Each technology MUST include difficulty, setupRequired, and status fields",
+    "confidence": 95,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:26.737Z",
+    "lastSeen": "2025-11-04T17:04:26.737Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures complete metadata for build planning and resource allocation",
+      "examples": [
+        "All technology entries contain difficulty, setupRequired, and status fields"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1145829405",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Technologies MUST be categorized as either frontend, database, or external-service",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T17:04:26.737Z",
+    "lastSeen": "2025-11-04T17:04:26.737Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Clear categorization prevents architectural confusion and helps maintain separation of concerns",
+      "examples": [
+        "Tailwind CSS categorized as frontend, Supabase as database"
+      ]
+    }
+  },
+  {
+    "id": "pattern_y1zbz1",
+    "type": "rule",
+    "category": "general",
+    "pattern": "need to be addressed.",
+    "confidence": 64,
+    "occurrences": 1,
+    "successRate": 0,
+    "sources": [
+      null
+    ],
+    "firstSeen": "2025-11-04T17:04:26.740Z",
+    "lastSeen": "2025-11-04T17:04:26.740Z",
+    "consensusType": "plan_verification"
+  },
+  {
+    "id": "pattern_421523970",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Core functionality components (auth, DB schema, trip mgmt) MUST be developed before auxiliary features",
+    "confidence": 95,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T18:24:13.158Z",
+    "lastSeen": "2025-11-04T18:24:13.158Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures foundational systems are in place before building features that depend on them",
+      "examples": [
+        "Authentication, database schema, and trip management were explicitly prioritized in milestone sequence"
+      ]
+    }
+  },
+  {
+    "id": "pattern_498195379",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "Each component MUST have explicit dependency declarations in build sequence",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T18:24:13.158Z",
+    "lastSeen": "2025-11-04T18:24:13.158Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Prevents circular dependencies and ensures clear build order",
+      "examples": [
+        "Build plan shows logically structured component sequence without circular dependencies"
+      ]
+    }
+  },
+  {
+    "id": "pattern_2035570632",
+    "type": "example",
+    "category": "criticality",
+    "pattern": "Components MUST have defined criticality levels that determine their build sequence position",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T18:24:13.158Z",
+    "lastSeen": "2025-11-04T18:24:13.158Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Enables proper prioritization and resource allocation",
+      "examples": [
+        "Each component's criticality is well-defined in the discussion"
+      ]
+    }
+  },
+  {
+    "id": "pattern_1126827587",
+    "type": "example",
+    "category": "dependencies",
+    "pattern": "Frontend framework setup (Next.js, React, TypeScript) MUST be completed before any feature development",
+    "confidence": 90,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T18:24:13.158Z",
+    "lastSeen": "2025-11-04T18:24:13.158Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Base technical infrastructure needs to be stable before building features",
+      "examples": [
+        "Framework stack (Next.js 14 + React 18 + TypeScript) listed as foundational technology"
+      ]
+    }
+  },
+  {
+    "id": "pattern_432554934",
+    "type": "example",
+    "category": "architecture",
+    "pattern": "External service integrations (Supabase, APIs) MUST have explicit setup steps in build sequence",
+    "confidence": 85,
+    "occurrences": 1,
+    "successRate": 100,
+    "sources": [
+      "llm-extraction"
+    ],
+    "firstSeen": "2025-11-04T18:24:13.158Z",
+    "lastSeen": "2025-11-04T18:24:13.158Z",
+    "consensusType": "plan_verification",
+    "metadata": {
+      "reasoning": "Ensures proper initialization of external dependencies",
+      "examples": [
+        "Supabase marked as 'setupRequired: true' in technology stack"
+      ]
+    }
+  }
+]

@@ -126,6 +126,7 @@ export default function ProjectsLibraryPage() {
         localStorage.removeItem(`last_build_${projectId}`);
         localStorage.removeItem(`buildrunner_plan_${projectId}`);
         localStorage.removeItem(`buildrunner_prd_${projectId}`);
+        localStorage.removeItem(`planGenerationProgress_${projectId}`); // FIX: Clean up interrupted plan generation state
 
         // Remove all build progress keys for this project
         Object.keys(localStorage).forEach(key => {

@@ -316,6 +316,18 @@
 
   "in_progress_features": [
     {
+      "id": "plan-validation-quality",
+      "name": "Plan Validation & Quality Control",
+      "status": "complete",
+      "version": "1.1.0",
+      "description": "Lightweight pre-flight validation that prevents tech stack confusion, invalid component naming, and low-quality plans. Includes PlanValidator class with auto-regeneration, enhanced component generator prompts with critical rules, and bad pattern detection in post-build reviews. Catches 80%+ quality issues without requiring full consensus.",
+      "components": ["apps/web/lib/plan-validator.ts", "apps/web/lib/ai-component-generator.ts", "apps/web/lib/post-build-review.ts"],
+      "apis": ["/api/prd/generate-plan"],
+      "priority": "critical",
+      "tests": "working",
+      "docs": []
+    },
+    {
       "id": "build-runner-3-migration",
       "name": "Build Runner 3.0 Feature Registry",
       "status": "in_progress",
@@ -456,12 +468,12 @@
   ],
 
   "metrics": {
-    "features_complete": 25,
+    "features_complete": 26,
     "features_in_progress": 8,
     "features_planned": 6,
-    "completion_percentage": 89,
-    "components_count": 60,
-    "api_endpoints_count": 57,
+    "completion_percentage": 90,
+    "components_count": 63,
+    "api_endpoints_count": 58,
     "typescript_files": 11700,
     "pages_routes": 46,
     "database_migrations": 18,

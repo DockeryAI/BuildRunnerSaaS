@@ -1,0 +1,110 @@
+{
+  "totalSessions": 20,
+  "successRate": 100,
+  "averageIterations": 1.6,
+  "patternsLearned": 33,
+  "mostImpactfulPatterns": [
+    {
+      "id": "pattern_p67h4c",
+      "type": "example",
+      "category": "dependencies",
+      "pattern": "Clean dependency graph with no circular references",
+      "confidence": 89.42857142857143,
+      "occurrences": 6,
+      "successRate": 100,
+      "sources": [
+        null,
+        null
+      ],
+      "firstSeen": "2025-11-04T06:18:12.346Z",
+      "lastSeen": "2025-11-04T16:58:59.387Z",
+      "consensusType": "plan_verification"
+    },
+    {
+      "id": "pattern_843621379",
+      "type": "example",
+      "category": "dependencies",
+      "pattern": "Component dependencies must follow linear progression without circular references",
+      "confidence": 98,
+      "occurrences": 1,
+      "successRate": 100,
+      "sources": [
+        "llm-extraction"
+      ],
+      "firstSeen": "2025-11-04T16:57:51.844Z",
+      "lastSeen": "2025-11-04T16:57:51.844Z",
+      "consensusType": "plan_verification",
+      "metadata": {
+        "reasoning": "Discussion explicitly praised the lack of circular dependencies, suggesting this is a key success factor",
+        "examples": [
+          "Well-structured separation of concerns across milestones"
+        ]
+      }
+    },
+    {
+      "id": "pattern_1154450880",
+      "type": "example",
+      "category": "criticality",
+      "pattern": "Components marked as CRITICAL require dedicated test suites",
+      "confidence": 95,
+      "occurrences": 1,
+      "successRate": 100,
+      "sources": [
+        "llm-extraction"
+      ],
+      "firstSeen": "2025-11-04T16:57:51.844Z",
+      "lastSeen": "2025-11-04T16:57:51.844Z",
+      "consensusType": "plan_verification",
+      "metadata": {
+        "reasoning": "Critical components like DesignSystem and AuthSystem were explicitly flagged as high-priority, indicating a need for thorough testing",
+        "examples": [
+          "DesignSystem",
+          "AuthSystem"
+        ]
+      }
+    },
+    {
+      "id": "pattern_811227774",
+      "type": "example",
+      "category": "dependencies",
+      "pattern": "Core infrastructure components (auth, database) MUST be implemented before application features",
+      "confidence": 95,
+      "occurrences": 1,
+      "successRate": 100,
+      "sources": [
+        "llm-extraction"
+      ],
+      "firstSeen": "2025-11-04T17:03:57.701Z",
+      "lastSeen": "2025-11-04T17:03:57.701Z",
+      "consensusType": "plan_verification",
+      "metadata": {
+        "reasoning": "Ensures foundational services are stable before building features that depend on them",
+        "examples": [
+          "Authentication and database setup precede trip management features"
+        ]
+      }
+    },
+    {
+      "id": "pattern_128601623",
+      "type": "example",
+      "category": "dependencies",
+      "pattern": "Core infrastructure (design system, auth, database) MUST be initialized before feature development",
+      "confidence": 95,
+      "occurrences": 1,
+      "successRate": 100,
+      "sources": [
+        "llm-extraction"
+      ],
+      "firstSeen": "2025-11-04T17:04:17.153Z",
+      "lastSeen": "2025-11-04T17:04:17.153Z",
+      "consensusType": "plan_verification",
+      "metadata": {
+        "reasoning": "Ensures stable foundation and prevents architectural rework",
+        "examples": [
+          "Design system, auth, database listed as initial dependencies in stack"
+        ]
+      }
+    }
+  ],
+  "recentTrend": "stable"
+}
