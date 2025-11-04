@@ -348,6 +348,209 @@ vercel deploy --prod
 
 ---
 
+## Phase 11: GitHub Integration (P1 - After Enhanced Preview Mode)
+
+### Overview
+**Priority:** P1 (Critical for production readiness)
+**Timeline:** 4-6 weeks
+**Dependencies:** Enhanced Preview Mode must be complete
+**Documentation:** See `apps/web/docs/GITHUB_INTEGRATION_PLAN.md` for complete implementation details
+
+### Why This is Critical
+
+GitHub integration transforms BuildRunner from a code generator into a complete development platform by solving:
+
+1. **State Management** - Version control for all generated code
+2. **Collaboration** - Enable human-AI teamwork
+3. **Learning System** - Cross-project pattern analysis
+4. **Enterprise Readiness** - Audit trails and compliance
+
+### High-Level Implementation Phases
+
+#### Phase 1: Basic Integration (Week 1)
+- [ ] Install @octokit/rest package
+- [ ] Create GitHubIntegration service class
+- [ ] Implement repo initialization
+- [ ] Implement build commit workflow
+- [ ] Create API routes for GitHub operations
+- [ ] Add GitHub token management to settings
+- [ ] Test with real GitHub repositories
+
+**Key Files:**
+- `apps/web/lib/github-integration.ts` - Core integration service
+- `apps/web/app/api/github/init/route.ts` - Repo initialization API
+- `apps/web/app/api/github/commit/route.ts` - Build commit API
+
+#### Phase 2: Smart Branching Strategy (Week 2)
+- [ ] Create GitHubPRDSync service
+- [ ] Implement PRD change detection
+- [ ] Implement feature branch strategy
+- [ ] Implement hotfix branch strategy
+- [ ] Implement experimental branch strategy
+- [ ] Generate comprehensive PR descriptions
+- [ ] Integrate with existing PRD system
+
+**Key Files:**
+- `apps/web/lib/github-prd-sync.ts` - PRD-driven branching logic
+
+#### Phase 3: GitHub Actions Integration (Week 3)
+- [ ] Create BuildRunner workflow file
+- [ ] Set up PRD change detection
+- [ ] Implement webhook endpoint for Actions
+- [ ] Test auto-build trigger
+- [ ] Test artifact download and commit
+- [ ] Add workflow status badges
+- [ ] Document setup process for users
+
+**Key Files:**
+- `.github/workflows/buildrunner.yml` - GitHub Actions workflow
+- `apps/web/app/api/webhook/build/route.ts` - Webhook handler
+
+#### Phase 4: Community Features (Week 4-6)
+- [ ] Create CommunityPatterns service
+- [ ] Implement pattern search across GitHub
+- [ ] Implement pattern contribution workflow
+- [ ] Implement pattern forking and customization
+- [ ] Create pattern registry API
+- [ ] Build pattern browser UI component
+- [ ] Test end-to-end community workflows
+
+**Key Files:**
+- `apps/web/lib/community-patterns.ts` - Community pattern service
+- `apps/web/components/github/PatternBrowser.tsx` - Pattern browser UI
+
+### UI Components to Build
+
+- [ ] GitHubSettingsPanel - Connect/configure GitHub
+- [ ] GitHubSyncStatus - Show sync status in header
+- [ ] BuildHistoryViewer - View commit history
+- [ ] PatternBrowser - Browse/search community patterns
+- [ ] PatternContributor - Contribute new patterns
+
+### Integration Points
+
+**With Existing Features:**
+- Plan generation → Auto-commit to GitHub
+- PRD changes → Create feature branches
+- Build completion → Create PRs with previews
+- Pattern learning → Search community patterns
+
+**API Routes to Create:**
+- `/api/github/connect` - Connect GitHub account
+- `/api/github/init` - Initialize project repo
+- `/api/github/commit` - Commit build results
+- `/api/github/history` - Get commit history
+- `/api/github/rollback` - Rollback to commit
+- `/api/patterns/search` - Search community patterns
+- `/api/patterns/contribute` - Contribute pattern
+
+### Testing Requirements
+
+**Unit Tests:**
+- GitHubIntegration class methods
+- GitHubPRDSync branching logic
+- CommunityPatterns search/contribute
+- All API route handlers
+
+**Integration Tests:**
+- Full build → commit → PR flow
+- PRD change → auto branch creation
+- Pattern contribution → registry submission
+- Webhook → auto-build → commit
+
+**End-to-End Tests:**
+- User connects GitHub account
+- User creates project → repo created
+- User builds project → code committed
+- User modifies PRD → feature branch created
+- User searches patterns → results displayed
+- User contributes pattern → repo published
+
+### Success Metrics
+
+**Technical:**
+- ✅ GitHub API calls succeed 99%+ of time
+- ✅ Auto-commits complete within 5 minutes
+- ✅ PR creation takes < 10 seconds
+- ✅ Pattern search returns results < 2 seconds
+
+**User:**
+- ✅ 80%+ of users connect GitHub within first session
+- ✅ 50%+ of projects use GitHub integration
+- ✅ 10+ community patterns contributed per month
+- ✅ 90%+ satisfaction with version control
+
+### Risk Mitigation
+
+1. **GitHub API Rate Limits**
+   - Cache GitHub responses
+   - Use conditional requests (ETags)
+   - Implement exponential backoff
+   - Upgrade to GitHub App for higher limits
+
+2. **Large Repository Handling**
+   - Limit file size per commit (10MB max)
+   - Use Git LFS for large assets
+   - Batch commits for multiple files
+   - Stream large diffs
+
+3. **Merge Conflicts**
+   - Always create branches (never commit to main)
+   - Use PR workflow for review
+   - Implement conflict detection UI
+   - Provide manual resolution tools
+
+4. **Token Security**
+   - Encrypt tokens at rest in database
+   - Never log tokens in console/files
+   - Use short-lived tokens where possible
+   - Implement token refresh flow
+
+### Dependencies
+
+**New Packages:**
+```json
+{
+  "@octokit/rest": "^20.0.2",
+  "@octokit/auth-token": "^4.0.0"
+}
+```
+
+**Environment Variables:**
+```env
+GITHUB_CLIENT_ID=your_client_id
+GITHUB_CLIENT_SECRET=your_client_secret
+GITHUB_WEBHOOK_SECRET=your_webhook_secret
+PATTERN_REGISTRY_URL=https://api.buildrunner.com/patterns
+```
+
+### Documentation Deliverables
+
+**User Documentation:**
+- [ ] Getting Started with GitHub Integration
+- [ ] How to Create and Share Patterns
+- [ ] Understanding Branch Strategies
+- [ ] Troubleshooting GitHub Issues
+
+**Developer Documentation:**
+- [ ] GitHub API integration guide
+- [ ] Pattern schema specification
+- [ ] Webhook setup instructions
+- [ ] Extension points for custom workflows
+
+### Future Enhancements (Phase 5)
+
+- GitLab and Bitbucket support
+- GitHub Copilot integration
+- Automated code review
+- Deploy preview environments
+- Dependency updates via Dependabot
+- Security scanning via CodeQL
+
+**For complete implementation details, see:** `apps/web/docs/GITHUB_INTEGRATION_PLAN.md`
+
+---
+
 ## Quick Start Guide
 
 ### For Immediate Testing
