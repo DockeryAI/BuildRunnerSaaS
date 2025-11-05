@@ -1129,12 +1129,36 @@ export default function WorkbenchPage() {
     }
   }, [isFeedMinimized]);
 
+  // Helper function to check if server is ready
+  const checkServerHealth = async (url: string, maxAttempts: number = 30, delayMs: number = 1000): Promise<boolean> => {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok || response.status === 304) {
+          return true; // Server is ready
+        }
+      } catch (error) {
+        // Server not ready yet, continue polling
+      }
+
+      // Show progress every 5 seconds
+      if (attempt % 5 === 0) {
+        addLog('info', `⏳ Still compiling... (${attempt * delayMs / 1000}s)`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+    return false; // Timeout
+  };
+
   const handleStartPreview = async (mode: 'web' | 'native' = 'web') => {
     if (!buildId) return;
 
     setIsStartingPreview(true);
     try {
       const currentProjectId = localStorage.getItem('currentProjectId') || '1';
+
+      addLog('info', '🚀 Starting preview server...');
 
       const response = await fetch('/api/build/preview', {
         method: 'POST',
@@ -1158,28 +1182,52 @@ export default function WorkbenchPage() {
       setPreviewQrCode(data.qrCode || null);
       setPreviewInstructions(data.instructions || null);
       setAppType(data.appType || 'web');
-      addLog('success', `Preview server started at ${data.url}`);
+      addLog('success', `✅ Preview server started at ${data.url}`);
 
-      // If web mode or no QR code, open in new tab
+      // For web apps, wait for the server to be ready before opening
       if (!data.qrCode || mode === 'web') {
-        window.open(data.url, '_blank');
+        addLog('info', '⏳ Waiting for app to compile... This may take 10-30 seconds.');
+
+        const isReady = await checkServerHealth(data.url, 30, 1000);
+
+        if (isReady) {
+          addLog('success', '✅ App is ready! Opening preview...');
+          window.open(data.url, '_blank');
+
+          const aiMessage: BuildMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Preview is ready! The app is now running at ${data.url}`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+        } else {
+          addLog('warning', '⚠️ Server is taking longer than expected. Opening preview anyway - it may still be compiling.');
+          window.open(data.url, '_blank');
+
+          const aiMessage: BuildMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `Preview server started at ${data.url}. The first load may take a moment to compile.`,
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+        }
       } else {
         // Show modal with QR code for mobile apps
         setShowPreviewModal(true);
-      }
 
-      const aiMessage: BuildMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: data.qrCode
-          ? `Preview server started! ${data.instructions || 'Scan the QR code to preview the app on your device.'}`
-          : `Preview server started! Open ${data.url} in your browser to see your app.`,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
+        const aiMessage: BuildMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `Preview server started! ${data.instructions || 'Scan the QR code to preview the app on your device.'}`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+      }
     } catch (error) {
       console.error('Failed to start preview:', error);
-      addLog('error', `Failed to start preview: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      addLog('error', `❌ Failed to start preview: ${error instanceof Error ? error.message : 'Unknown error'}`);
 
       const aiMessage: BuildMessage = {
         id: Date.now().toString(),
