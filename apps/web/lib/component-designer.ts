@@ -9,6 +9,8 @@ import { AdvancedDesignSystem, getAdvancedDesignSystem } from './advanced-design
 import { DESIGN_SYSTEM as FOUNDATION, motionVariants } from './design-system/foundation';
 import { PREMIUM_COMPONENT_TEMPLATES } from './design-system/premium-components';
 import { selectPreset } from './design-system/presets';
+import { CatalystIntegrator } from './catalyst/integrator';
+import { CATALYST_PATTERNS } from './catalyst/patterns';
 
 export interface ComponentSpec {
   name: string;
@@ -30,13 +32,16 @@ export interface StyledComponent {
 
 export class ComponentDesigner {
   private apiKey: string;
+  private catalystIntegrator: CatalystIntegrator;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+    this.catalystIntegrator = new CatalystIntegrator();
   }
 
   /**
    * Design a component with modern patterns and design system
+   * Now with Catalyst UI integration for premium components!
    */
   async designComponent(
     component: ComponentSpec,
@@ -44,7 +49,22 @@ export class ComponentDesigner {
   ): Promise<StyledComponent> {
     console.log(`🎨 Designing ${component.type}: ${component.name}`);
 
-    const prompt = this.buildComponentPrompt(component, designSystem);
+    // Check if we should use Catalyst as foundation
+    const catalystIntegration = await this.catalystIntegrator.integrateWithCatalyst(
+      component,
+      designSystem
+    );
+
+    let prompt: string;
+
+    if (catalystIntegration.useCatalyst) {
+      console.log(`✨ Using Catalyst UI foundation: ${catalystIntegration.baseComponents.join(', ')}`);
+      // Build prompt with Catalyst components as base
+      prompt = this.buildCatalystComponentPrompt(component, designSystem, catalystIntegration);
+    } else {
+      // Fallback to standard prompt
+      prompt = this.buildComponentPrompt(component, designSystem);
+    }
 
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -323,6 +343,109 @@ Make it look as polished as ${inspiration}. Focus on:
 - Delightful micro-interactions
 
 Output a complete, production-ready React component.`;
+  }
+
+  /**
+   * Build prompt using Catalyst UI components as foundation
+   */
+  private buildCatalystComponentPrompt(
+    component: ComponentSpec,
+    designSystem: DesignSpec,
+    catalystIntegration: any
+  ): string {
+    return `# PREMIUM COMPONENT GENERATION WITH CATALYST UI FOUNDATION
+
+You are customizing production-quality Catalyst UI components - the same premium components used by professional development teams.
+
+**Component to Build:** ${component.type}
+**Component Name:** ${component.name}
+**Purpose:** ${component.purpose}
+
+**Requirements:**
+${component.requirements.map(r => `- ${r}`).join('\n')}
+
+## Available Catalyst Components
+
+${catalystIntegration.catalystSource}
+
+## Design System to Apply
+
+\`\`\`json
+${JSON.stringify(designSystem, null, 2)}
+\`\`\`
+
+## Customization Instructions
+
+${catalystIntegration.customizationPrompt}
+
+## Catalyst Pattern Guidelines
+
+**Color System:**
+- Always use dark: variants: \`text-zinc-950 dark:text-white\`
+- Borders: \`border-zinc-950/10 dark:border-white/10\`
+- Backgrounds: \`bg-white dark:bg-zinc-900\`
+
+**Interactive States:**
+- Use data-* attributes: \`data-hover:bg-zinc-950/2.5 dark:data-hover:bg-white/5\`
+- Focus: \`data-focus:outline-2 data-focus:outline-blue-500\`
+- Active: \`data-active:bg-zinc-950/5\`
+- Disabled: \`data-disabled:opacity-50\`
+
+**Spacing:**
+- Use CSS variables: \`px-(--gutter,--spacing(2))\`
+- Consistent padding: \`px-4 py-2.5\`
+
+**Responsive:**
+- Mobile-first with lg: breakpoint
+- Example: \`flex flex-col lg:flex-row\`
+
+## Critical Rules
+
+1. **Maintain Catalyst Quality**
+   - DO NOT break the existing Catalyst structure
+   - DO NOT remove accessibility features
+   - DO keep the professional spacing and typography
+
+2. **Add Framer Motion**
+   - Wrap main component in motion.div with entrance animation
+   - Add whileHover to interactive elements
+   - Use AnimatePresence for conditional rendering
+
+3. **Customize Appropriately**
+   - Apply design system colors
+   - Add specific content for the use case
+   - Include realistic mock data
+   - Implement required functionality
+
+4. **Output Format**
+\`\`\`typescript
+'use client'
+
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/catalyst/button'
+// ... other Catalyst imports
+
+export function ${component.name}() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen bg-white dark:bg-zinc-900"
+    >
+      {/* Your implementation using Catalyst components */}
+    </motion.div>
+  )
+}
+
+const MOCK_DATA = [/* realistic mock data */]
+
+export default function ${component.name}Demo() {
+  return <${component.name} />
+}
+\`\`\`
+
+Generate the complete component now, maintaining Catalyst's premium quality while customizing for the specific requirements:`;
   }
 
   private getInspirationForType(type: string): string {
