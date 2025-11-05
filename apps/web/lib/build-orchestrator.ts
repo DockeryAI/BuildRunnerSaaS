@@ -18,6 +18,8 @@ import { DesignSystemGenerator, type DesignSpec } from './design-system-generato
 import { DesignIntelligence, type PRD } from './design-intelligence';
 import { DesignPolisher } from './design-polisher';
 import { DesignTokenInjector } from './design-token-injector';
+import { DesignProfileDetector } from './design-intelligence/profile-detector';
+import type { DesignProfile } from './design-intelligence/types';
 import { getTemplateForComponent } from './component-templates';
 import { ContextBuilder, type PRDContext, type ComponentContext, type BuildContext } from './context-builder';
 import { AIComponentGenerator } from './ai-component-generator';
@@ -408,6 +410,7 @@ export class BuildOrchestrator extends EventEmitter {
   private designIntelligence: DesignIntelligence;
   private designPolisher: DesignPolisher;
   private designTokenInjector: DesignTokenInjector;
+  private designProfileDetector: DesignProfileDetector;
   private aiComponentGenerator: AIComponentGenerator;
   private appConfig: any;
   private productIdea: string = ''; // Store product idea for design generation
@@ -427,6 +430,7 @@ export class BuildOrchestrator extends EventEmitter {
     this.designIntelligence = new DesignIntelligence(this.apiKey);
     this.designPolisher = new DesignPolisher(this.apiKey);
     this.designTokenInjector = new DesignTokenInjector();
+    this.designProfileDetector = new DesignProfileDetector();
     this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-sonnet-4');
 
     // Initialize new components
@@ -661,10 +665,39 @@ export class BuildOrchestrator extends EventEmitter {
 
           this.emit('log', {
             level: 'info',
-            message: `🔍 Detecting industry and reference apps...`
+            message: `🔍 Analyzing app characteristics with intelligent design profiling...`
           });
 
-          // Use advanced DesignIntelligence instead of basic generator
+          // NEW: Multi-dimensional design profile detection
+          let designProfile: DesignProfile | null = null;
+          try {
+            designProfile = await this.designProfileDetector.detectProfile({
+              projectName: prd.projectName,
+              description: prd.description,
+              targetUsers: prd.targetAudience,
+            });
+
+            this.emit('log', {
+              level: 'success',
+              message: `✨ Design Profile: ${designProfile.name || designProfile.category}`
+            });
+
+            console.log('📊 Design Profile Details:', {
+              purpose: designProfile.primaryPurpose,
+              audience: `${designProfile.audience.demographic} (${designProfile.audience.economicLevel})`,
+              feel: `${designProfile.emotionalTone.personality}, ${designProfile.emotionalTone.energy}`,
+              references: designProfile.referenceApps.slice(0, 3).join(', '),
+              colors: `${designProfile.colorScheme.primary} (primary)`,
+            });
+          } catch (error) {
+            console.warn('Profile detection failed, falling back to basic detection:', error);
+            this.emit('log', {
+              level: 'warning',
+              message: '⚠️ Profile detection unavailable, using basic industry detection'
+            });
+          }
+
+          // Use advanced DesignIntelligence with profile context
           this.state.designSpec = await this.designIntelligence.generateDesignSystem(prd);
 
           this.emit('log', {

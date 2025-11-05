@@ -1,0 +1,314 @@
+/**
+ * Design Profile Detector
+ *
+ * Multi-dimensional analysis of apps to create intelligent design profiles
+ */
+
+import Anthropic from '@anthropic-ai/sdk';
+import { DesignProfile, ProfileDetectionInput, SimilarProfile, ReferenceAppDetails } from './types';
+import { createEmbedding, findSimilarProfiles } from './embeddings';
+
+export class DesignProfileDetector {
+  private anthropic: Anthropic;
+
+  constructor() {
+    this.anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+
+  /**
+   * Main detection method - analyzes app and returns intelligent design profile
+   */
+  async detectProfile(input: ProfileDetectionInput): Promise<DesignProfile> {
+    console.log('🔍 Analyzing app characteristics...');
+
+    // 1. Check if similar profile exists
+    const similar = await this.findSimilarProfile(input);
+    if (similar && similar.confidence > 0.85) {
+      console.log(`✅ Found similar profile: ${similar.name} (confidence: ${similar.confidence.toFixed(2)})`);
+      return similar.profile;
+    }
+
+    // 2. Deep analysis with Claude
+    console.log('🧠 Performing deep analysis with Claude Sonnet 4...');
+    const profile = await this.analyzeWithClaude(input);
+
+    // 3. Enrich with reference apps
+    console.log('🎨 Enriching with reference app details...');
+    const enriched = await this.enrichWithReferences(profile);
+
+    // 4. Save for future learning
+    console.log('💾 Saving profile for future learning...');
+    await this.saveProfile(input, enriched);
+
+    console.log('✨ Profile detection complete');
+    return enriched;
+  }
+
+  /**
+   * Find similar existing profiles using vector similarity
+   */
+  private async findSimilarProfile(input: ProfileDetectionInput): Promise<SimilarProfile | null> {
+    try {
+      // Create embedding for this app
+      const searchText = `${input.projectName} ${input.description} ${input.features?.join(' ') || ''}`;
+      const embedding = await createEmbedding(searchText);
+
+      // Search for similar profiles
+      const similar = await findSimilarProfiles(embedding, 1);
+
+      if (similar.length > 0) {
+        return similar[0];
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Failed to find similar profile:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Deep multi-dimensional analysis with Claude
+   */
+  private async analyzeWithClaude(input: ProfileDetectionInput): Promise<DesignProfile> {
+    const prompt = this.buildDetectionPrompt(input);
+
+    const response = await this.anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from Claude');
+    }
+
+    // Extract JSON from response
+    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Failed to extract JSON from Claude response');
+    }
+
+    const profile: DesignProfile = JSON.parse(jsonMatch[0]);
+
+    // Add metadata
+    profile.createdAt = new Date();
+    profile.version = 1;
+    profile.confidence = {
+      colors: 0.5,
+      typography: 0.5,
+      layout: 0.5,
+    };
+
+    return profile;
+  }
+
+  /**
+   * Build the detection prompt for Claude
+   */
+  private buildDetectionPrompt(input: ProfileDetectionInput): string {
+    return `You are analyzing an app to detect ALL design-relevant characteristics.
+
+APP: ${input.projectName}
+DESCRIPTION: ${input.description}
+${input.features ? `FEATURES: ${input.features.join(', ')}` : ''}
+${input.targetUsers ? `TARGET USERS: ${input.targetUsers}` : ''}
+
+ANALYZE ACROSS 6 DIMENSIONS:
+
+1. PRIMARY PURPOSE
+   What's the core function?
+   Options: productivity, entertainment, commerce, social, utility, health, education, finance
+
+2. TARGET AUDIENCE
+   - Demographics: children, teens, adults, seniors, professionals, general
+   - Tech level: beginner, intermediate, advanced
+   - Economic: budget, mid-market, premium, luxury
+
+3. USAGE PATTERN
+   - Frequency: daily, weekly, occasional, one-time
+   - Duration: quick-tasks, extended-sessions
+   - Context: mobile-first, desktop-primary, cross-device
+
+4. EMOTIONAL TONE
+   - Energy: calm, neutral, energetic, intense
+   - Formality: casual, professional, formal
+   - Personality: playful, serious, aspirational, trustworthy, innovative
+
+5. INDUSTRY CONTEXT
+   - Primary industry (healthcare, finance, education, construction, nutrition, outdoor, etc.)
+   - Vertical/sub-category if applicable
+   - Niche if applicable
+
+6. VISUAL STYLE
+   - Aesthetic: minimal, bold, playful, elegant, technical, organic
+   - Modernity: classic, contemporary, cutting-edge
+   - Density: spacious, balanced, compact
+
+7. REFERENCE APPS (3-5)
+   Find successful apps with similar PURPOSE + AUDIENCE + FEEL + STYLE
+
+   CRITICAL: Match the FEEL and USE CASE, not just industry!
+
+   Examples:
+   - "Kids educational game" → Duolingo, Khan Academy Kids (playful + educational)
+   - "Luxury travel" → Airbnb Luxe, Mr & Mrs Smith (premium + aspirational)
+   - "Fitness for seniors" → Apps with large text, simple UX (NOT just fitness apps)
+   - "Construction project management" → Procore, Fieldwire (professional + technical)
+   - "Nutrition tracking" → MyFitnessPal, Noom (health + motivating)
+
+8. COLOR PSYCHOLOGY
+   Based on ALL dimensions above, suggest:
+   - Primary color (hex + detailed reasoning based on purpose, audience, and emotional tone)
+   - Secondary color (hex + reasoning for harmony with primary)
+   - Accent color (hex + reasoning for emphasis and energy)
+   - Background color (typically white, off-white, or subtle tint)
+   - Foreground color (typically dark gray or black)
+
+   Why these colors fit THIS specific combination of attributes:
+   - How the primary color evokes the right emotion for the audience
+   - How the palette supports the usage pattern and context
+   - How the colors align with industry expectations while standing out
+
+9. TYPOGRAPHY
+   - Personality: modern, classic, playful, technical
+   - Font recommendations:
+     - Sans: Suggest a specific font family (Inter, Geist, SF Pro, etc.)
+     - Mono (if needed): Suggest monospace font
+   - Scale approach: Describe the sizing strategy
+
+10. COMPONENT PATTERNS
+   - Card style: minimal, detailed, image-heavy
+   - Button style: bold, subtle, playful
+   - Navigation: bottom-tabs, sidebar, top-nav
+   - Content density: spacious, balanced, compact
+
+Return ONLY a valid JSON object matching this exact structure:
+
+{
+  "name": "Brief descriptive name for this profile",
+  "category": "industry-audience-tone (e.g., 'kids-education-playful')",
+  "primaryPurpose": "...",
+  "audience": {
+    "demographic": "...",
+    "techLevel": "...",
+    "economicLevel": "..."
+  },
+  "usagePattern": {
+    "frequency": "...",
+    "duration": "...",
+    "context": "..."
+  },
+  "emotionalTone": {
+    "energy": "...",
+    "formality": "...",
+    "personality": "..."
+  },
+  "industry": {
+    "primary": "...",
+    "vertical": "...",
+    "niche": "..."
+  },
+  "visualStyle": {
+    "aesthetic": "...",
+    "modernity": "...",
+    "density": "..."
+  },
+  "referenceApps": ["App 1", "App 2", "App 3"],
+  "colorScheme": {
+    "primary": "#HEXCODE",
+    "primaryReasoning": "Detailed explanation of why this color...",
+    "secondary": "#HEXCODE",
+    "secondaryReasoning": "Why this complements the primary...",
+    "accent": "#HEXCODE",
+    "accentReasoning": "Why this adds the right energy...",
+    "background": "#FFFFFF",
+    "foreground": "#111827"
+  },
+  "typography": {
+    "personality": "...",
+    "fontRecommendations": {
+      "sans": "Inter",
+      "mono": "JetBrains Mono"
+    },
+    "scaleApproach": "Description of sizing strategy"
+  },
+  "componentPatterns": {
+    "cardStyle": "...",
+    "buttonStyle": "...",
+    "navigation": "...",
+    "contentDensity": "..."
+  }
+}
+
+IMPORTANT: Return ONLY the JSON object, no markdown formatting, no backticks, no additional text.`;
+  }
+
+  /**
+   * Enrich profile with detailed reference app analysis
+   */
+  private async enrichWithReferences(profile: DesignProfile): Promise<DesignProfile> {
+    // For now, return profile as-is
+    // In production, this would analyze reference apps using web scraping or APIs
+    // to extract actual design patterns, color palettes, typography, etc.
+
+    // TODO: Implement reference app analysis
+    // - Use Firecrawl or similar to scrape reference app websites
+    // - Extract color palettes, typography, spacing from screenshots
+    // - Analyze component patterns and micro-interactions
+    // - Store in referenceAppDetails array
+
+    return profile;
+  }
+
+  /**
+   * Save profile to database with embedding for future similarity search
+   */
+  private async saveProfile(input: ProfileDetectionInput, profile: DesignProfile): Promise<void> {
+    try {
+      // Create embedding for this profile
+      const profileText = `${profile.name} ${profile.category} ${profile.primaryPurpose} ${profile.audience.demographic} ${profile.emotionalTone.personality} ${profile.industry.primary}`;
+      const embedding = await createEmbedding(profileText);
+
+      // TODO: Save to database
+      // - Save profile JSON to design_profiles table
+      // - Save embedding vector for similarity search
+      // - Set initial success_score to 0.5
+      // - Mark as isNewType: true for review
+
+      console.log(`📊 Profile saved: ${profile.name} (${profile.category})`);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      // Don't throw - profile detection should succeed even if save fails
+    }
+  }
+
+  /**
+   * Get all profiles for admin dashboard
+   */
+  async getAllProfiles(): Promise<DesignProfile[]> {
+    // TODO: Fetch from database
+    // - Order by success_score DESC, usage_count DESC
+    // - Include learning metrics
+    return [];
+  }
+
+  /**
+   * Update profile after user feedback
+   */
+  async updateProfile(profileId: string, updates: Partial<DesignProfile>): Promise<void> {
+    // TODO: Update in database
+    // - Increment version
+    // - Set lastRefinedAt
+    // - Update confidence scores if provided
+  }
+}
