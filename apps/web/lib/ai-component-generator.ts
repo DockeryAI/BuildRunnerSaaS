@@ -25,7 +25,7 @@ export class AIComponentGenerator {
   private model: string;
   private catalystIntegrator: CatalystIntegrator;
 
-  constructor(apiKey: string, model: string = 'anthropic/claude-sonnet-4') {
+  constructor(apiKey: string, model: string = 'anthropic/claude-3.5-sonnet') {
     this.apiKey = apiKey;
     this.model = model;
     this.catalystIntegrator = new CatalystIntegrator();

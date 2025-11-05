@@ -309,7 +309,7 @@ Return ONLY the JSON. No markdown fences, no extra text.`;
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4.5',
+          model: 'anthropic/claude-3.5-sonnet',
           messages: [
             {
               role: 'system',
