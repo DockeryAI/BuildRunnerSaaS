@@ -753,7 +753,11 @@ function OnboardingFlow({ onStart, onImport }: { onStart: (idea: string) => void
         const data = await response.json();
         if (data.examples && data.examples.length > 0) {
           setExamples(data.examples);
-          console.log('✨ Generated fresh AI examples');
+          if (data.source === 'ai') {
+            console.log('✨ Generated fresh AI examples from Claude');
+          } else {
+            console.log('📝 Using static fallback examples (no API key configured)');
+          }
         } else {
           throw new Error('No examples in response');
         }

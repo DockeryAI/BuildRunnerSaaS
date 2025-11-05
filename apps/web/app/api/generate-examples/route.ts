@@ -34,15 +34,20 @@ function getOpenRouterKey(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📝 generate-examples called');
+
     // Try to get API key from request headers (client-provided) first
     let apiKey = '';
     const apiKeysHeader = request.headers.get('x-api-keys');
+    console.log('  x-api-keys header present:', !!apiKeysHeader);
+
     if (apiKeysHeader) {
       try {
         const apiKeys = JSON.parse(apiKeysHeader);
+        console.log('  parsed API keys:', Object.keys(apiKeys));
         if (apiKeys.openrouter) {
           apiKey = apiKeys.openrouter;
-          console.log('Using client-provided OpenRouter key from UI');
+          console.log('✅ Using client-provided OpenRouter key from UI');
         }
       } catch (e) {
         console.warn('Failed to parse API keys from headers:', e);
@@ -51,16 +56,23 @@ export async function POST(request: NextRequest) {
 
     // Fallback to server-side keys if no client key provided
     if (!apiKey) {
+      console.log('  No client key, trying server-side keys...');
       apiKey = getOpenRouterKey();
+      if (apiKey) {
+        console.log('✅ Using server-side OpenRouter key');
+      }
     }
 
     if (!apiKey) {
-      console.warn('No OpenRouter API key available, using fallback examples');
+      console.warn('❌ No OpenRouter API key available, using fallback examples');
       return NextResponse.json({
         success: true,
         examples: FALLBACK_EXAMPLES,
+        source: 'fallback',
       });
     }
+
+    console.log('🤖 Calling OpenRouter AI to generate examples...');
 
     const prompt = `Generate 3 unique, creative, and realistic product ideas for a startup or app.
 Each idea should be:
@@ -120,20 +132,28 @@ Example format: ["idea 1", "idea 2", "idea 3"]`;
 
     // Ensure we have exactly 3 examples
     if (examples.length < 3) {
+      console.warn('⚠️ AI returned <3 examples, using fallback');
       examples = FALLBACK_EXAMPLES;
+    }
+
+    const isAIGenerated = examples !== FALLBACK_EXAMPLES;
+    if (isAIGenerated) {
+      console.log('✨ Successfully generated 3 AI examples');
     }
 
     return NextResponse.json({
       success: true,
       examples: examples.slice(0, 3),
+      source: isAIGenerated ? 'ai' : 'fallback',
     });
   } catch (error: any) {
-    console.error('Error generating examples:', error);
+    console.error('❌ Error generating examples:', error);
 
     // Return fallback examples instead of error
     return NextResponse.json({
       success: true,
       examples: FALLBACK_EXAMPLES,
+      source: 'fallback',
     });
   }
 }
