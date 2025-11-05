@@ -11,23 +11,22 @@ import { createEmbedding, findSimilarProfiles } from './embeddings';
 export class DesignProfileDetector {
   private anthropic: Anthropic | null = null;
   private isOpenRouter: boolean = false;
+  private apiKey: string = '';
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_API_KEY;
     if (key) {
+      this.apiKey = key;
       // Support both Anthropic and OpenRouter API keys
-      // If using OpenRouter, configure baseURL
-      this.isOpenRouter = apiKey && !process.env.ANTHROPIC_API_KEY;
-      this.anthropic = new Anthropic({
-        apiKey: key,
-        ...(this.isOpenRouter && {
-          baseURL: 'https://openrouter.ai/api/v1',
-          defaultHeaders: {
-            'HTTP-Referer': 'https://buildrunner.ai',
-            'X-Title': 'BuildRunner Design Intelligence',
-          },
-        }),
-      });
+      // OpenRouter requires using fetch directly, not the Anthropic SDK
+      this.isOpenRouter = !!apiKey && !process.env.ANTHROPIC_API_KEY;
+
+      if (!this.isOpenRouter) {
+        // Only initialize Anthropic SDK for direct Anthropic API use
+        this.anthropic = new Anthropic({
+          apiKey: key,
+        });
+      }
     } else {
       console.warn('DesignProfileDetector initialized without API key - profile detection will be unavailable');
     }
@@ -95,36 +94,73 @@ export class DesignProfileDetector {
    * Deep multi-dimensional analysis with Claude
    */
   private async analyzeWithClaude(input: ProfileDetectionInput): Promise<DesignProfile> {
-    if (!this.anthropic) {
-      throw new Error('Anthropic API client not initialized - provide API key to constructor');
+    if (!this.apiKey) {
+      throw new Error('API key not provided - cannot analyze with Claude');
     }
 
     const prompt = this.buildDetectionPrompt(input);
 
-    //Use OpenRouter model format if using OpenRouter, otherwise use Anthropic format
-    const modelId = this.isOpenRouter
-      ? 'anthropic/claude-sonnet-4.5'  // OpenRouter format
-      : 'claude-sonnet-4-20250514';     // Anthropic format
+    let responseText: string;
 
-    const response = await this.anthropic.messages.create({
-      model: modelId,
-      max_tokens: 4096,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
+    if (this.isOpenRouter) {
+      // Use OpenRouter API directly via fetch
+      const modelId = 'anthropic/claude-sonnet-4.5';
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+          'HTTP-Referer': 'https://buildrunner.ai',
+          'X-Title': 'BuildRunner Design Intelligence',
         },
-      ],
-    });
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          max_tokens: 4096,
+          temperature: 0.7,
+        }),
+      });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+      if (!response.ok) {
+        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      responseText = data.choices[0].message.content;
+    } else {
+      // Use Anthropic SDK
+      if (!this.anthropic) {
+        throw new Error('Anthropic API client not initialized');
+      }
+
+      const modelId = 'claude-sonnet-4-20250514';
+      const response = await this.anthropic.messages.create({
+        model: modelId,
+        max_tokens: 4096,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      });
+
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type from Claude');
+      }
+      responseText = content.text;
     }
 
     // Extract JSON from response
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error('Failed to extract JSON from Claude response');
     }
