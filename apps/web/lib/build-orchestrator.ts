@@ -15,6 +15,8 @@ import { AppTypeDetector } from './app-type-detector';
 import { DependencyAnalyzer } from './dependency-analyzer';
 import { ParallelBuilder } from './parallel-builder';
 import { DesignSystemGenerator, type DesignSpec } from './design-system-generator';
+import { DesignIntelligence, type PRD } from './design-intelligence';
+import { DesignPolisher } from './design-polisher';
 import { getTemplateForComponent } from './component-templates';
 import { ContextBuilder, type PRDContext, type ComponentContext, type BuildContext } from './context-builder';
 import { AIComponentGenerator } from './ai-component-generator';
@@ -402,6 +404,8 @@ export class BuildOrchestrator extends EventEmitter {
   private dependencyAnalyzer: DependencyAnalyzer;
   private parallelBuilder: ParallelBuilder;
   private designSystemGenerator: DesignSystemGenerator;
+  private designIntelligence: DesignIntelligence;
+  private designPolisher: DesignPolisher;
   private aiComponentGenerator: AIComponentGenerator;
   private appConfig: any;
   private productIdea: string = ''; // Store product idea for design generation
@@ -418,6 +422,8 @@ export class BuildOrchestrator extends EventEmitter {
     this.apiKey = apiKey || '';
     this.projectId = projectId || '1';
     this.designSystemGenerator = new DesignSystemGenerator();
+    this.designIntelligence = new DesignIntelligence(this.apiKey);
+    this.designPolisher = new DesignPolisher(this.apiKey);
     this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-sonnet-4');
 
     // Initialize new components
@@ -633,30 +639,40 @@ export class BuildOrchestrator extends EventEmitter {
         }
       }
 
-      // Generate design system (Phase 1: Design-First Approach)
+      // Generate design system (Phase 1: Design-First Approach with DesignIntelligence)
       if (!this.state.designSpec) {
         this.emit('log', {
           level: 'info',
-          message: '🎨 Generating beautiful design system...'
+          message: '🎨 Generating industry-specific design system with AI...'
         });
 
         try {
-          const appType = this.appConfig?.appType || 'web';
-          const productIdea = this.prdContext?.productIdea || this.productIdea || 'Modern web application';
+          // Build PRD object for DesignIntelligence
+          const prd: PRD = {
+            projectName: this.prdContext?.productName || this.projectId || 'Unnamed Project',
+            description: this.prdContext?.description || this.prdContext?.productIdea || this.productIdea || 'Modern web application',
+            industry: this.prdContext?.industry,
+            targetAudience: this.prdContext?.targetAudience,
+            brandPersonality: this.appConfig?.brandPersonality
+          };
 
-          this.state.designSpec = await this.designSystemGenerator.generateDesignSystem(
-            productIdea,
-            appType,
-            this.apiKey
-          );
+          this.emit('log', {
+            level: 'info',
+            message: `🔍 Detecting industry and reference apps...`
+          });
+
+          // Use advanced DesignIntelligence instead of basic generator
+          this.state.designSpec = await this.designIntelligence.generateDesignSystem(prd);
 
           this.emit('log', {
             level: 'success',
-            message: `✨ Design system created: ${this.state.designSpec.visualStyle} style`
+            message: `✨ Design system created: ${this.state.designSpec.visualStyle} style | Inspired by ${this.state.designSpec.inspiration?.slice(0, 2).join(', ')}${this.state.designSpec.inspiration && this.state.designSpec.inspiration.length > 2 ? ', ...' : ''}`
           });
 
-          console.log('🎨 Design Spec:', {
+          console.log('🎨 Advanced Design Spec:', {
             style: this.state.designSpec.visualStyle,
+            industry: (this.state.designSpec as any).industry,
+            inspiration: this.state.designSpec.inspiration,
             colors: this.state.designSpec.colorPalette.primary,
             fonts: this.state.designSpec.typography.fontFamily.sans,
           });
@@ -1405,9 +1421,54 @@ export class BuildOrchestrator extends EventEmitter {
       throw error;
     }
 
-    const code = generationResult.code;
-    component.code = code;
+    let code = generationResult.code;
     component.filePath = generationResult.filePath; // Store for assembleApplication
+
+    // Step 3: Polish the component (NEW - Design Quality Enhancement)
+    this.emit('log', {
+      level: 'info',
+      message: `✨ Polishing component with micro-interactions and design consistency...`
+    });
+
+    component.progress = 60;
+    this.emit('progress:updated', {
+      componentId: component.id,
+      componentName: component.name,
+      progress: 60
+    });
+
+    try {
+      const polishResult = await this.designPolisher.polishComponent(
+        { code, name: component.name, type: component.type },
+        buildContext.design
+      );
+
+      code = polishResult.polishedCode;
+
+      if (polishResult.improvementsApplied.length > 0) {
+        this.emit('log', {
+          level: 'success',
+          message: `💅 Polish applied: ${polishResult.improvementsApplied.join(', ')} | Consistency: ${polishResult.consistencyScore}/100`
+        });
+      }
+
+      if (polishResult.consistencyScore < 80) {
+        this.emit('log', {
+          level: 'warning',
+          message: `⚠️  Design consistency could be improved (score: ${polishResult.consistencyScore}/100)`
+        });
+      }
+
+    } catch (error) {
+      console.error('Polish failed, using unpolished code:', error);
+      this.emit('log', {
+        level: 'warning',
+        message: `⚠️  Polish failed, using original code`
+      });
+      // Continue with unpolished code
+    }
+
+    component.code = code;
     component.progress = 80;
 
     // Emit progress update
