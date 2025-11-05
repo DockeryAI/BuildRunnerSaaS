@@ -6,6 +6,9 @@
 
 import { DesignSpec } from './design-system-generator';
 import { AdvancedDesignSystem, getAdvancedDesignSystem } from './advanced-design-system';
+import { DESIGN_SYSTEM as FOUNDATION, motionVariants } from './design-system/foundation';
+import { PREMIUM_COMPONENT_TEMPLATES } from './design-system/premium-components';
+import { selectPreset } from './design-system/presets';
 
 export interface ComponentSpec {
   name: string;
@@ -107,10 +110,13 @@ CRITICAL RULES:
 ❌ NEVER use default HTML form inputs without styling
 ❌ NEVER create empty sections - always include rich placeholder content
 ❌ NEVER skip hover states, loading states, or empty states
+❌ NEVER forget to import and use Framer Motion for animations
+✅ ALWAYS use Framer Motion for ALL animations (motion.div, motion.button, etc.)
 ✅ ALWAYS use dark themes or rich gradients as the base
 ✅ ALWAYS include glassmorphic effects with backdrop-blur
 ✅ ALWAYS add micro-animations to ALL interactive elements
 ✅ ALWAYS create professional, polished UIs that look like $100k custom apps
+✅ ALWAYS use AnimatePresence for conditional rendering
 
 MODERN DESIGN PATTERNS YOU MUST USE:
 
@@ -169,7 +175,8 @@ COMPONENT STRUCTURE REQUIREMENTS:
 'use client'
 
 import { useState } from 'react'
-import { Icon1, Icon2 } from 'lucide-react' // ONLY lucide-react
+import { motion, AnimatePresence } from 'framer-motion' // REQUIRED for animations
+import { Icon1, Icon2 } from 'lucide-react' // Use relevant icons
 
 interface ComponentProps {
   data?: Type; // Always optional with defaults
@@ -183,11 +190,18 @@ export function Component({
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Premium, polished UI with rich interactions */}
+        {/* Use motion.div, motion.button for all interactive elements */}
+        {/* Add whileHover and whileTap to buttons */}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -197,6 +211,15 @@ export default function ComponentDemo() {
   return <Component />
 }
 \`\`\`
+
+FRAMER MOTION REQUIREMENTS:
+- ALL components must wrap in motion.div with initial/animate
+- ALL buttons must be motion.button with whileHover and whileTap
+- Use AnimatePresence for conditional elements
+- Standard transitions: {{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+- Hover effects: whileHover={{ scale: 1.02, y: -4 }}
+- Tap effects: whileTap={{ scale: 0.98 }}
+- Stagger children with staggerChildren in parent variants
 
 ACCESSIBILITY REQUIREMENTS:
 - All interactive elements have proper ARIA labels

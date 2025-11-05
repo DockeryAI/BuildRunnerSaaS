@@ -80,20 +80,20 @@ export class SmartConsensus {
           'anthropic/claude-sonnet-4',
           'anthropic/claude-opus-4',
           'openai/gpt-4o',
-          'google/gemini-2.0-flash-exp:free',
+          'google/gemini-2.5-flash',
           'deepseek/deepseek-chat',
         ],
         high: [
           'anthropic/claude-3.5-sonnet',
           'openai/gpt-4o',
-          'google/gemini-2.0-flash-exp:free',
+          'google/gemini-2.5-flash',
         ],
         medium: [
           'anthropic/claude-3.5-sonnet',
-          'google/gemini-2.0-flash-exp:free',
+          'google/gemini-2.5-flash',
         ],
         low: [
-          'google/gemini-2.0-flash-exp:free', // Fast + cheap
+          'google/gemini-2.5-flash', // Fast + cheap
         ],
       },
       threshold: 0.6, // 60% agreement required

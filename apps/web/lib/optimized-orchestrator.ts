@@ -253,7 +253,7 @@ export class OptimizedOrchestrator {
    */
   getRecommendedModel(component: BuildComponent): string {
     if (!this.config.enableSmartConsensus) {
-      return 'google/gemini-2.0-flash-exp:free'; // Default fast model
+      return 'google/gemini-2.5-flash'; // Default fast model
     }
 
     return this.smartConsensus.getRecommendedModel(component);

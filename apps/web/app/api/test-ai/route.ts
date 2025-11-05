@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         'X-Title': 'BuildRunner SaaS - Test',
       },
       body: JSON.stringify({
-        model: 'anthropic/claude-4-sonnet-20250522',
+        model: 'anthropic/claude-sonnet-4.5',
         messages: [
           {
             role: 'user',

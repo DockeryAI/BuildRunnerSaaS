@@ -13,13 +13,13 @@ class OpenRouterService {
   private getModelForUseCase(useCase: 'brainstorm' | 'scoring' | 'prd_draft' | 'reasoning' | 'budget'): string {
     const models = {
       // Core creative + planning - balanced creativity, long context, strong guardrails
-      brainstorm: 'anthropic/claude-4-sonnet-20250522',
+      brainstorm: 'anthropic/claude-sonnet-4.5',
 
       // Idea scoring / tradeoff analysis - better structured reasoning
-      scoring: 'anthropic/claude-4-sonnet-20250522',
+      scoring: 'anthropic/claude-sonnet-4.5',
 
       // Concept → PRD drafting - excels at long, structured outputs
-      prd_draft: 'anthropic/claude-4-sonnet-20250522',
+      prd_draft: 'anthropic/claude-sonnet-4.5',
 
       // Heavy reasoning - strong deliberate reasoning with "think" traces
       reasoning: 'deepseek/deepseek-r1',

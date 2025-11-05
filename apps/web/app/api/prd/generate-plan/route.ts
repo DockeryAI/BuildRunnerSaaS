@@ -292,6 +292,11 @@ Return ONLY the JSON. No markdown fences, no extra text.`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
+    // Debug logging
+    console.log('🔑 API Key present:', !!openrouterApiKey);
+    console.log('🔑 API Key length:', openrouterApiKey?.length || 0);
+    console.log('📝 Enhanced prompt length:', enhancedPrompt.length);
+
     let content: string;
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -304,7 +309,7 @@ Return ONLY the JSON. No markdown fences, no extra text.`;
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: 'anthropic/claude-4-sonnet-20250522',
+          model: 'anthropic/claude-sonnet-4.5',
           messages: [
             {
               role: 'system',
@@ -333,9 +338,10 @@ Return ONLY the JSON object.`
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('OpenRouter API error:', errorText);
+        console.error('❌ OpenRouter API error:', response.status, response.statusText);
+        console.error('❌ Error body:', errorText);
         return NextResponse.json(
-          { error: 'Failed to generate project plan' },
+          { error: 'Failed to generate project plan', details: errorText },
           { status: response.status }
         );
       }
@@ -441,7 +447,7 @@ Return ONLY the JSON object.`;
             'X-Title': 'BuildRunner - Plan Generator (Regeneration)',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.0-flash-exp:free',
+            model: 'google/gemini-2.5-flash',
             messages: [
               {
                 role: 'system',

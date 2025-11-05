@@ -175,7 +175,7 @@ class PRDBuildingService {
   // Phase 1: Context - Fill executive summary, problem, value prop, personas
   async buildContext(productIdea: string, existingFeatures: any[] = []) {
     try {
-      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+      const data = await this.makeAPICall('anthropic/claude-sonnet-4.5', [
         {
           role: 'system',
           content: `You are a product strategy expert. Analyze the product idea and create comprehensive context for a PRD.
@@ -242,7 +242,7 @@ Analyze this product idea and provide comprehensive context for a PRD. Return on
   // Phase 2: Shape - Propose features and scope
   async buildShape(productIdea: string, contextData: any, existingFeatures: any[] = []) {
     try {
-      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+      const data = await this.makeAPICall('anthropic/claude-sonnet-4.5', [
         {
           role: 'system',
           content: `You are a product manager expert. Based on the product context, define features and scope for the PRD.
@@ -402,7 +402,7 @@ Define comprehensive analytics and evidence framework. Return only the JSON obje
       const phaseInfo = this.getPhaseInfo(phase);
 
       console.log('Making API call to Claude...');
-      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+      const data = await this.makeAPICall('anthropic/claude-sonnet-4.5', [
         {
           role: 'system',
           content: `You are a product strategy expert. Generate specific, actionable suggestions for Phase ${phase}: ${phaseInfo.name}.
@@ -502,7 +502,7 @@ Return only the JSON array.`
     try {
       const phaseInfo = this.getPhaseInfo(phase);
 
-      const data = await this.makeAPICall('anthropic/claude-4-sonnet-20250522', [
+      const data = await this.makeAPICall('anthropic/claude-sonnet-4.5', [
         {
           role: 'system',
           content: `You are a product manager. Process the user's message and suggest specific updates to the PRD.

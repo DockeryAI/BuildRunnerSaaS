@@ -14,7 +14,7 @@ import * as path from 'path';
 // Top 7 LLMs for code analysis and system design
 const TOP_LLMS = [
   {
-    model: 'anthropic/claude-4-sonnet-20250522',
+    model: 'anthropic/claude-sonnet-4.5',
     name: 'Claude Sonnet 4',
     strength: 'Code analysis, nuanced understanding'
   },
@@ -34,7 +34,7 @@ const TOP_LLMS = [
     strength: 'System architecture, patterns'
   },
   {
-    model: 'google/gemini-2.0-flash-exp:free',
+    model: 'google/gemini-2.5-flash',
     name: 'Gemini 2.0 Flash',
     strength: 'Pattern recognition, large context'
   },

@@ -21,7 +21,7 @@ const REVIEW_MODELS = [
   'anthropic/claude-opus-4',             // Claude Opus 4
   'anthropic/claude-3.5-sonnet',         // Claude 3.5 Sonnet
   'openai/gpt-4o',                       // GPT-4 Omni
-  'google/gemini-2.0-flash-exp:free',    // Gemini 2.0 Flash
+  'google/gemini-2.5-flash',    // Gemini 2.0 Flash
   'deepseek/deepseek-chat',              // DeepSeek Chat
   'meta-llama/llama-3.3-70b-instruct',   // Llama 3.3 70B
 ];
