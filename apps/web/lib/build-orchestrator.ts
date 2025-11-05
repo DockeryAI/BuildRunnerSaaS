@@ -17,6 +17,7 @@ import { ParallelBuilder } from './parallel-builder';
 import { DesignSystemGenerator, type DesignSpec } from './design-system-generator';
 import { DesignIntelligence, type PRD } from './design-intelligence';
 import { DesignPolisher } from './design-polisher';
+import { DesignTokenInjector } from './design-token-injector';
 import { getTemplateForComponent } from './component-templates';
 import { ContextBuilder, type PRDContext, type ComponentContext, type BuildContext } from './context-builder';
 import { AIComponentGenerator } from './ai-component-generator';
@@ -406,6 +407,7 @@ export class BuildOrchestrator extends EventEmitter {
   private designSystemGenerator: DesignSystemGenerator;
   private designIntelligence: DesignIntelligence;
   private designPolisher: DesignPolisher;
+  private designTokenInjector: DesignTokenInjector;
   private aiComponentGenerator: AIComponentGenerator;
   private appConfig: any;
   private productIdea: string = ''; // Store product idea for design generation
@@ -424,6 +426,7 @@ export class BuildOrchestrator extends EventEmitter {
     this.designSystemGenerator = new DesignSystemGenerator();
     this.designIntelligence = new DesignIntelligence(this.apiKey);
     this.designPolisher = new DesignPolisher(this.apiKey);
+    this.designTokenInjector = new DesignTokenInjector();
     this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-sonnet-4');
 
     // Initialize new components
@@ -676,6 +679,30 @@ export class BuildOrchestrator extends EventEmitter {
             colors: this.state.designSpec.colorPalette.primary,
             fonts: this.state.designSpec.typography.fontFamily.sans,
           });
+
+          // CRITICAL: Inject design tokens into build directory
+          // This generates tailwind.config.js and globals.css with custom colors
+          // so components can use classes like bg-background, text-foreground, etc.
+          this.emit('log', {
+            level: 'info',
+            message: '💉 Injecting design tokens into build...'
+          });
+
+          try {
+            const buildDir = this.fileWriter?.buildDir || path.join(process.cwd(), 'builds', this.projectId);
+            await this.designTokenInjector.injectDesignTokens(buildDir, this.state.designSpec);
+
+            this.emit('log', {
+              level: 'success',
+              message: '✅ Design tokens injected: tailwind.config.ts + globals.css created'
+            });
+          } catch (error) {
+            console.error('Failed to inject design tokens:', error);
+            this.emit('log', {
+              level: 'warning',
+              message: '⚠️ Design token injection failed, components may look unstyled'
+            });
+          }
         } catch (error) {
           console.error('Failed to generate design system:', error);
           this.emit('log', {
