@@ -5,6 +5,8 @@
 
 import { ContextBuilder, BuildContext, PRDContext, ComponentContext } from './context-builder';
 import { DesignSpec } from './design-system-generator';
+import { CatalystIntegrator } from './catalyst/integrator';
+import { ComponentSpec } from './component-designer';
 
 export interface GenerationResult {
   code: string;
@@ -21,18 +23,42 @@ export interface GenerationResult {
 export class AIComponentGenerator {
   private apiKey: string;
   private model: string;
+  private catalystIntegrator: CatalystIntegrator;
 
   constructor(apiKey: string, model: string = 'anthropic/claude-sonnet-4') {
     this.apiKey = apiKey;
     this.model = model;
+    this.catalystIntegrator = new CatalystIntegrator();
   }
 
   /**
    * Generate a component with full PRD and design context
    */
   async generateComponent(context: BuildContext): Promise<GenerationResult> {
-    // Build the comprehensive prompt
-    const prompt = ContextBuilder.buildComponentPrompt(context);
+    // Check if we should use Catalyst as foundation
+    const componentSpec: ComponentSpec = {
+      name: context.component.componentName,
+      type: context.component.componentType,
+      purpose: context.component.description,
+      requirements: [], // Could extract from context if needed
+      interactions: [],
+      dataFlow: [],
+    };
+
+    const catalystIntegration = await this.catalystIntegrator.integrateWithCatalyst(
+      componentSpec,
+      context.design
+    );
+
+    let prompt: string;
+
+    if (catalystIntegration.useCatalyst) {
+      console.log(`✨ Using Catalyst UI foundation: ${catalystIntegration.baseComponents.join(', ')}`);
+      prompt = this.buildCatalystPrompt(context, catalystIntegration);
+    } else {
+      // Build the standard comprehensive prompt
+      prompt = ContextBuilder.buildComponentPrompt(context);
+    }
 
     console.log(`🎨 Generating ${context.component.componentName} with full context...`);
     console.log(`📝 Prompt length: ${prompt.length} characters`);
@@ -62,6 +88,171 @@ export class AIComponentGenerator {
       dependencies: this.extractDependencies(finalCode),
       quality,
     };
+  }
+
+  /**
+   * Build Catalyst-enhanced prompt for component generation
+   */
+  private buildCatalystPrompt(
+    context: BuildContext,
+    catalystIntegration: any
+  ): string {
+    const standardPrompt = ContextBuilder.buildComponentPrompt(context);
+
+    return `# PREMIUM COMPONENT GENERATION WITH CATALYST UI FOUNDATION
+
+You are customizing production-quality Catalyst UI components - the same premium components used by professional development teams at companies like Stripe, Linear, and Vercel.
+
+## 🎯 Component Requirements
+
+**Component Name:** ${context.component.componentName}
+**Type:** ${context.component.componentType}
+**Purpose:** ${context.component.description}
+
+## 🏗️ Available Catalyst Components (Use These as Foundation!)
+
+${catalystIntegration.catalystSource}
+
+## 🎨 Design System
+
+**Colors:**
+- Primary: ${context.design.colorPalette.primary}
+- Secondary: ${context.design.colorPalette.secondary}
+- Background: ${context.design.colorPalette.background}
+- Foreground: ${context.design.colorPalette.foreground}
+- Border: ${context.design.colorPalette.border}
+
+**Typography:**
+- Font: ${context.design.typography.fontFamily.sans}
+- Scale: ${context.design.typography.scale.base}
+
+## 📋 Catalyst Pattern Guidelines
+
+**CRITICAL: Maintain Catalyst's professional quality!**
+
+**Color System:**
+- Always use dark mode: \`text-zinc-950 dark:text-white\`
+- Borders: \`border-zinc-950/10 dark:border-white/10\`
+- Backgrounds: \`bg-white dark:bg-zinc-900\`
+- Muted text: \`text-zinc-500 dark:text-zinc-400\`
+
+**Interactive States:**
+- Hover: \`data-hover:bg-zinc-950/2.5 dark:data-hover:bg-white/5\`
+- Active: \`data-active:bg-zinc-950/5 dark:data-active:bg-white/10\`
+- Focus: \`data-focus:outline-2 data-focus:outline-blue-500\`
+- Disabled: \`data-disabled:opacity-50\`
+
+**Spacing:**
+- Use CSS variables: \`px-(--gutter,--spacing(2))\`
+- Consistent padding with --spacing system
+
+**Responsive Design:**
+- Mobile-first approach
+- Desktop: \`lg:\` prefix
+- Tablet: \`md:\` prefix
+
+## ✨ Animation Requirements (MANDATORY!)
+
+**CRITICAL: ALL components MUST use Framer Motion!**
+
+\`\`\`typescript
+import { motion } from 'framer-motion'
+
+// Wrap main component
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5 }}
+>
+  {/* Component content */}
+</motion.div>
+
+// Add interactive animations
+<motion.button
+  whileHover={{ scale: 1.02 }}
+  whileTap={{ scale: 0.98 }}
+>
+  {/* Button content */}
+</motion.button>
+\`\`\`
+
+## 🎯 Your Task
+
+1. **Use Catalyst Components as Foundation**
+   - Start with the provided Catalyst components
+   - DO NOT rebuild them from scratch
+   - Keep their structure and patterns intact
+
+2. **Customize for Requirements**
+   - Apply the design system colors
+   - Add specific content for this use case
+   - Implement the required functionality
+
+3. **Add Framer Motion**
+   - Wrap in motion.div for entrance animation
+   - Add whileHover to interactive elements
+   - Use AnimatePresence for conditional rendering
+
+4. **Maintain Quality**
+   - Keep Catalyst's professional spacing
+   - Preserve accessibility features (ARIA, keyboard nav)
+   - Support dark mode with dark: variants
+   - Ensure mobile responsiveness with lg: breakpoint
+
+## 🚨 CRITICAL RULES
+
+**DO:**
+- ✅ Import Catalyst components: \`import { Button } from '@/components/catalyst/button'\`
+- ✅ Import Framer Motion: \`import { motion } from 'framer-motion'\`
+- ✅ Use 'use client' directive
+- ✅ Wrap main component in motion.div with entrance animation
+- ✅ Keep Catalyst's data-* attribute patterns
+- ✅ Apply design system colors where appropriate
+- ✅ Include realistic mock data as constants
+- ✅ Export both component and demo function
+
+**DON'T:**
+- ❌ Break Catalyst's core structure
+- ❌ Remove accessibility features
+- ❌ Skip dark mode variants
+- ❌ Forget responsive breakpoints
+- ❌ Omit Framer Motion animations
+- ❌ Use generic placeholder content
+
+## 📦 Output Format
+
+\`\`\`typescript
+'use client'
+
+import { motion } from 'framer-motion'
+import { Button } from '@/components/catalyst/button'
+import { Icon1, Icon2 } from 'lucide-react'
+// ... other Catalyst imports
+
+export function ${context.component.componentName}() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Implementation using Catalyst components */}
+    </motion.div>
+  )
+}
+
+const MOCK_DATA = [/* realistic data */]
+
+export default function ${context.component.componentName}Demo() {
+  return <${context.component.componentName} />
+}
+\`\`\`
+
+## 📝 Additional Context
+
+${standardPrompt}
+
+Now generate the complete, production-quality component with Catalyst foundation and Framer Motion animations!`;
   }
 
   /**
