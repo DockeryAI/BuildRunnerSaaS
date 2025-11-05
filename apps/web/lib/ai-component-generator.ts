@@ -115,16 +115,35 @@ ${catalystIntegration.catalystSource}
 
 ## 🎨 Design System
 
-**Colors:**
-- Primary: ${context.design.colorPalette.primary}
-- Secondary: ${context.design.colorPalette.secondary}
-- Background: ${context.design.colorPalette.background}
-- Foreground: ${context.design.colorPalette.foreground}
-- Border: ${context.design.colorPalette.border}
+**CRITICAL: ONLY USE THESE DESIGN TOKEN CLASSES - NEVER USE HARDCODED COLORS!**
+
+**Available Color Classes:**
+- **Primary:** bg-primary, text-primary, border-primary, ring-primary (${context.design.colorPalette.primary})
+- **Background:** bg-background, text-background (${context.design.colorPalette.background})
+- **Foreground:** text-foreground (${context.design.colorPalette.foreground})
+- **Surface:** bg-surface (for cards/panels - ${context.design.colorPalette.surface || context.design.colorPalette.muted})
+- **Muted:** bg-muted, text-muted-foreground (${context.design.colorPalette.muted})
+- **Border:** border-border (${context.design.colorPalette.border})
+- **Ring:** ring-ring (for focus states - ${context.design.colorPalette.ring})
+- **Destructive:** bg-destructive, text-destructive (${context.design.colorPalette.destructive})
+- **Accent:** bg-accent, text-accent-foreground (${context.design.colorPalette.accent})
 
 **Typography:**
-- Font: ${context.design.typography.fontFamily.sans}
-- Scale: ${context.design.typography.scale.base}
+- Font: font-sans (${context.design.typography.fontFamily.sans})
+- Scale: Use text-xs, text-sm, text-base, text-lg, text-xl, text-2xl, text-3xl, text-4xl
+
+**❌ NEVER USE:**
+- bg-gray-50, bg-gray-100, bg-white
+- text-gray-600, text-gray-900, text-black
+- border-gray-200, border-gray-300
+- bg-blue-500, text-blue-600, bg-indigo-500
+- ANY hardcoded Tailwind color classes
+
+**✅ ALWAYS USE:**
+- bg-background, bg-surface, bg-primary, bg-muted
+- text-foreground, text-muted-foreground, text-primary
+- border-border, ring-ring
+- Design token classes that reference the theme
 
 ## 📋 Catalyst Pattern Guidelines
 
@@ -207,9 +226,11 @@ import { motion } from 'framer-motion'
 - ✅ Use 'use client' directive
 - ✅ Wrap main component in motion.div with entrance animation
 - ✅ Keep Catalyst's data-* attribute patterns
-- ✅ Apply design system colors where appropriate
+- ✅ **ONLY USE DESIGN TOKEN CLASSES** (bg-primary, text-foreground, border-border, bg-surface, etc.)
 - ✅ Include realistic mock data as constants
 - ✅ Export both component and demo function
+- ✅ Add dark mode variants with dark: prefix
+- ✅ Use responsive breakpoints (sm:, md:, lg:)
 
 **DON'T:**
 - ❌ Break Catalyst's core structure
@@ -218,6 +239,8 @@ import { motion } from 'framer-motion'
 - ❌ Forget responsive breakpoints
 - ❌ Omit Framer Motion animations
 - ❌ Use generic placeholder content
+- ❌ **NEVER USE HARDCODED COLORS** (bg-gray-50, text-blue-600, bg-white, etc.)
+- ❌ **NEVER USE ARBITRARY VALUES** (bg-[#6366F1], text-[#111827], etc.)
 
 ## 📦 Output Format
 
@@ -464,24 +487,54 @@ Return ONLY the complete component code, no explanations or markdown formatting.
   private applyDesignTokens(code: string, design: DesignSpec): string {
     let styledCode = code;
 
-    // Replace generic colors with exact hex values
+    // Replace generic colors with design token classes (NOT hex values!)
     const colorReplacements: Record<string, string> = {
-      'bg-blue-500': `bg-[${design.colorPalette.primary}]`,
-      'bg-blue-600': `bg-[${design.colorPalette.primary}]`,
-      'bg-blue-700': `bg-[${design.colorPalette.primary}]`,
-      'text-blue-600': `text-[${design.colorPalette.primary}]`,
-      'text-blue-500': `text-[${design.colorPalette.primary}]`,
-      'border-blue-500': `border-[${design.colorPalette.primary}]`,
-      'ring-blue-500': `ring-[${design.colorPalette.primary}]`,
+      // Primary colors
+      'bg-blue-500': 'bg-primary',
+      'bg-blue-600': 'bg-primary',
+      'bg-blue-700': 'bg-primary',
+      'bg-indigo-500': 'bg-primary',
+      'bg-indigo-600': 'bg-primary',
+      'bg-purple-500': 'bg-primary',
+      'bg-purple-600': 'bg-primary',
+      'text-blue-600': 'text-primary',
+      'text-blue-500': 'text-primary',
+      'text-indigo-600': 'text-primary',
+      'text-purple-600': 'text-primary',
+      'border-blue-500': 'border-primary',
+      'border-indigo-500': 'border-primary',
+      'ring-blue-500': 'ring-primary',
+      'ring-indigo-500': 'ring-primary',
 
-      'bg-gray-100': `bg-[${design.colorPalette.muted}]`,
-      'bg-gray-50': `bg-[${design.colorPalette.background}]`,
-      'text-gray-900': `text-[${design.colorPalette.foreground}]`,
-      'border-gray-200': `border-[${design.colorPalette.border}]`,
+      // Background colors
+      'bg-white': 'bg-background',
+      'bg-gray-50': 'bg-background',
+      'bg-slate-50': 'bg-background',
 
-      'bg-red-500': `bg-[${design.colorPalette.destructive}]`,
-      'bg-red-600': `bg-[${design.colorPalette.destructive}]`,
-      'text-red-600': `text-[${design.colorPalette.destructiveForeground}]`,
+      // Foreground (text) colors
+      'text-gray-900': 'text-foreground',
+      'text-slate-900': 'text-foreground',
+      'text-black': 'text-foreground',
+
+      // Muted colors
+      'bg-gray-100': 'bg-muted',
+      'bg-gray-200': 'bg-muted',
+      'bg-slate-100': 'bg-muted',
+      'text-gray-600': 'text-muted-foreground',
+      'text-gray-500': 'text-muted-foreground',
+      'text-slate-600': 'text-muted-foreground',
+
+      // Border colors
+      'border-gray-200': 'border-border',
+      'border-gray-300': 'border-border',
+      'border-slate-200': 'border-border',
+
+      // Destructive colors
+      'bg-red-500': 'bg-destructive',
+      'bg-red-600': 'bg-destructive',
+      'text-red-600': 'text-destructive',
+      'text-red-500': 'text-destructive',
+      'border-red-500': 'border-destructive',
     };
 
     for (const [generic, specific] of Object.entries(colorReplacements)) {
@@ -575,11 +628,17 @@ Return ONLY the complete component code, no explanations or markdown formatting.
     }
 
     // Check design token usage
-    if (code.includes(`bg-[${context.design.colorPalette.primary}]`)) {
-      strengths.push('Uses exact design tokens');
-    } else if (code.includes('bg-blue-')) {
-      issues.push('Uses generic colors instead of design tokens');
+    if (code.includes('bg-primary') || code.includes('text-foreground') || code.includes('border-border')) {
+      strengths.push('Uses semantic design tokens');
+    } else if (code.includes('bg-blue-') || code.includes('bg-gray-') || code.includes('text-gray-')) {
+      issues.push('Uses hardcoded colors instead of design tokens');
       score -= 10;
+    }
+
+    // Penalize arbitrary values (bg-[#...])
+    if (code.includes('bg-[#') || code.includes('text-[#')) {
+      issues.push('Uses arbitrary color values instead of design tokens');
+      score -= 15;
     }
 
     // Check accessibility
