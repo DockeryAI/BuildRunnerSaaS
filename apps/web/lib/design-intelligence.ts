@@ -107,6 +107,50 @@ export class DesignIntelligence {
       navigationStyle: 'sidebar'
     },
 
+    'nutrition': {
+      inspiration: ['MyFitnessPal', 'Noom', 'Cronometer', 'Lifesum'],
+      colorSchemes: {
+        primary: ['emerald-green', 'fresh-green', 'health-blue', 'vibrant-teal'],
+        vibe: 'healthy, energetic, motivating, fresh, optimistic'
+      },
+      components: ['meal-cards', 'nutrition-tracker', 'progress-charts', 'food-log', 'goal-tracker'],
+      layoutPatterns: ['dashboard-grid', 'timeline-view', 'card-grid'],
+      navigationStyle: 'topnav'
+    },
+
+    'construction': {
+      inspiration: ['Procore', 'Fieldwire', 'PlanGrid', 'Buildertrend'],
+      colorSchemes: {
+        primary: ['industrial-orange', 'construction-yellow', 'safety-orange', 'steel-blue'],
+        vibe: 'strong, reliable, industrial, safety-focused, professional'
+      },
+      components: ['project-timeline', 'task-boards', 'document-viewer', 'team-roster', 'equipment-tracker'],
+      layoutPatterns: ['sidebar-layout', 'full-width-dashboard', 'split-view'],
+      navigationStyle: 'sidebar'
+    },
+
+    'healthcare': {
+      inspiration: ['Epic', 'Cerner', 'Zocdoc', 'One Medical'],
+      colorSchemes: {
+        primary: ['medical-blue', 'trust-blue', 'calming-teal', 'health-green'],
+        vibe: 'trustworthy, calm, professional, caring, clean'
+      },
+      components: ['patient-cards', 'appointment-scheduler', 'health-records', 'medication-tracker'],
+      layoutPatterns: ['sidebar-layout', 'dashboard-grid', 'detail-view'],
+      navigationStyle: 'sidebar'
+    },
+
+    'education': {
+      inspiration: ['Coursera', 'Khan Academy', 'Duolingo', 'Canvas LMS'],
+      colorSchemes: {
+        primary: ['bright-blue', 'learning-purple', 'optimistic-yellow', 'creative-orange'],
+        vibe: 'engaging, playful, encouraging, knowledge-focused, accessible'
+      },
+      components: ['course-cards', 'lesson-viewer', 'progress-tracker', 'quiz-interface', 'discussion-boards'],
+      layoutPatterns: ['centered-content', 'sidebar-layout', 'card-grid'],
+      navigationStyle: 'topnav'
+    },
+
     'default': {
       inspiration: ['Linear', 'Vercel', 'GitHub', 'Stripe'],
       colorSchemes: {
@@ -141,6 +185,10 @@ export class DesignIntelligence {
 
     // Now check other industries
     const keywords: Record<string, string[]> = {
+      'nutrition': ['nutrition', 'diet', 'meal', 'calories', 'food', 'health', 'fitness', 'macros', 'weight'],
+      'construction': ['construction', 'building', 'contractor', 'blueprint', 'site', 'project management', 'crew'],
+      'healthcare': ['healthcare', 'medical', 'patient', 'doctor', 'appointment', 'health records', 'clinic'],
+      'education': ['education', 'learning', 'course', 'lesson', 'student', 'teacher', 'training', 'quiz'],
       'saas': ['saas', 'dashboard', 'analytics', 'workspace', 'team', 'collaboration'],
       'ecommerce': ['shop', 'store', 'cart', 'checkout', 'product', 'ecommerce', 'marketplace'],
       'travel': ['travel', 'booking', 'hotel', 'flight', 'vacation', 'tourism', 'airbnb'], // Removed generic "trip"
@@ -184,17 +232,138 @@ export class DesignIntelligence {
           model: 'anthropic/claude-sonnet-4',
           messages: [{
             role: 'system',
-            content: `You are a world-class product designer who has worked at Linear, Stripe, Vercel, and Apple.
+            content: `You are an elite product designer with 15+ years experience at Linear, Stripe, Apple, and Airbnb. You understand design at a molecular level and create systems that feel effortless, elegant, and purposeful.
 
-When generating designs, you ALWAYS:
-1. Start with a cohesive design system
-2. Use modern design patterns (glass morphism, subtle gradients, micro-animations)
-3. Create visual hierarchy through size, weight, and color
-4. Apply the 60-30-10 color rule
-5. Use negative space effectively
-6. Ensure dark mode looks amazing
+# CORE DESIGN PHILOSOPHY
 
-Output ONLY valid JSON with exact hex color values and specific measurements.`
+**Beautiful design is:**
+- Purposeful: Every color, space, and element serves the user
+- Confident: Bold decisions executed with precision
+- Emotional: Creates visceral reactions through color, motion, and space
+- Timeless: Avoids trends, embraces fundamentals
+
+# COLOR THEORY MASTERY
+
+**Color Psychology by Industry:**
+- Healthcare/Nutrition: Blues (trust, calm), greens (health, growth), warm accents (energy)
+- Finance: Deep blues (stability), emerald (growth), grays (sophistication)
+- Construction/Industrial: Charcoal (strength), orange (safety), steel grays (precision)
+- Education: Warm blues (knowledge), yellows (optimism), purples (creativity)
+- E-commerce: Vibrant primaries (action), clean whites (product focus)
+- SaaS: Cool grays (professional), bright accent (conversion)
+
+**Color Harmony Rules:**
+1. Choose ONE hero color (primary) - make it BOLD and contextual
+2. Select a complementary or analogous accent color
+3. Use 60% neutral, 30% primary, 10% accent
+4. Ensure 4.5:1 contrast ratio minimum (WCAG AA)
+5. Dark mode: Reduce saturation 15-20%, increase lightness for text
+
+**Avoid These Mistakes:**
+❌ Generic blue (#3B82F6) for everything
+❌ Gray-on-gray with poor contrast
+❌ Rainbow color schemes
+❌ Neon colors in professional apps
+❌ Pure black (#000000) or pure white (#FFFFFF)
+
+# TYPOGRAPHY EXCELLENCE
+
+**Font Selection:**
+- Modern sans-serif: Inter, SF Pro, Geist, Untitled Sans
+- Unique alternatives: Satoshi, Cabinet Grotesk, Switzer
+- Monospace: JetBrains Mono, Fira Code, SF Mono
+
+**Type Scale Fundamentals:**
+- Use 1.125 (major second) or 1.2 (minor third) ratio
+- Mobile: 14px base, Desktop: 16px base
+- Headings: Bold (700) with tight line-height (1.2)
+- Body: Regular (400) or Medium (500) with relaxed line-height (1.6)
+- Captions: 12-13px, never smaller
+
+**Hierarchy:**
+- H1: 2.5-3rem, bold, tight tracking (-0.02em)
+- H2: 1.875-2rem, semibold
+- H3: 1.5rem, semibold
+- Body: 1rem, regular, 1.6 line-height
+- Small: 0.875rem for metadata
+
+# SPACING & LAYOUT
+
+**8-Point Grid System:**
+- Base unit: 4px (use 8px for major elements)
+- Padding: 16px (mobile), 24-32px (desktop)
+- Section gaps: 48-64px
+- Element spacing: 8, 12, 16, 24, 32, 48px
+
+**Visual Rhythm:**
+- Consistent vertical rhythm (multiples of 8)
+- Generous whitespace (don't fear emptiness)
+- Align to baseline grid
+- Group related elements (proximity principle)
+
+# MODERN DESIGN PATTERNS (2024)
+
+**Elevation & Depth:**
+- Subtle shadows (blur: 16-24px, opacity: 0.08-0.12)
+- Elevated cards: 1-2px offset, soft shadow
+- Interactive elements: Slight scale on hover (1.02x)
+- Avoid heavy drop shadows (feels dated)
+
+**Glassmorphism (when appropriate):**
+- Background: rgba(255,255,255, 0.1)
+- Backdrop blur: 12-16px
+- 1px border with low opacity
+- Use sparingly for modals, popovers
+
+**Gradients:**
+- Subtle 5-10° angle
+- Two colors max (same hue family)
+- 15-20% opacity for backgrounds
+- Use for accents, not primary surfaces
+
+# COMPONENT DESIGN
+
+**Buttons:**
+- Primary: Bold, high contrast, subtle shadow
+- Hover: 2-4% darker, translate -1px, shadow increase
+- Active: Scale 0.98, shadow decrease
+- Disabled: 40% opacity, no hover
+- Border radius: 6-8px (modern), 12px+ (friendly)
+
+**Cards:**
+- Background: Slightly elevated from page background
+- Border: 1px subtle (rgba(0,0,0,0.08))
+- Padding: 20-24px
+- Hover: Lift 2-4px, shadow increase, scale 1.01
+- Border radius: 12-16px
+
+**Forms:**
+- Input height: 40-44px
+- Padding: 12px horizontal
+- Border: 1.5px (resting), 2px (focused)
+- Focus ring: 3-4px offset, primary color at 20% opacity
+- Labels: 14px, semibold, 8px above input
+
+# DARK MODE EXCELLENCE
+
+**Dark mode is NOT just inverted colors:**
+- Background: #0a0a0a to #1a1a1a (true black is too harsh)
+- Surface: Slightly lighter (#1f1f1f, #262626)
+- Text: #e5e5e5 (not pure white)
+- Reduce color saturation 10-15%
+- Increase shadows (darker bg = need more contrast)
+
+# OUTPUT REQUIREMENTS
+
+Generate a design system that:
+1. Feels specific to the app's purpose (not generic)
+2. Uses color psychology appropriately
+3. Creates clear visual hierarchy
+4. Looks premium and modern (2024 aesthetic)
+5. Works beautifully in dark mode
+6. Has perfect contrast ratios
+
+Output ONLY valid JSON. No markdown, no explanations, just the JSON object.`
           }, {
             role: 'user',
             content: prompt
@@ -231,20 +400,30 @@ Output ONLY valid JSON with exact hex color values and specific measurements.`
   }
 
   private buildDesignPrompt(prd: PRD, pattern: IndustryPattern): string {
-    return `Create a complete design system for a ${pattern.colorSchemes.vibe} application called "${prd.projectName}".
+    return `# DESIGN BRIEF
 
-**Project Description:**
-${prd.description}
-
-**Design Inspiration:** ${pattern.inspiration.join(', ')}
-**Brand Personality:** ${pattern.colorSchemes.vibe}
+**App Name:** ${prd.projectName}
+**Description:** ${prd.description}
 **Target Audience:** ${prd.targetAudience || 'Modern tech-savvy users'}
+**Brand Personality:** ${pattern.colorSchemes.vibe}
+**Industry Context:** This ${pattern.colorSchemes.vibe} app competes with ${pattern.inspiration.join(', ')}
 
-Generate a cohesive design system that will make this app look AMAZING. Think carefully about:
-- Color harmony and contrast
-- The product's target audience
-- Modern 2024 design trends
-- Accessibility (WCAG AA minimum)
+# YOUR MISSION
+
+Create a design system that makes users FEEL something when they see it. This isn't about following templates - it's about creating a visceral emotional response through color, typography, and space.
+
+**Think about:**
+- What colors would a ${pattern.colorSchemes.vibe} app use to inspire ${prd.targetAudience}?
+- What emotional response should this create? Trust? Energy? Calm? Excitement?
+- How would ${pattern.inspiration[0]} or ${pattern.inspiration[1]} design this?
+- What makes this app DIFFERENT from generic Bootstrap templates?
+
+**Requirements:**
+1. **Color Psychology:** Choose colors that match the app's purpose and audience emotions
+2. **Visual Distinction:** Must NOT look like every other generic blue/gray app
+3. **Contrast & Accessibility:** Perfect WCAG AA compliance (4.5:1 minimum)
+4. **Modern Aesthetic:** 2024 design trends - clean, purposeful, sophisticated
+5. **Dark Mode:** Thoughtfully designed, not just inverted colors
 
 **CRITICAL REQUIREMENTS:**
 
@@ -347,21 +526,35 @@ Output ONLY valid JSON matching this structure:
     // Return industry-appropriate fallback from our presets
     const pattern = this.industryPatterns[industry] || this.industryPatterns.default;
 
+    // Industry-specific color mappings
+    const industryColors: Record<string, { primary: string; accent: string }> = {
+      'outdoor': { primary: '#10B981', accent: '#F59E0B' }, // Emerald + Orange
+      'nutrition': { primary: '#10B981', accent: '#F59E0B' }, // Fresh green + Energy orange
+      'construction': { primary: '#F97316', accent: '#FACC15' }, // Safety orange + Construction yellow
+      'healthcare': { primary: '#0EA5E9', accent: '#14B8A6' }, // Trust blue + Calming teal
+      'education': { primary: '#8B5CF6', accent: '#F59E0B' }, // Learning purple + Optimistic orange
+      'finance': { primary: '#3B82F6', accent: '#10B981' }, // Deep blue + Growth green
+      'ecommerce': { primary: '#EC4899', accent: '#10B981' }, // Vibrant pink + Success green
+      'default': { primary: '#6366F1', accent: '#8B5CF6' }, // Indigo + Purple
+    };
+
+    const colors = industryColors[industry] || industryColors.default;
+
     return {
       visualStyle: 'modern-minimal',
       colorPalette: {
-        primary: industry === 'outdoor' ? '#10B981' : '#6366F1',
+        primary: colors.primary,
         primaryForeground: '#FFFFFF',
         secondary: '#8B5CF6',
         secondaryForeground: '#FFFFFF',
-        accent: industry === 'outdoor' ? '#F59E0B' : '#8B5CF6',
+        accent: colors.accent,
         accentForeground: '#FFFFFF',
         muted: '#F3F4F6',
         mutedForeground: '#6B7280',
         background: '#FFFFFF',
         foreground: '#111827',
         border: '#E5E7EB',
-        ring: industry === 'outdoor' ? '#10B981' : '#6366F1',
+        ring: colors.primary,
         destructive: '#EF4444',
         destructiveForeground: '#FFFFFF',
       },
