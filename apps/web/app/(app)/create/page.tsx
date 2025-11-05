@@ -838,15 +838,31 @@ Include business goals and success metrics if known`;
 
             {/* AI-Generated Examples */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">
-                💡 Need inspiration? Try one of these AI-generated examples:
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-gray-700">
+                  💡 Need inspiration? AI-generated examples:
+                </p>
+                {!isLoadingExamples && (
+                  <button
+                    type="button"
+                    onClick={generateExamples}
+                    disabled={isLoadingExamples}
+                    className="flex items-center space-x-1 px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Refresh</span>
+                  </button>
+                )}
+              </div>
 
               {isLoadingExamples ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
                   ))}
+                  <p className="text-xs text-center text-gray-500 mt-2">Generating fresh AI ideas...</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -860,14 +876,6 @@ Include business goals and success metrics if known`;
                       {example}
                     </button>
                   ))}
-
-                  <button
-                    type="button"
-                    onClick={generateExamples}
-                    className="w-full text-center p-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    🔄 Generate new examples
-                  </button>
                 </div>
               )}
             </div>
@@ -1153,9 +1161,9 @@ function CreatePage() {
 
     console.log('🚀 Starting PRD build for idea:', idea);
 
-    // Auto-fill PRD with initial content from the user's prompt
-    autoFillPRD(idea);
-    console.log('✅ PRD auto-populated from prompt');
+    // Skip auto-fill - let users populate PRD with AI suggestions by drag-and-drop
+    // This ensures relevant, AI-generated content instead of generic placeholders
+    console.log('✅ PRD initialized (ready for AI suggestions)');
 
     // Generate AI suggestions for all phases automatically
     // Backend will use OpenRouter if key is available, otherwise returns mock suggestions
@@ -1170,8 +1178,8 @@ function CreatePage() {
     // Close setup wizard
     setShowSetupWizard(false);
 
-    // Auto-fill PRD with initial content
-    autoFillPRD(productIdea);
+    // Skip auto-fill - let users populate PRD with AI suggestions by drag-and-drop
+    // This ensures relevant, AI-generated content instead of generic placeholders
 
     // Generate AI suggestions for all phases automatically
     await generateAllPhaseSuggestions(productIdea);
