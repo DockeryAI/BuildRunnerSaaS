@@ -737,16 +737,28 @@ function OnboardingFlow({ onStart, onImport }: { onStart: (idea: string) => void
   const generateExamples = async () => {
     setIsLoadingExamples(true);
     try {
+      // Get API keys from localStorage to pass to backend
+      const savedKeys = localStorage.getItem('buildrunner_api_keys');
+      const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
+
       const response = await fetch('/api/generate-examples', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-keys': JSON.stringify(apiKeys),
+        },
       });
 
       if (response.ok) {
         const data = await response.json();
-        setExamples(data.examples || []);
+        if (data.examples && data.examples.length > 0) {
+          setExamples(data.examples);
+          console.log('✨ Generated fresh AI examples');
+        } else {
+          throw new Error('No examples in response');
+        }
       } else {
-        // Fallback to default examples if API fails
+        console.warn('API returned error, using fallback examples');
         setExamples([
           'A mobile app that helps remote teams coordinate lunch orders with automated group delivery',
           'An AI-powered study companion that creates personalized flashcards from lecture notes and textbooks',
@@ -754,7 +766,7 @@ function OnboardingFlow({ onStart, onImport }: { onStart: (idea: string) => void
         ]);
       }
     } catch (error) {
-      // Fallback to default examples
+      console.warn('Failed to generate AI examples, using fallback:', error);
       setExamples([
         'A mobile app that helps remote teams coordinate lunch orders with automated group delivery',
         'An AI-powered study companion that creates personalized flashcards from lecture notes and textbooks',

@@ -34,7 +34,25 @@ function getOpenRouterKey(): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = getOpenRouterKey();
+    // Try to get API key from request headers (client-provided) first
+    let apiKey = '';
+    const apiKeysHeader = request.headers.get('x-api-keys');
+    if (apiKeysHeader) {
+      try {
+        const apiKeys = JSON.parse(apiKeysHeader);
+        if (apiKeys.openrouter) {
+          apiKey = apiKeys.openrouter;
+          console.log('Using client-provided OpenRouter key from UI');
+        }
+      } catch (e) {
+        console.warn('Failed to parse API keys from headers:', e);
+      }
+    }
+
+    // Fallback to server-side keys if no client key provided
+    if (!apiKey) {
+      apiKey = getOpenRouterKey();
+    }
 
     if (!apiKey) {
       console.warn('No OpenRouter API key available, using fallback examples');
