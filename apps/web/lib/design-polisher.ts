@@ -181,7 +181,15 @@ ${component.code}
 
 **CRITICAL:** Maintain all existing functionality. Only improve styling and UX.
 
-Return the complete, polished component code with all improvements applied.`;
+**OUTPUT FORMAT:**
+Return ONLY the complete polished TypeScript/TSX code.
+- NO explanations
+- NO markdown code fences (no \`\`\`)
+- NO commentary
+- Start directly with the code ('use client' or import statement)
+- Just pure, clean, polished code
+
+BEGIN CODE OUTPUT NOW:`;
 
     try {
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -215,9 +223,42 @@ Return the complete, polished component code with all improvements applied.`;
       const data = await response.json();
       let polishedCode = data.choices[0].message.content;
 
-      // Strip markdown code fences
-      polishedCode = polishedCode.replace(/^```(?:typescript|tsx|jsx|javascript)?\n/gm, '');
-      polishedCode = polishedCode.replace(/\n```$/gm, '');
+      // Extract code from markdown code blocks (robust extraction)
+      const codeBlockMatch = polishedCode.match(/```(?:typescript|tsx|jsx|javascript)?\n([\s\S]+?)\n```/);
+
+      if (codeBlockMatch) {
+        // Found code in markdown block - use it
+        polishedCode = codeBlockMatch[1];
+      } else {
+        // No markdown blocks - strip any explanatory text before code
+        // Look for common code starting patterns
+        const codeStartPatterns = [
+          /^['"]use client['"]/m,
+          /^['"]use server['"]/m,
+          /^import\s+/m,
+          /^export\s+/m,
+          /^\/\*\*/m,
+          /^\/\//m,
+          /^const\s+/m,
+          /^function\s+/m,
+          /^interface\s+/m,
+          /^type\s+/m,
+        ];
+
+        for (const pattern of codeStartPatterns) {
+          const match = polishedCode.match(pattern);
+          if (match && match.index !== undefined) {
+            // Found code start - extract from there
+            polishedCode = polishedCode.substring(match.index);
+            break;
+          }
+        }
+
+        // Clean up any remaining markdown artifacts
+        polishedCode = polishedCode.replace(/^```(?:typescript|tsx|jsx|javascript)?\n/gm, '');
+        polishedCode = polishedCode.replace(/\n```$/gm, '');
+      }
+
       polishedCode = polishedCode.trim();
 
       const improvementsApplied = this.detectImprovements(component.code, polishedCode);
