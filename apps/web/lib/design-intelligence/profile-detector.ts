@@ -17,9 +17,26 @@ export class DesignProfileDetector {
     const key = apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_API_KEY;
     if (key) {
       this.apiKey = key;
-      // Support both Anthropic and OpenRouter API keys
-      // OpenRouter requires using fetch directly, not the Anthropic SDK
-      this.isOpenRouter = !!apiKey && !process.env.ANTHROPIC_API_KEY;
+
+      // Determine which API to use based on key source
+      // Priority: 1) Client-provided key (always OpenRouter), 2) Anthropic env var, 3) OpenRouter env var
+      if (apiKey) {
+        // Client-provided key from UI is always OpenRouter
+        this.isOpenRouter = true;
+        console.log('🔑 Using client-provided OpenRouter API key');
+      } else if (process.env.ANTHROPIC_API_KEY && key === process.env.ANTHROPIC_API_KEY) {
+        // Direct Anthropic API
+        this.isOpenRouter = false;
+        console.log('🔑 Using Anthropic API key from environment');
+      } else if (process.env.OPENROUTER_API_KEY && key === process.env.OPENROUTER_API_KEY) {
+        // OpenRouter via env var
+        this.isOpenRouter = true;
+        console.log('🔑 Using OpenRouter API key from environment');
+      } else {
+        // Fallback: assume Anthropic
+        this.isOpenRouter = false;
+        console.log('🔑 Using API key (assuming Anthropic)');
+      }
 
       if (!this.isOpenRouter) {
         // Only initialize Anthropic SDK for direct Anthropic API use
@@ -102,61 +119,75 @@ export class DesignProfileDetector {
 
     let responseText: string;
 
-    if (this.isOpenRouter) {
-      // Use OpenRouter API directly via fetch
-      const modelId = 'anthropic/claude-sonnet-4.5';
+    try {
+      if (this.isOpenRouter) {
+        // Use OpenRouter API directly via fetch
+        const modelId = 'anthropic/claude-sonnet-4.5';
+        console.log(`📡 Calling OpenRouter API with model: ${modelId}`);
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-          'HTTP-Referer': 'https://buildrunner.ai',
-          'X-Title': 'BuildRunner Design Intelligence',
-        },
-        body: JSON.stringify({
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+            'HTTP-Referer': 'https://buildrunner.ai',
+            'X-Title': 'BuildRunner Design Intelligence',
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages: [
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            max_tokens: 4096,
+            temperature: 0.7,
+          }),
+        });
+
+        console.log(`📡 OpenRouter response status: ${response.status} ${response.statusText}`);
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          console.error('OpenRouter API error response:', errorBody);
+          throw new Error(`OpenRouter API error: ${response.status} ${response.statusText} - ${errorBody}`);
+        }
+
+        const data = await response.json();
+        responseText = data.choices[0].message.content;
+        console.log('✅ OpenRouter API call successful');
+      } else {
+        // Use Anthropic SDK
+        if (!this.anthropic) {
+          throw new Error('Anthropic API client not initialized');
+        }
+
+        const modelId = 'claude-sonnet-4-20250514';
+        console.log(`📡 Calling Anthropic API with model: ${modelId}`);
+
+        const response = await this.anthropic.messages.create({
           model: modelId,
+          max_tokens: 4096,
+          temperature: 0.7,
           messages: [
             {
               role: 'user',
               content: prompt,
             },
           ],
-          max_tokens: 4096,
-          temperature: 0.7,
-        }),
-      });
+        });
 
-      if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`);
+        const content = response.content[0];
+        if (content.type !== 'text') {
+          throw new Error('Unexpected response type from Claude');
+        }
+        responseText = content.text;
+        console.log('✅ Anthropic API call successful');
       }
-
-      const data = await response.json();
-      responseText = data.choices[0].message.content;
-    } else {
-      // Use Anthropic SDK
-      if (!this.anthropic) {
-        throw new Error('Anthropic API client not initialized');
-      }
-
-      const modelId = 'claude-sonnet-4-20250514';
-      const response = await this.anthropic.messages.create({
-        model: modelId,
-        max_tokens: 4096,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
-
-      const content = response.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Claude');
-      }
-      responseText = content.text;
+    } catch (error) {
+      console.error('❌ API call failed:', error);
+      throw error;
     }
 
     // Extract JSON from response
