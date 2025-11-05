@@ -413,6 +413,123 @@
       "priority": "medium",
       "tests": "n/a",
       "docs": []
+    },
+    {
+      "id": "ai-design-system-generation",
+      "name": "AI Design System Generation",
+      "status": "in_progress",
+      "version": "1.0.0",
+      "description": "AI-powered design system generation using DesignIntelligence with industry-specific patterns (SaaS, E-commerce, Travel, Outdoor, Finance, Social, Productivity). Auto-detects industry from PRD, generates cohesive design systems with color palettes, typography, spacing, shadows, and component patterns. Inspired by Linear, Stripe, Notion, Airbnb, AllTrails. Uses Claude Sonnet 4 via OpenRouter for creative design decisions. Includes professional design presets (modern-saas, startup-bold, adventure-outdoor) with 60-30-10 color rules, glassmorphism, and modern 2024 design trends.",
+      "components": ["apps/web/lib/design-intelligence.ts", "apps/web/lib/design-system-generator.ts", "apps/web/lib/build-orchestrator.ts"],
+      "apis": [],
+      "priority": "critical",
+      "tests": "working",
+      "docs": [],
+      "implementation_details": {
+        "industry_patterns": ["saas", "ecommerce", "travel", "outdoor", "finance", "social", "productivity", "default"],
+        "inspiration_apps": ["Linear", "Notion", "Figma", "Stripe", "Shopify", "Airbnb", "AllTrails", "REI", "Plaid", "Robinhood", "Twitter", "Discord", "Airtable", "Cron"],
+        "llm_model": "anthropic/claude-sonnet-4",
+        "design_tokens_generated": ["colors", "typography", "spacing", "shadows", "border-radius", "component-patterns"]
+      }
+    },
+    {
+      "id": "design-polish-pipeline",
+      "name": "Design Polish & Micro-Interactions",
+      "status": "in_progress",
+      "version": "1.0.0",
+      "description": "Automated design polish system using DesignPolisher that adds micro-interactions, loading skeletons, empty states, error states, dark mode enforcement, accessibility improvements, and consistency scoring. Every button gets hover/focus/active/disabled states, every card gets hover effects, every input gets focus rings. Adds professional polish elements: hover:scale-[1.02], active:scale-[0.98], backdrop-blur effects, smooth transitions (150-300ms), ARIA labels, and WCAG compliance. Post-generation enhancement that transforms basic components into production-quality UI matching Linear/Stripe standards.",
+      "components": ["apps/web/lib/design-polisher.ts", "apps/web/lib/build-orchestrator.ts"],
+      "apis": [],
+      "priority": "critical",
+      "tests": "working",
+      "docs": [],
+      "micro_interaction_patterns": {
+        "buttons": "hover:scale-[1.02] active:scale-[0.98] transition-all duration-150",
+        "cards": "hover:-translate-y-1 hover:shadow-2xl transition-all duration-300",
+        "inputs": "focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200",
+        "links": "hover:text-primary with underline animation",
+        "modals": "animate-in fade-in-0 zoom-in-95 duration-300",
+        "dropdowns": "animate-in fade-in-0 slide-in-from-top-2 duration-200"
+      }
+    },
+    {
+      "id": "design-token-injection",
+      "name": "Design Token Injection System",
+      "status": "planned",
+      "version": "1.0.0",
+      "description": "CRITICAL MISSING PIECE: Generates tailwind.config.js with design system tokens from DesignIntelligence. Injects custom colors (primary, background, foreground, surface, border, ring, etc.) as Tailwind theme extensions so components can use classes like bg-background, text-foreground, border-border. Converts design spec JSON to Tailwind config, writes config file to build directory, ensures hot reload picks up changes. Without this, generated components use undefined classes and look broken. Also generates CSS variables for design tokens and injects into globals.css.",
+      "components": [],
+      "apis": [],
+      "priority": "critical",
+      "tests": "pending",
+      "docs": [],
+      "implementation_required": {
+        "tailwind_config_generation": "Generate tailwind.config.js with custom theme colors",
+        "css_variables_injection": "Inject CSS custom properties for design tokens",
+        "build_integration": "Write config files to build directory during generation",
+        "hot_reload_support": "Ensure preview picks up design token changes"
+      }
+    },
+    {
+      "id": "framer-motion-integration",
+      "name": "Framer Motion Animation System",
+      "status": "planned",
+      "version": "1.0.0",
+      "description": "Premium animation library integration with Framer Motion for all interactive elements. Wrap components in motion.div with spring animations, stagger children, page transitions, and gesture handlers. Replace basic CSS transitions with physics-based animations. Add entrance animations (fade-in, slide-in, scale-in), exit animations, hover gestures (whileHover, whileTap), and layout animations. Includes animation variants library (fadeInUp, slideInRight, scaleIn, stagger) and animation presets by component type (buttons, cards, modals, lists, pages).",
+      "components": [],
+      "apis": [],
+      "priority": "high",
+      "tests": "pending",
+      "docs": [],
+      "animation_patterns": {
+        "entrance": "fadeInUp, slideInRight, scaleIn with spring physics",
+        "exit": "fadeOut, slideOutLeft with smooth easing",
+        "hover": "whileHover scale 1.02, tap scale 0.98",
+        "layout": "layout prop for smooth position/size changes",
+        "stagger": "staggerChildren for list animations"
+      }
+    },
+    {
+      "id": "premium-component-templates",
+      "name": "Premium Component Templates & Tailwind UI",
+      "status": "planned",
+      "version": "1.0.0",
+      "description": "Professional component template library with Tailwind UI integration. Component registry system for organizing manually copied Tailwind UI components, component mapper for intelligent component selection, pattern library (hero sections, feature grids, pricing tables, testimonials, CTAs, navigation, footers). Replaces generic components with production-quality templates. Includes splash page templates, empty state templates, loading skeleton templates, error page templates. Smart component selection based on app type (SaaS, e-commerce, marketing, dashboard, etc.).",
+      "components": [],
+      "apis": [],
+      "priority": "high",
+      "tests": "pending",
+      "docs": [],
+      "component_categories": {
+        "heroes": "Full-page hero sections with imagery, CTAs, and features",
+        "features": "Feature grids, comparison tables, highlight sections",
+        "testimonials": "Customer quotes, logos, case studies",
+        "pricing": "Pricing tables, comparison charts, feature lists",
+        "navigation": "Headers, sidebars, command palettes, mobile menus",
+        "forms": "Contact forms, login/signup, multi-step wizards",
+        "content": "Blog posts, documentation, landing pages",
+        "ecommerce": "Product cards, shopping carts, checkout flows"
+      }
+    },
+    {
+      "id": "smart-default-content",
+      "name": "Smart Default Content Generation",
+      "status": "planned",
+      "version": "1.0.0",
+      "description": "Fix empty splash pages by generating smart default content for every page. When generating a page, always include: hero section with project name/description, feature highlights (3-6 cards), call-to-action sections, placeholder imagery with proper aspect ratios, realistic demo data, empty states with illustrations. No more blank pages - every generated page is fully designed with contextual content based on PRD. Includes content generation for login pages, dashboard pages, landing pages, list pages, detail pages, and error pages.",
+      "components": [],
+      "apis": [],
+      "priority": "critical",
+      "tests": "pending",
+      "docs": [],
+      "content_types": {
+        "hero_sections": "Project name, tagline, description, CTA buttons, hero image",
+        "feature_highlights": "3-6 feature cards with icons, titles, descriptions",
+        "demo_data": "Realistic placeholder data (names, dates, numbers, text)",
+        "empty_states": "Illustrations, helpful messaging, action buttons",
+        "loading_states": "Skeleton screens matching final content layout",
+        "error_states": "Friendly error messages, recovery actions"
+      }
     }
   ],
 
@@ -601,9 +718,9 @@
 
   "metrics": {
     "features_complete": 26,
-    "features_in_progress": 8,
-    "features_planned": 8,
-    "completion_percentage": 88,
+    "features_in_progress": 10,
+    "features_planned": 12,
+    "completion_percentage": 84,
     "components_count": 63,
     "api_endpoints_count": 58,
     "typescript_files": 11700,
