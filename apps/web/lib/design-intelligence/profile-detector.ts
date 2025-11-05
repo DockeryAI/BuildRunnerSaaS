@@ -55,6 +55,12 @@ export class DesignProfileDetector {
       const searchText = `${input.projectName} ${input.description} ${input.features?.join(' ') || ''}`;
       const embedding = await createEmbedding(searchText);
 
+      // If embedding creation failed (empty array), skip similarity search
+      if (embedding.length === 0) {
+        console.log('📝 Embeddings unavailable - skipping similarity search');
+        return null;
+      }
+
       // Search for similar profiles
       const similar = await findSimilarProfiles(embedding, 1);
 
@@ -275,17 +281,21 @@ IMPORTANT: Return ONLY the JSON object, no markdown formatting, no backticks, no
    */
   private async saveProfile(input: ProfileDetectionInput, profile: DesignProfile): Promise<void> {
     try {
-      // Create embedding for this profile
+      // Create embedding for this profile (will be empty if OpenAI not configured)
       const profileText = `${profile.name} ${profile.category} ${profile.primaryPurpose} ${profile.audience.demographic} ${profile.emotionalTone.personality} ${profile.industry.primary}`;
       const embedding = await createEmbedding(profileText);
 
       // TODO: Save to database
       // - Save profile JSON to design_profiles table
-      // - Save embedding vector for similarity search
+      // - Save embedding vector for similarity search (if available)
       // - Set initial success_score to 0.5
       // - Mark as isNewType: true for review
 
-      console.log(`📊 Profile saved: ${profile.name} (${profile.category})`);
+      if (embedding.length > 0) {
+        console.log(`📊 Profile saved with embeddings: ${profile.name} (${profile.category})`);
+      } else {
+        console.log(`📊 Profile saved (no embeddings): ${profile.name} (${profile.category})`);
+      }
     } catch (error) {
       console.error('Failed to save profile:', error);
       // Don't throw - profile detection should succeed even if save fails

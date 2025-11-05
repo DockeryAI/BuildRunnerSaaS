@@ -7,14 +7,27 @@
 import OpenAI from 'openai';
 import { SimilarProfile } from './types';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI only if API key is available
+let openai: OpenAI | null = null;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+} catch (error) {
+  console.warn('OpenAI client initialization failed:', error);
+}
 
 /**
  * Create embedding vector for text using OpenAI
  */
 export async function createEmbedding(text: string): Promise<number[]> {
+  if (!openai) {
+    console.warn('OpenAI not configured - embeddings unavailable. Set OPENAI_API_KEY to enable vector similarity search.');
+    return []; // Return empty array if OpenAI not available
+  }
+
   try {
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-small',
@@ -25,7 +38,7 @@ export async function createEmbedding(text: string): Promise<number[]> {
     return response.data[0].embedding;
   } catch (error) {
     console.error('Failed to create embedding:', error);
-    throw error;
+    return []; // Return empty array on error
   }
 }
 
@@ -152,6 +165,11 @@ export async function updateProfileEmbedding(
  * Batch create embeddings for multiple texts
  */
 export async function batchCreateEmbeddings(texts: string[]): Promise<number[][]> {
+  if (!openai) {
+    console.warn('OpenAI not configured - batch embeddings unavailable.');
+    return texts.map(() => []); // Return empty arrays if OpenAI not available
+  }
+
   try {
     // OpenAI supports batch embeddings
     const response = await openai.embeddings.create({
@@ -163,6 +181,6 @@ export async function batchCreateEmbeddings(texts: string[]): Promise<number[][]
     return response.data.map((d) => d.embedding);
   } catch (error) {
     console.error('Failed to create batch embeddings:', error);
-    throw error;
+    return texts.map(() => []); // Return empty arrays on error
   }
 }
