@@ -413,5 +413,5 @@ Advanced RBAC with custom roles, compliance dashboard, advanced audit logging wi
 
 ---
 
-*Generated from `.buildrunner/features.json` on 2025-11-05T19:49:46.109Z*
+*Generated from `.buildrunner/features.json` on 2025-11-05T19:55:45.822Z*
 *Generator: `.buildrunner/scripts/generate-status.mjs`*
