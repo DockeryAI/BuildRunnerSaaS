@@ -430,7 +430,7 @@ export class BuildOrchestrator extends EventEmitter {
     this.designIntelligence = new DesignIntelligence(this.apiKey);
     this.designPolisher = new DesignPolisher(this.apiKey);
     this.designTokenInjector = new DesignTokenInjector();
-    this.designProfileDetector = new DesignProfileDetector();
+    this.designProfileDetector = new DesignProfileDetector(this.apiKey);
     this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-sonnet-4');
 
     // Initialize new components

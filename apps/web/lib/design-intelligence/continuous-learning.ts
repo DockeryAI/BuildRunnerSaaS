@@ -13,12 +13,25 @@ export class ContinuousLearningPipeline {
   private learningEngine: DesignLearningEngine;
   private profileDetector: DesignProfileDetector;
   private anthropic: Anthropic;
+  private isOpenRouter: boolean = false;
 
-  constructor() {
+  constructor(apiKey?: string) {
     this.learningEngine = new DesignLearningEngine();
-    this.profileDetector = new DesignProfileDetector();
+    this.profileDetector = new DesignProfileDetector(apiKey);
+    const key = apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_API_KEY;
+    if (!key) {
+      throw new Error('API key required for ContinuousLearningPipeline');
+    }
+    this.isOpenRouter = apiKey && !process.env.ANTHROPIC_API_KEY;
     this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+      apiKey: key,
+      ...(this.isOpenRouter && {
+        baseURL: 'https://openrouter.ai/api/v1',
+        defaultHeaders: {
+          'HTTP-Referer': 'https://buildrunner.ai',
+          'X-Title': 'BuildRunner Design Intelligence',
+        },
+      }),
     });
   }
 
@@ -235,8 +248,13 @@ Return ONLY a JSON array of recommendation strings:
 ["recommendation 1", "recommendation 2", "recommendation 3"]`;
 
     try {
+      // Use OpenRouter model format if using OpenRouter, otherwise use Anthropic format
+      const modelId = this.isOpenRouter
+        ? 'anthropic/claude-sonnet-4.5'  // OpenRouter format
+        : 'claude-sonnet-4-20250514';     // Anthropic format
+
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: modelId,
         max_tokens: 1024,
         temperature: 0.7,
         messages: [

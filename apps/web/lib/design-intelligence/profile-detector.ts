@@ -9,12 +9,28 @@ import { DesignProfile, ProfileDetectionInput, SimilarProfile, ReferenceAppDetai
 import { createEmbedding, findSimilarProfiles } from './embeddings';
 
 export class DesignProfileDetector {
-  private anthropic: Anthropic;
+  private anthropic: Anthropic | null = null;
+  private isOpenRouter: boolean = false;
 
-  constructor() {
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
+  constructor(apiKey?: string) {
+    const key = apiKey || process.env.ANTHROPIC_API_KEY || process.env.OPENROUTER_API_KEY;
+    if (key) {
+      // Support both Anthropic and OpenRouter API keys
+      // If using OpenRouter, configure baseURL
+      this.isOpenRouter = apiKey && !process.env.ANTHROPIC_API_KEY;
+      this.anthropic = new Anthropic({
+        apiKey: key,
+        ...(this.isOpenRouter && {
+          baseURL: 'https://openrouter.ai/api/v1',
+          defaultHeaders: {
+            'HTTP-Referer': 'https://buildrunner.ai',
+            'X-Title': 'BuildRunner Design Intelligence',
+          },
+        }),
+      });
+    } else {
+      console.warn('DesignProfileDetector initialized without API key - profile detection will be unavailable');
+    }
   }
 
   /**
@@ -79,10 +95,19 @@ export class DesignProfileDetector {
    * Deep multi-dimensional analysis with Claude
    */
   private async analyzeWithClaude(input: ProfileDetectionInput): Promise<DesignProfile> {
+    if (!this.anthropic) {
+      throw new Error('Anthropic API client not initialized - provide API key to constructor');
+    }
+
     const prompt = this.buildDetectionPrompt(input);
 
+    //Use OpenRouter model format if using OpenRouter, otherwise use Anthropic format
+    const modelId = this.isOpenRouter
+      ? 'anthropic/claude-sonnet-4.5'  // OpenRouter format
+      : 'claude-sonnet-4-20250514';     // Anthropic format
+
     const response = await this.anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: modelId,
       max_tokens: 4096,
       temperature: 0.7,
       messages: [
