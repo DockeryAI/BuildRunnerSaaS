@@ -64,12 +64,12 @@ export class DesignIntelligence {
     },
 
     'outdoor': {
-      inspiration: ['AllTrails', 'REI', 'Patagonia', 'The North Face'],
+      inspiration: ['AllTrails', 'REI', 'Gaia GPS', 'Trailforks', 'OnX Offroad'],
       colorSchemes: {
-        primary: ['emerald', 'teal', 'forest', 'mountain-blue'],
-        vibe: 'rugged, adventurous, reliable, nature-inspired'
+        primary: ['emerald', 'forest-green', 'teal', 'sage'],
+        vibe: 'rugged, adventurous, earthy, nature-inspired, reliable'
       },
-      components: ['trail-cards', 'map-view', 'weather-widget', 'trip-planner', 'gear-list'],
+      components: ['trail-cards', 'map-view', 'weather-widget', 'trip-planner', 'gear-list', 'route-cards', 'difficulty-badges'],
       layoutPatterns: ['map-centric', 'card-grid', 'detail-sidebar'],
       navigationStyle: 'topnav'
     },
@@ -131,11 +131,19 @@ export class DesignIntelligence {
 
     const description = (prd.projectName + ' ' + prd.description).toLowerCase();
 
+    // Check outdoor FIRST - it's more specific than travel
+    // Outdoor apps are about trails, hiking, off-road adventures
+    const outdoorKeywords = ['trail', 'hiking', 'camping', 'outdoor', 'adventure', 'off-road', 'wilderness', '4x4', 'overlanding', 'backpacking'];
+    if (outdoorKeywords.some(term => description.includes(term))) {
+      console.log(`🎯 Detected industry: outdoor`);
+      return 'outdoor';
+    }
+
+    // Now check other industries
     const keywords: Record<string, string[]> = {
       'saas': ['saas', 'dashboard', 'analytics', 'workspace', 'team', 'collaboration'],
       'ecommerce': ['shop', 'store', 'cart', 'checkout', 'product', 'ecommerce', 'marketplace'],
-      'travel': ['travel', 'booking', 'hotel', 'flight', 'trip', 'vacation', 'tourism'],
-      'outdoor': ['trail', 'hiking', 'camping', 'outdoor', 'adventure', 'off-road', 'wilderness'],
+      'travel': ['travel', 'booking', 'hotel', 'flight', 'vacation', 'tourism', 'airbnb'], // Removed generic "trip"
       'finance': ['finance', 'banking', 'payment', 'money', 'transaction', 'wallet', 'trading'],
       'social': ['social', 'chat', 'messaging', 'community', 'feed', 'post', 'friend'],
       'productivity': ['task', 'todo', 'note', 'project', 'kanban', 'calendar', 'organize']
