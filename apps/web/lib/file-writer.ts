@@ -908,9 +908,9 @@ export { Label }
     // Combine all imports
     const allImports = [...imports, ...componentImports].join('\n');
 
-    // Default to first tab
-    const defaultTab = components.length > 0
-      ? this.sanitizeComponentName(components[0].name).toLowerCase().replace(/[^a-z0-9]/g, '-')
+    // Default to first feature component tab (after filtering tech stack)
+    const defaultTab = featureComponents.length > 0
+      ? this.sanitizeComponentName(featureComponents[0].name).toLowerCase().replace(/[^a-z0-9]/g, '-')
       : 'home';
 
     // Generate complete page

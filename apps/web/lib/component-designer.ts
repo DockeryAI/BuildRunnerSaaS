@@ -5,6 +5,7 @@
  */
 
 import { DesignSpec } from './design-system-generator';
+import { AdvancedDesignSystem, getAdvancedDesignSystem } from './advanced-design-system';
 
 export interface ComponentSpec {
   name: string;
@@ -97,11 +98,19 @@ export class ComponentDesigner {
   }
 
   private getDesignerSystemPrompt(): string {
-    return `You are an expert React developer and UI designer who creates production-quality components.
+    return `You are an expert React developer and UI designer who creates production-quality components for PREMIUM applications.
 
-You specialize in modern design patterns used by companies like Linear, Stripe, Vercel, and Notion.
+You specialize in modern design patterns used by companies like Linear, Stripe, Vercel, Airbnb, and Notion.
 
-CRITICAL: You are building user-facing features, NOT tech documentation!
+CRITICAL RULES:
+❌ NEVER generate plain white backgrounds or basic Bootstrap-style components
+❌ NEVER use default HTML form inputs without styling
+❌ NEVER create empty sections - always include rich placeholder content
+❌ NEVER skip hover states, loading states, or empty states
+✅ ALWAYS use dark themes or rich gradients as the base
+✅ ALWAYS include glassmorphic effects with backdrop-blur
+✅ ALWAYS add micro-animations to ALL interactive elements
+✅ ALWAYS create professional, polished UIs that look like $100k custom apps
 
 MODERN DESIGN PATTERNS YOU MUST USE:
 
@@ -174,9 +183,9 @@ export function Component({
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Modern, beautiful UI */}
+        {/* Premium, polished UI with rich interactions */}
       </div>
     </div>
   )
@@ -202,6 +211,10 @@ Return ONLY the complete component code, no explanations.`;
   private buildComponentPrompt(component: ComponentSpec, designSystem: DesignSpec): string {
     const inspiration = this.getInspirationForType(component.type);
 
+    // Get advanced design system for the component's purpose
+    const advancedDesign = getAdvancedDesignSystem(component.purpose);
+    const { palette, motifs, classes } = advancedDesign;
+
     return `Using this exact design system:
 
 \`\`\`json
@@ -217,21 +230,43 @@ ${component.requirements.map(r => `- ${r}`).join('\n')}
 
 **Design Inspiration:** ${inspiration}
 
+**ADVANCED COLOR PALETTE (${palette.name}):**
+Use these EXACT colors throughout the component:
+- Primary: ${palette.colors.primary}
+- Secondary: ${palette.colors.secondary}
+- Accent: ${palette.colors.accent}
+- Background Base: ${palette.colors.background.base}
+- Background Elevated: ${palette.colors.background.elevated}
+- Text Primary: ${palette.colors.text.primary}
+- Text Secondary: ${palette.colors.text.secondary}
+- Border: ${palette.colors.border.default}
+
+**PREMIUM GRADIENTS:**
+Use inline styles for these gradients:
+- Hero Background: style={{ background: '${palette.gradients.hero}' }}
+- Card Background: style={{ background: '${palette.gradients.card}' }}
+- Button Background: style={{ background: '${palette.gradients.button}' }}
+- Accent: style={{ background: '${palette.gradients.accent}' }}
+
+**COLORED SHADOWS:**
+- Small: shadow-sm (use: ${palette.shadows.sm})
+- Medium: shadow-md (use: ${palette.shadows.md})
+- Large: shadow-lg (use: ${palette.shadows.lg})
+- Extra Large: shadow-xl (use: ${palette.shadows.xl})
+- Colored Glow: shadow-2xl (use: ${palette.shadows.colored})
+
 **CRITICAL STYLING RULES:**
 
-1. **Use EXACT colors from the design system:**
-   - Primary: ${designSystem.colorPalette.primary}
-   - Background: ${designSystem.colorPalette.background}
-   - Surface: ${designSystem.colorPalette.muted}
-   - Text: ${designSystem.colorPalette.foreground}
-   - Border: ${designSystem.colorPalette.border}
+1. **Color Implementation:**
+   - Use hex colors directly: bg-[${palette.colors.primary}], text-[${palette.colors.text.primary}]
+   - For gradients, use inline styles with the gradient values above
+   - For shadows, use className with shadow utilities AND inline style for colored shadows
 
 2. **Modern Design Patterns:**
-   - Glass morphism: backdrop-blur-xl bg-white/10 dark:bg-white/5
-   - Subtle gradients: bg-gradient-to-br from-primary/5 to-transparent
-   - Color-tinted shadows: shadow-2xl shadow-primary/10
-   - Smooth corners: rounded-2xl or rounded-3xl
-   - Micro-interactions: hover:scale-[1.02] transition-all duration-200
+   - Glass morphism: ${motifs.glassmorphism.classes}
+   - Subtle gradients: inline styles with the gradient values above
+   - Smooth corners: ${motifs.borders.radius}
+   - Micro-interactions: ${motifs.animations.hover}
 
 3. **All Interactive States:**
    - Default: Base styling
