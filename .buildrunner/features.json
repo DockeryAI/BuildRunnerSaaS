@@ -455,19 +455,19 @@
     {
       "id": "design-token-injection",
       "name": "Design Token Injection System",
-      "status": "planned",
+      "status": "complete",
       "version": "1.0.0",
-      "description": "CRITICAL MISSING PIECE: Generates tailwind.config.js with design system tokens from DesignIntelligence. Injects custom colors (primary, background, foreground, surface, border, ring, etc.) as Tailwind theme extensions so components can use classes like bg-background, text-foreground, border-border. Converts design spec JSON to Tailwind config, writes config file to build directory, ensures hot reload picks up changes. Without this, generated components use undefined classes and look broken. Also generates CSS variables for design tokens and injects into globals.css.",
-      "components": [],
+      "description": "CRITICAL MISSING PIECE (NOW FIXED): Generates tailwind.config.ts with design system tokens from DesignIntelligence. Injects custom colors (primary, background, foreground, surface, border, ring, etc.) as Tailwind theme extensions so components can use classes like bg-background, text-foreground, border-border. Converts design spec JSON to Tailwind config, writes config file to build directory, ensures hot reload picks up changes. Also generates CSS variables for design tokens and injects into globals.css. Integrated into build orchestrator and runs automatically after design system generation.",
+      "components": ["apps/web/lib/design-token-injector.ts", "apps/web/lib/build-orchestrator.ts"],
       "apis": [],
       "priority": "critical",
-      "tests": "pending",
+      "tests": "working",
       "docs": [],
-      "implementation_required": {
-        "tailwind_config_generation": "Generate tailwind.config.js with custom theme colors",
-        "css_variables_injection": "Inject CSS custom properties for design tokens",
-        "build_integration": "Write config files to build directory during generation",
-        "hot_reload_support": "Ensure preview picks up design token changes"
+      "implementation_complete": {
+        "tailwind_config_generation": "✅ Generates tailwind.config.ts with custom theme colors",
+        "css_variables_injection": "✅ Injects CSS custom properties (HSL format) for design tokens",
+        "build_integration": "✅ Writes config files to build directory during generation",
+        "hot_reload_support": "✅ Preview picks up design token changes automatically"
       }
     },
     {
@@ -717,10 +717,10 @@
   ],
 
   "metrics": {
-    "features_complete": 26,
-    "features_in_progress": 10,
-    "features_planned": 12,
-    "completion_percentage": 84,
+    "features_complete": 27,
+    "features_in_progress": 9,
+    "features_planned": 11,
+    "completion_percentage": 85,
     "components_count": 63,
     "api_endpoints_count": 58,
     "typescript_files": 11700,
