@@ -982,6 +982,18 @@ function CreatePage() {
         setShowOnboarding(false);
         localStorage.setItem('currentProjectId', resumeProjectId);
         console.log('✅ Loaded existing project:', resumeProjectId);
+
+        // CRITICAL: Auto-generate PRD if project has idea but empty PRD sections
+        if (project.productIdea && project.prdSections) {
+          const hasPRDContent = Object.values(project.prdSections as Record<number, PRDSection[]>)
+            .flat()
+            .some((section: any) => section.items && section.items.length > 0);
+
+          if (!hasPRDContent) {
+            console.log('🔄 Detected empty PRD in loaded project - auto-generating...');
+            setTimeout(() => handleStart(project.productIdea), 100);
+          }
+        }
       }
     } else {
       // No explicit project to load - always show brainstorm page
@@ -1034,6 +1046,20 @@ function CreatePage() {
         setAllSuggestions(project.allSuggestions || {});
         setCurrentPhase(project.currentPhase || 1);
         setLastSaved(project.updatedAt);
+
+        // CRITICAL: Auto-generate PRD if project has idea but empty PRD sections
+        // This handles old projects created before auto-PRD was implemented
+        if (project.productIdea && project.prdSections) {
+          const hasPRDContent = Object.values(project.prdSections as Record<number, PRDSection[]>)
+            .flat()
+            .some((section: any) => section.items && section.items.length > 0);
+
+          if (!hasPRDContent) {
+            console.log('🔄 Detected empty PRD - auto-generating from prompt...');
+            // Re-run handleStart to parse prompt and fill PRD
+            setTimeout(() => handleStart(project.productIdea), 100);
+          }
+        }
 
         // Auto-populate product name from saved data
         if (project.productName) {
