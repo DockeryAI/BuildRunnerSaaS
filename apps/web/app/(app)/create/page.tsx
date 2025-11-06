@@ -1284,6 +1284,11 @@ function CreatePage() {
 
       const parseData = await parseResponse.json();
 
+      console.log('📦 Received parse-prompt response:', parseData);
+      console.log('  - hasFeatures:', parseData.hasFeatures);
+      console.log('  - sections keys:', Object.keys(parseData.sections || {}));
+      console.log('  - Full sections data:', JSON.stringify(parseData.sections, null, 2));
+
       if (!parseData.hasFeatures) {
         console.error('❌ No features extracted from prompt:', parseData.missingInfo);
         alert(`Cannot create PRD: ${parseData.message}\n\nMissing:\n${parseData.missingInfo.join('\n')}`);
@@ -1401,8 +1406,11 @@ function CreatePage() {
       console.log('📊 PRD now has features - ready to build!');
 
     } catch (error) {
-      console.error('Failed to parse prompt:', error);
-      alert('Failed to generate PRD from prompt. Please try again.');
+      console.error('❌ ERROR in handleStart:', error);
+      console.error('  - Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('  - Error message:', error instanceof Error ? error.message : String(error));
+      console.error('  - Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      alert(`Failed to generate PRD from prompt: ${error instanceof Error ? error.message : String(error)}\n\nCheck console for details.`);
       setGeneratingPRD(false);
       return;
     }
