@@ -280,6 +280,12 @@ Architecture:
 - Loading states with Suspense
 - Optimistic UI updates where appropriate
 
+Import Paths (CRITICAL - Next.js App Router):
+- Components: Use @/components/* (e.g., import Button from '@/components/ui/button')
+- Utilities: Use @/lib/* (e.g., import { cn } from '@/lib/utils')
+- NEVER use ../src/components/* or relative paths to src/
+- Path alias @ is configured in tsconfig.json to point to the app directory
+
 ANIMATIONS (CRITICAL - Framer Motion Required):
 EVERY component MUST use Framer Motion for professional micro-interactions:
 

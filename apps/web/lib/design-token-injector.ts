@@ -212,19 +212,19 @@ export default config
 
     /* Accent */
     --accent: ${this.hexToHSL(colorPalette.accent || colorPalette.primary)};
-    --accent-foreground: ${this.hexToHSL(colorPalette.accentForeground)};
+    --accent-foreground: ${this.hexToHSL(colorPalette.accentForeground || colorPalette.primaryForeground)};
 
     /* Muted */
-    --muted: ${this.hexToHSL(colorPalette.muted)};
-    --muted-foreground: ${this.hexToHSL(colorPalette.mutedForeground)};
+    --muted: ${this.hexToHSL(colorPalette.muted || '#F3F4F6')};
+    --muted-foreground: ${this.hexToHSL(colorPalette.mutedForeground || '#6B7280')};
 
     /* Border & Ring */
-    --border: ${this.hexToHSL(colorPalette.border)};
+    --border: ${this.hexToHSL(colorPalette.border || '#E5E7EB')};
     --ring: ${this.hexToHSL(colorPalette.ring || colorPalette.primary)};
 
     /* Destructive */
-    --destructive: ${this.hexToHSL(colorPalette.destructive)};
-    --destructive-foreground: ${this.hexToHSL(colorPalette.destructiveForeground)};
+    --destructive: ${this.hexToHSL(colorPalette.destructive || '#EF4444')};
+    --destructive-foreground: ${this.hexToHSL(colorPalette.destructiveForeground || '#FFFFFF')};
   }
 
   .dark {
@@ -237,7 +237,7 @@ export default config
     --secondary: 217 33% 17%;
     --secondary-foreground: 213 31% 91%;
     --accent: ${this.hexToHSL(colorPalette.accent || colorPalette.primary)};
-    --accent-foreground: ${this.hexToHSL(colorPalette.accentForeground)};
+    --accent-foreground: ${this.hexToHSL(colorPalette.accentForeground || colorPalette.primaryForeground)};
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
     --border: 215 28% 17%;
@@ -278,7 +278,13 @@ export default config
   /**
    * Convert hex color to HSL format for CSS variables
    */
-  private hexToHSL(hex: string): string {
+  private hexToHSL(hex: string | undefined): string {
+    // Handle undefined/null values
+    if (!hex) {
+      // Return a safe default (neutral gray)
+      return '0 0% 50%';
+    }
+
     // Remove # if present
     hex = hex.replace('#', '');
 
