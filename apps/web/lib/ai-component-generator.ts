@@ -33,48 +33,52 @@ export class AIComponentGenerator {
 
   /**
    * Intelligent model selection based on component complexity and criticality
-   * Optimizes cost by using faster/cheaper models for simple components
+   * Routes to optimal model for speed + quality balance
    */
   private selectModelForComponent(context: BuildContext): string {
     const { component } = context;
     const componentType = component.componentType.toLowerCase();
     const componentName = component.componentName.toLowerCase();
+    const description = (component.description || '').toLowerCase();
 
-    // Simple UI components → Haiku (fast & cheap)
-    const simpleTypes = [
-      'button', 'input', 'label', 'divider', 'spacer', 'icon',
-      'badge', 'avatar', 'separator', 'skeleton', 'spinner'
-    ];
-
-    if (simpleTypes.some(type => componentType.includes(type) || componentName.includes(type))) {
-      console.log(`🚀 Using Haiku for simple component: ${component.componentName}`);
-      return 'anthropic/claude-3.5-haiku';
-    }
-
-    // Critical components → Sonnet 4 (best quality)
+    // Critical components → Claude 3.5 Sonnet (highest quality)
     const criticalTypes = [
       'auth', 'login', 'signup', 'payment', 'checkout', 'billing',
-      'security', 'admin', 'permission', 'encryption'
+      'security', 'admin', 'permission', 'encryption', 'subscription'
     ];
 
-    if (criticalTypes.some(type => componentType.includes(type) || componentName.includes(type)) ||
+    if (criticalTypes.some(type => componentType.includes(type) || componentName.includes(type) || description.includes(type)) ||
         component.criticality === 'ULTRA_CRITICAL' ||
         component.criticality === 'CRITICAL') {
-      console.log(`🔒 Using Sonnet for critical component: ${component.componentName}`);
-      return 'anthropic/claude-3.5-sonnet'; // Best available model for critical
+      console.log(`🔒 Using Claude 3.5 Sonnet for critical component: ${component.componentName}`);
+      return 'anthropic/claude-sonnet-4.5';
     }
 
-    // Hero/landing pages → Sonnet (design-critical)
-    const designCriticalTypes = ['hero', 'landing', 'homepage', 'onboarding'];
+    // Visual/creative/hero pages → Claude 3.5 Sonnet (better design sense)
+    const visualTypes = [
+      'hero', 'landing', 'homepage', 'onboarding', 'welcome',
+      'marketing', 'showcase', 'featured', 'banner', 'jumbotron',
+      'pricing', 'plans'
+    ];
 
-    if (designCriticalTypes.some(type => componentType.includes(type) || componentName.includes(type))) {
-      console.log(`🎨 Using Sonnet for design-critical component: ${component.componentName}`);
-      return 'anthropic/claude-3.5-sonnet';
+    if (visualTypes.some(type => componentType.includes(type) || componentName.includes(type) || description.includes(type))) {
+      console.log(`🎨 Using Claude 3.5 Sonnet for visual/creative component: ${component.componentName}`);
+      return 'anthropic/claude-sonnet-4.5';
     }
 
-    // Default: Sonnet for balanced quality/cost
-    console.log(`⚖️  Using Sonnet (default) for: ${component.componentName}`);
-    return 'anthropic/claude-3.5-sonnet';
+    // Complex dashboards/analytics → Claude 3.5 Sonnet (complex visualization)
+    const complexVizTypes = ['dashboard', 'analytics', 'metrics', 'insights', 'report'];
+    const hasComplexViz = complexVizTypes.some(type => componentType.includes(type) || componentName.includes(type) || description.includes(type));
+    const isComplex = description.includes('complex') || description.includes('advanced') || description.includes('interactive');
+
+    if (hasComplexViz && isComplex) {
+      console.log(`📊 Using Claude 3.5 Sonnet for complex visualization: ${component.componentName}`);
+      return 'anthropic/claude-sonnet-4.5';
+    }
+
+    // Default: Gemini 2.5 Flash (5-10x faster, excellent quality for standard components)
+    console.log(`⚡ Using Gemini 2.5 Flash for standard component: ${component.componentName}`);
+    return 'google/gemini-2.5-flash';
   }
 
   /**

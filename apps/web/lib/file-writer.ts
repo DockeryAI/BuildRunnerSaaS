@@ -827,33 +827,62 @@ module.exports = nextConfig;
 
   /**
    * Check if a component is a tech stack component (should be filtered out)
+   * ALIGNED with plan-validator.ts to ensure consistency
    */
   private isTechStackComponent(componentName: string): boolean {
+    // First check: Does it match USER FEATURE patterns? (from plan-validator.ts)
+    const userFeaturePatterns = [
+      /trip/i, /group/i, /invite/i, /member/i, /team/i, /user/i,
+      /dashboard/i, /profile/i, /settings/i, /page/i,
+      /chat/i, /message/i, /notification/i,
+      /task/i, /assignment/i, /calendar/i,
+      /menu/i, /meal/i, /food/i, /schedule/i,
+      /location/i, /map/i, /route/i, /weather/i,
+      /rsvp/i, /response/i, /attendance/i,
+    ];
+
+    const isUserFeature = userFeaturePatterns.some(pattern => pattern.test(componentName));
+    if (isUserFeature) {
+      return false; // Definitely NOT tech stack
+    }
+
+    // Second check: Does it exactly match tech stack terms?
     const techTerms = [
-      'nextjs', 'next.js', 'next-js',
-      'react', 'reactjs',
-      'typescript', 'type-script',
-      'tailwindcss', 'tailwind-css', 'tailwind',
-      'shadcnui', 'shadcn-ui', 'shadcn',
-      'shadcnuisetup', 'shadcn-ui-setup',
-      'supabase',
-      'postgresql', 'postgres',
-      'prisma',
+      'nextjs', 'next.js', 'next-js', 'nextjssetup',
+      'react', 'reactjs', 'reactsetup',
+      'typescript', 'type-script', 'tsconfig',
+      'tailwindcss', 'tailwind-css', 'tailwind', 'tailwindsetup',
+      'shadcnui', 'shadcn-ui', 'shadcn', 'shadcnsetup', 'shadcnuisetup',
+      'supabase', 'supabasesetup',
+      'postgresql', 'postgres', 'dbsetup',
+      'prisma', 'prismasetup',
       'node.js', 'nodejs',
-      'express',
-      'mongodb',
-      'firebase',
+      'express', 'expresssetup',
+      'mongodb', 'mongosetup',
+      'firebase', 'firebasesetup',
       'vercel',
     ];
 
     const normalized = componentName.toLowerCase()
       .replace(/\s+/g, '')  // Remove all spaces
-      .replace(/-/g, '');    // Remove hyphens
+      .replace(/-/g, '')    // Remove hyphens
+      .replace(/_/g, '');   // Remove underscores
 
-    return techTerms.some(term => {
-      const normalizedTerm = term.replace(/-/g, '').replace(/\./g, '');
-      return normalized === normalizedTerm || normalized.includes(normalizedTerm);
+    // EXACT match or ends with 'setup', 'config', 'system', 'infrastructure'
+    const isTechExactMatch = techTerms.some(term => {
+      const normalizedTerm = term.replace(/-/g, '').replace(/\./g, '').replace(/_/g, '');
+      return normalized === normalizedTerm;
     });
+
+    if (isTechExactMatch) {
+      return true;
+    }
+
+    // Third check: Infrastructure suffixes (from plan-validator.ts)
+    const infraSuffixes = ['setup', 'config', 'system', 'infrastructure', 'provider'];
+    const hasInfraSuffix = infraSuffixes.some(suffix => normalized.endsWith(suffix));
+
+    return hasInfraSuffix;
   }
 
   /**

@@ -27,6 +27,7 @@ import { reviewBuild, areReviewsEnabled, setReviewEnabled } from './post-build-r
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import * as fs from 'fs';
 import { PatternMatcher } from './pattern-matcher';
 import { getCacheManager } from './cache-manager';
 import { getSmartConsensus } from './smart-consensus';
