@@ -138,10 +138,10 @@ Profile: ${profile.name || 'Modern App'}
 Category: ${profile.category || 'General'}
 
 TARGET AUDIENCE & TONE:
-- Demographic: ${profile.audience.demographic || 'General users'}
-- Tech Level: ${profile.audience.techLevel || 'Medium'}
-- Economic Level: ${profile.audience.economicLevel || 'Medium'}
-- Emotional Tone: ${profile.emotionalTone.energy || 'Balanced'}, ${profile.emotionalTone.formality || 'Professional'}, ${profile.emotionalTone.personality || 'Friendly'}
+- Demographic: ${profile?.audience?.demographic || 'General users'}
+- Tech Level: ${profile?.audience?.techLevel || 'Medium'}
+- Economic Level: ${profile?.audience?.economicLevel || 'Medium'}
+- Emotional Tone: ${profile?.emotionalTone?.energy || 'Balanced'}, ${profile?.emotionalTone?.formality || 'Professional'}, ${profile?.emotionalTone?.personality || 'Friendly'}
 
 VISUAL STYLE:
 - Aesthetic: ${profile?.visualStyle?.aesthetic || 'Modern'}
@@ -155,15 +155,15 @@ ${profile.referenceApps && profile.referenceApps.length > 0
 Make this component look as professional and polished as ${profile.referenceApps && profile.referenceApps[0] || 'modern web apps'}.
 
 COLOR REASONING:
-- Primary (${profile.colorScheme.primary || '#3B82F6'}): ${profile.colorScheme.primaryReasoning || 'Brand color'}
-- Secondary (${profile.colorScheme.secondary || '#6B7280'}): ${profile.colorScheme.secondaryReasoning || 'Secondary brand color'}
-- Accent (${profile.colorScheme.accent || '#10B981'}): ${profile.colorScheme.accentReasoning || 'Accent highlights'}
+- Primary (${profile?.colorScheme?.primary || '#3B82F6'}): ${profile?.colorScheme?.primaryReasoning || 'Brand color'}
+- Secondary (${profile?.colorScheme?.secondary || '#6B7280'}): ${profile?.colorScheme?.secondaryReasoning || 'Secondary brand color'}
+- Accent (${profile?.colorScheme?.accent || '#10B981'}): ${profile?.colorScheme?.accentReasoning || 'Accent highlights'}
 
 COMPONENT PATTERNS:
-- Card Style: ${profile.componentPatterns.cardStyle || 'Modern with shadows'}
-- Button Style: ${profile.componentPatterns.buttonStyle || 'Rounded with good padding'}
-- Navigation: ${profile.componentPatterns.navigation || 'Clean sidebar'}
-- Content Density: ${profile.componentPatterns.contentDensity || 'Balanced spacing'}
+- Card Style: ${profile?.componentPatterns?.cardStyle || 'Modern with shadows'}
+- Button Style: ${profile?.componentPatterns?.buttonStyle || 'Rounded with good padding'}
+- Navigation: ${profile?.componentPatterns?.navigation || 'Clean sidebar'}
+- Content Density: ${profile?.componentPatterns?.contentDensity || 'Balanced spacing'}
 `;
   }
 

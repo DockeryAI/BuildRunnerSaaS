@@ -702,10 +702,10 @@ export class BuildOrchestrator extends EventEmitter {
 
             console.log('📊 Design Profile Details:', {
               purpose: designProfile.primaryPurpose,
-              audience: `${designProfile.audience.demographic} (${designProfile.audience.economicLevel})`,
-              feel: `${designProfile.emotionalTone.personality}, ${designProfile.emotionalTone.energy}`,
-              references: designProfile.referenceApps.slice(0, 3).join(', '),
-              colors: `${designProfile.colorScheme.primary} (primary)`,
+              audience: `${designProfile?.audience?.demographic || 'general'} (${designProfile?.audience?.economicLevel || 'mid-market'})`,
+              feel: `${designProfile?.emotionalTone?.personality || 'professional'}, ${designProfile?.emotionalTone?.energy || 'balanced'}`,
+              references: designProfile?.referenceApps?.slice(0, 3).join(', ') || 'modern apps',
+              colors: `${designProfile?.colorScheme?.primary || '#3B82F6'} (primary)`,
             });
           } catch (error) {
             console.warn('Profile detection failed, falling back to basic detection:', error);
