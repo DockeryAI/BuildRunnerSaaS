@@ -117,37 +117,53 @@ ${this.generateUserStories(component, prd)}`;
   }
 
   private static buildDesignProfileSection(profile: DesignProfile): string {
+    // Defensive checks for nested properties
+    const hasFullProfile = profile &&
+      profile.audience &&
+      profile.emotionalTone &&
+      profile.visualStyle &&
+      profile.referenceApps &&
+      profile.colorScheme &&
+      profile.componentPatterns;
+
+    if (!hasFullProfile) {
+      console.warn('⚠️ Incomplete design profile, skipping profile section');
+      return '';
+    }
+
     return `DESIGN PROFILE (CRITICAL - Follow Exactly):
 This app has been analyzed and matched to these design characteristics:
 
-Profile: ${profile.name}
-Category: ${profile.category}
+Profile: ${profile.name || 'Modern App'}
+Category: ${profile.category || 'General'}
 
 TARGET AUDIENCE & TONE:
-- Demographic: ${profile.audience.demographic}
-- Tech Level: ${profile.audience.techLevel}
-- Economic Level: ${profile.audience.economicLevel}
-- Emotional Tone: ${profile.emotionalTone.energy}, ${profile.emotionalTone.formality}, ${profile.emotionalTone.personality}
+- Demographic: ${profile.audience.demographic || 'General users'}
+- Tech Level: ${profile.audience.techLevel || 'Medium'}
+- Economic Level: ${profile.audience.economicLevel || 'Medium'}
+- Emotional Tone: ${profile.emotionalTone.energy || 'Balanced'}, ${profile.emotionalTone.formality || 'Professional'}, ${profile.emotionalTone.personality || 'Friendly'}
 
 VISUAL STYLE:
-- Aesthetic: ${profile.visualStyle.aesthetic}
-- Modernity: ${profile.visualStyle.modernity}
-- Density: ${profile.visualStyle.density}
+- Aesthetic: ${profile.visualStyle.aesthetic || 'Modern'}
+- Modernity: ${profile.visualStyle.modernity || 'Contemporary'}
+- Density: ${profile.visualStyle.density || 'Balanced'}
 
 REFERENCE APPS (Match This Quality):
-${profile.referenceApps.map((app, i) => `${i + 1}. ${app}`).join('\n')}
-Make this component look as professional and polished as ${profile.referenceApps[0]}.
+${profile.referenceApps && profile.referenceApps.length > 0
+  ? profile.referenceApps.map((app, i) => `${i + 1}. ${app}`).join('\n')
+  : '1. Modern professional web apps'}
+Make this component look as professional and polished as ${profile.referenceApps && profile.referenceApps[0] || 'modern web apps'}.
 
 COLOR REASONING:
-- Primary (${profile.colorScheme.primary}): ${profile.colorScheme.primaryReasoning}
-- Secondary (${profile.colorScheme.secondary}): ${profile.colorScheme.secondaryReasoning}
-- Accent (${profile.colorScheme.accent}): ${profile.colorScheme.accentReasoning}
+- Primary (${profile.colorScheme.primary || '#3B82F6'}): ${profile.colorScheme.primaryReasoning || 'Brand color'}
+- Secondary (${profile.colorScheme.secondary || '#6B7280'}): ${profile.colorScheme.secondaryReasoning || 'Secondary brand color'}
+- Accent (${profile.colorScheme.accent || '#10B981'}): ${profile.colorScheme.accentReasoning || 'Accent highlights'}
 
 COMPONENT PATTERNS:
-- Card Style: ${profile.componentPatterns.cardStyle}
-- Button Style: ${profile.componentPatterns.buttonStyle}
-- Navigation: ${profile.componentPatterns.navigation}
-- Content Density: ${profile.componentPatterns.contentDensity}
+- Card Style: ${profile.componentPatterns.cardStyle || 'Modern with shadows'}
+- Button Style: ${profile.componentPatterns.buttonStyle || 'Rounded with good padding'}
+- Navigation: ${profile.componentPatterns.navigation || 'Clean sidebar'}
+- Content Density: ${profile.componentPatterns.contentDensity || 'Balanced spacing'}
 `;
   }
 
