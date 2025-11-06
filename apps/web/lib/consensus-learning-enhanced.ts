@@ -459,7 +459,7 @@ function measureSpecificity(pattern: string): number {
 function getModelQuality(source: string): number {
   // Higher quality models get higher weights
   const qualityMap: Record<string, number> = {
-    'anthropic/claude-sonnet-4': 2.0,
+    'anthropic/claude-3.5-sonnet': 2.0,
     'anthropic/claude-opus-3.5': 1.8,
     'openai/gpt-4-turbo': 1.7,
     'google/gemini-pro-1.5': 1.5,

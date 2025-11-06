@@ -201,7 +201,7 @@ BEGIN CODE OUTPUT NOW:`;
           'X-Title': 'BuildRunner - Design Polisher',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4',
+          model: 'anthropic/claude-3.5-sonnet',
           messages: [{
             role: 'user',
             content: prompt

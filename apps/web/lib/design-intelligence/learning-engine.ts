@@ -96,7 +96,7 @@ IMPORTANT: Return ONLY the JSON object, no markdown formatting, no backticks.`;
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 2048,
         temperature: 0.7,
         messages: [

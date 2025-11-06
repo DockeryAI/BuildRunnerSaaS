@@ -17,7 +17,7 @@ import { recordLearningSession } from './consensus-learning';
 
 // Same 7 LLMs as meta-improvement system
 const REVIEW_MODELS = [
-  'anthropic/claude-sonnet-4',           // Claude Sonnet 4
+  'anthropic/claude-3.5-sonnet',           // Claude Sonnet 4
   'anthropic/claude-opus-4',             // Claude Opus 4
   'anthropic/claude-3.5-sonnet',         // Claude 3.5 Sonnet
   'openai/gpt-4o',                       // GPT-4 Omni

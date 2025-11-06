@@ -77,7 +77,7 @@ export class SmartConsensus {
       enabled: true,
       modelsByLevel: {
         critical: [
-          'anthropic/claude-sonnet-4',
+          'anthropic/claude-3.5-sonnet',
           'anthropic/claude-opus-4',
           'openai/gpt-4o',
           'google/gemini-2.5-flash',

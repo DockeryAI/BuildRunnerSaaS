@@ -229,7 +229,7 @@ export class DesignIntelligence {
           'X-Title': 'BuildRunner - Design Intelligence',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4',
+          model: 'anthropic/claude-3.5-sonnet',
           messages: [{
             role: 'system',
             content: `You are an elite product designer with 15+ years experience at Linear, Stripe, Apple, and Airbnb. You understand design at a molecular level and create systems that feel effortless, elegant, and purposeful.

@@ -314,7 +314,7 @@ const DEFAULT_CONFIG: OrchestrationConfig = {
         models: 7,
         threshold: 0.71, // 5/7 needed
         modelList: [
-          'anthropic/claude-sonnet-4',
+          'anthropic/claude-3.5-sonnet',
           'anthropic/claude-opus-4',
           'openai/gpt-4-turbo',
           'openai/gpt-4o',
@@ -328,7 +328,7 @@ const DEFAULT_CONFIG: OrchestrationConfig = {
         models: 5,
         threshold: 0.80, // 4/5 needed
         modelList: [
-          'anthropic/claude-sonnet-4',
+          'anthropic/claude-3.5-sonnet',
           'openai/gpt-4-turbo',
           'meta-llama/llama-3.1-70b-instruct',
           'anthropic/claude-opus-4',
@@ -340,7 +340,7 @@ const DEFAULT_CONFIG: OrchestrationConfig = {
         models: 3,
         threshold: 0.67, // 2/3 needed
         modelList: [
-          'anthropic/claude-sonnet-4',
+          'anthropic/claude-3.5-sonnet',
           'openai/gpt-4-turbo',
           'openai/gpt-4o-mini'
         ]
@@ -349,7 +349,7 @@ const DEFAULT_CONFIG: OrchestrationConfig = {
       STANDARD: {
         models: 1,
         threshold: 1.0, // Single model passes
-        modelList: ['anthropic/claude-sonnet-4']
+        modelList: ['anthropic/claude-3.5-sonnet']
       }
     }
   },
@@ -432,7 +432,7 @@ export class BuildOrchestrator extends EventEmitter {
     this.designPolisher = new DesignPolisher(this.apiKey);
     this.designTokenInjector = new DesignTokenInjector();
     this.designProfileDetector = new DesignProfileDetector(this.apiKey);
-    this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-sonnet-4');
+    this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-3.5-sonnet');
 
     // Initialize new components
     this.appTypeDetector = new AppTypeDetector();

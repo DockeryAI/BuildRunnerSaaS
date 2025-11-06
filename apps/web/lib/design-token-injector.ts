@@ -136,11 +136,11 @@ export class DesignTokenInjector {
   /**
    * Convert spacing scale to Tailwind format
    */
-  private convertSpacing(spacing: { unit: number; scale: number[] }): Record<string, string> {
+  private convertSpacing(spacing: { base?: number; unit?: number; scale: number[] }): Record<string, string> {
     const result: Record<string, string> = {};
+    const baseUnit = spacing.base || spacing.unit || 8;
 
-    spacing.scale.forEach((multiplier, index) => {
-      const value = spacing.unit * multiplier;
+    spacing.scale.forEach((value, index) => {
       result[index.toString()] = `${value}px`;
     });
 
@@ -347,8 +347,13 @@ export default config
    */
   async injectDesignTokens(buildDir: string, designSpec: DesignSpec): Promise<void> {
     console.log('💉 Injecting design tokens into build...');
+    console.log(`   Build directory: ${buildDir}`);
 
     try {
+      // Ensure build directory exists
+      await fs.promises.mkdir(buildDir, { recursive: true });
+      console.log('  ✓ Build directory ready');
+
       // Write Tailwind config
       await this.writeTailwindConfig(buildDir, designSpec);
 
@@ -358,6 +363,7 @@ export default config
       console.log('✅ Design tokens injected successfully!');
     } catch (error) {
       console.error('❌ Failed to inject design tokens:', error);
+      console.error('   Error details:', error);
       throw error;
     }
   }

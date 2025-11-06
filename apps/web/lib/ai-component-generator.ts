@@ -60,8 +60,8 @@ export class AIComponentGenerator {
     if (criticalTypes.some(type => componentType.includes(type) || componentName.includes(type)) ||
         component.criticality === 'ULTRA_CRITICAL' ||
         component.criticality === 'CRITICAL') {
-      console.log(`🔒 Using Sonnet 4 for critical component: ${component.componentName}`);
-      return 'anthropic/claude-sonnet-4-20250514'; // Direct Anthropic model for critical
+      console.log(`🔒 Using Sonnet for critical component: ${component.componentName}`);
+      return 'anthropic/claude-3.5-sonnet'; // Best available model for critical
     }
 
     // Hero/landing pages → Sonnet (design-critical)

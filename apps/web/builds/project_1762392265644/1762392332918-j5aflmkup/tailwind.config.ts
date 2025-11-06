@@ -47,8 +47,7 @@ const config: Config = {
             ],
             mono: [
                   "JetBrains Mono",
-                  "'SF Mono'",
-                  "Consolas",
+                  "'Fira Code'",
                   "monospace"
             ]
       },
@@ -60,31 +59,39 @@ const config: Config = {
             xl: "1.25rem",
             2xl: "1.5rem",
             3xl: "1.875rem",
-            4xl: "2.25rem"
+            4xl: "2.25rem",
+            5xl: "3rem"
       },
       fontWeight: {
             normal: 400,
             medium: 500,
             semibold: 600,
-            bold: 700
+            bold: 700,
+            extrabold: 800
       },
       spacing: {
             0: "1px",
             1: "2px",
-            2: "4px",
-            3: "6px",
-            4: "8px",
-            5: "12px",
-            6: "16px",
-            7: "24px",
-            8: "32px",
-            9: "48px",
-            10: "64px",
-            11: "80px",
-            12: "96px",
-            13: "128px"
+            2: "3px",
+            3: "4px",
+            4: "5px",
+            5: "6px",
+            6: "8px",
+            7: "10px",
+            8: "12px",
+            9: "16px",
+            10: "20px",
+            11: "24px",
+            12: "32px",
+            13: "40px",
+            14: "48px",
+            15: "64px",
+            16: "80px",
+            17: "96px",
+            18: "128px"
       },
       borderRadius: {
+            none: "0",
             sm: "0.375rem",
             md: "0.5rem",
             lg: "0.75rem",
@@ -93,10 +100,12 @@ const config: Config = {
             full: "9999px"
       },
       boxShadow: {
-            sm: "0 1px 3px 0 rgba(45, 90, 39, 0.1), 0 1px 2px 0 rgba(45, 90, 39, 0.06)",
-            md: "0 4px 6px -1px rgba(45, 90, 39, 0.1), 0 2px 4px -1px rgba(45, 90, 39, 0.06)",
-            lg: "0 10px 15px -3px rgba(45, 90, 39, 0.1), 0 4px 6px -2px rgba(45, 90, 39, 0.05)",
-            xl: "0 20px 25px -5px rgba(45, 90, 39, 0.1), 0 10px 10px -5px rgba(45, 90, 39, 0.04)"
+            sm: "0 2px 4px 0 rgba(45, 80, 22, 0.08)",
+            md: "0 4px 8px 0 rgba(45, 80, 22, 0.12), 0 2px 4px 0 rgba(45, 80, 22, 0.06)",
+            lg: "0 8px 16px 0 rgba(45, 80, 22, 0.15), 0 4px 8px 0 rgba(45, 80, 22, 0.08)",
+            xl: "0 16px 32px 0 rgba(45, 80, 22, 0.2), 0 8px 16px 0 rgba(45, 80, 22, 0.1)",
+            inner: "inset 0 2px 4px 0 rgba(45, 80, 22, 0.06)",
+            glow: "0 0 20px rgba(255, 107, 53, 0.3)"
       },
       backdropBlur: {
             xs: "2px",

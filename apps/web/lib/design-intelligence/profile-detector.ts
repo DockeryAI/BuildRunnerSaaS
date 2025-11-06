@@ -122,7 +122,7 @@ export class DesignProfileDetector {
     try {
       if (this.isOpenRouter) {
         // Use OpenRouter API directly via fetch
-        const modelId = 'anthropic/claude-sonnet-4.5';
+        const modelId = 'anthropic/claude-3.5-sonnet';
         console.log(`📡 Calling OpenRouter API with model: ${modelId}`);
 
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -163,7 +163,7 @@ export class DesignProfileDetector {
           throw new Error('Anthropic API client not initialized');
         }
 
-        const modelId = 'claude-sonnet-4-20250514';
+        const modelId = 'claude-3-5-sonnet-20240620';
         console.log(`📡 Calling Anthropic API with model: ${modelId}`);
 
         const response = await this.anthropic.messages.create({

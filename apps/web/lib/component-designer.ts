@@ -76,7 +76,7 @@ export class ComponentDesigner {
           'X-Title': 'BuildRunner - Component Designer',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4',
+          model: 'anthropic/claude-3.5-sonnet',
           messages: [{
             role: 'system',
             content: this.getDesignerSystemPrompt()

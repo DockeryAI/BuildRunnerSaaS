@@ -250,8 +250,8 @@ Return ONLY a JSON array of recommendation strings:
     try {
       // Use OpenRouter model format if using OpenRouter, otherwise use Anthropic format
       const modelId = this.isOpenRouter
-        ? 'anthropic/claude-sonnet-4.5'  // OpenRouter format
-        : 'claude-sonnet-4-20250514';     // Anthropic format
+        ? 'anthropic/claude-3.5-sonnet'  // OpenRouter format
+        : 'claude-3-5-sonnet-20240620';  // Anthropic format
 
       const response = await this.anthropic.messages.create({
         model: modelId,
