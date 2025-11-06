@@ -72,6 +72,8 @@ ${profile ? this.buildDesignProfileSection(profile) : ''}
 
 ${this.buildDesignSystemSection(design, prd)}
 
+${this.buildDesignTokenRequirements()}
+
 ${this.buildTechnicalSection(appConfig, component)}
 
 ${this.buildDataModelSection(component)}
@@ -196,6 +198,69 @@ Design Inspiration:
 ${design.inspiration.join(', ')}`;
   }
 
+  private static buildDesignTokenRequirements(): string {
+    return `DESIGN TOKEN REQUIREMENTS (MANDATORY - CRITICAL):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  ABSOLUTE REQUIREMENT: You MUST use design tokens. NO EXCEPTIONS.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ CORRECT - Use These Token Classes:
+  - bg-primary           (NOT bg-blue-500, bg-indigo-600, etc.)
+  - bg-secondary         (NOT bg-purple-500, bg-violet-600, etc.)
+  - bg-accent            (NOT bg-cyan-500, bg-sky-500, etc.)
+  - bg-background        (NOT bg-white, bg-gray-50, bg-slate-50, etc.)
+  - bg-foreground        (NOT bg-black, bg-gray-900, bg-slate-900, etc.)
+  - bg-surface           (for cards, NOT bg-gray-100, bg-slate-100, etc.)
+  - bg-muted             (for disabled/subtle, NOT bg-gray-200, etc.)
+  - bg-border            (for borders, NOT border-gray-300, etc.)
+
+  - text-primary         (NOT text-blue-600, text-indigo-600, etc.)
+  - text-secondary       (NOT text-purple-600, text-violet-600, etc.)
+  - text-accent          (NOT text-cyan-600, text-sky-600, etc.)
+  - text-foreground      (NOT text-black, text-gray-900, text-slate-900, etc.)
+  - text-muted-foreground (NOT text-gray-500, text-slate-500, etc.)
+
+  - border-border        (NOT border-gray-300, border-slate-300, etc.)
+  - border-input         (for form inputs)
+
+  - ring-ring            (for focus rings, NOT ring-blue-500, etc.)
+
+❌ ABSOLUTELY FORBIDDEN - Never Use These:
+  - ANY Tailwind color utilities: blue-*, red-*, green-*, yellow-*, purple-*,
+    pink-*, indigo-*, cyan-*, teal-*, orange-*, gray-*, slate-*, zinc-*,
+    neutral-*, stone-*, amber-*, lime-*, emerald-*, sky-*, violet-*, fuchsia-*, rose-*
+  - ANY hex colors: #6366F1, #8B5CF6, #FFFFFF, #000000, etc.
+  - ANY RGB/RGBA colors: rgb(99, 102, 241), rgba(139, 92, 246, 0.5), etc.
+  - ANY HSL colors: hsl(239, 84%, 67%), etc.
+  - bg-white or bg-black (use bg-background or bg-foreground instead)
+
+🔥 THIS WILL BE VALIDATED:
+Your component will be scanned for hardcoded colors. If ANY are found:
+  1. Build will show ⚠️ warning
+  2. Component will be flagged for regeneration
+  3. Pattern will be downgraded in library
+
+The design system has been CUSTOMIZED for this specific app with carefully
+selected colors based on the app's purpose, audience, and industry. When you
+use design tokens, the app will look cohesive and professional. When you use
+hardcoded colors, it will look like random Bootstrap garbage.
+
+EXAMPLES:
+
+❌ WRONG (Will be rejected):
+  <div className="bg-blue-500 text-white">
+  <Button className="bg-purple-600 hover:bg-purple-700">
+  <Card className="bg-gray-100 border-gray-300">
+
+✅ CORRECT (Approved):
+  <div className="bg-primary text-primary-foreground">
+  <Button className="bg-secondary hover:bg-secondary/90">
+  <Card className="bg-surface border-border">
+
+Remember: The design profile was specifically created for THIS app.
+Use the tokens to match that professional, cohesive design.`;
+  }
+
   private static buildTechnicalSection(appConfig: any, component: ComponentContext): string {
     return `TECHNICAL REQUIREMENTS:
 Framework: ${appConfig.framework || 'Next.js 14 (App Router)'}
@@ -280,10 +345,10 @@ State Management:
 
     return `SPECIFIC REQUIREMENTS:
 1. Design Tokens Application:
-   - ALL colors must use the exact hex values from Design System
-   - Use bg-[${component.componentType === 'Button' ? '#primary' : '#background'}] syntax for custom colors
-   - Font must be ${component.componentType === 'heading' ? 'font-bold' : 'font-medium'}
-   - Apply shadows from design system (shadow-${component.componentType === 'Card' ? 'lg' : 'md'})
+   - CRITICAL: Use design token classes (bg-primary, text-foreground, border-border)
+   - NEVER use Tailwind color utilities (bg-blue-500, text-gray-900, etc.)
+   - Font weight: ${component.componentType === 'heading' ? 'font-bold' : 'font-medium'}
+   - Apply consistent shadows (shadow-${component.componentType === 'Card' ? 'lg' : 'md'})
 
 2. Accessibility (WCAG 2.1 AA):
    - Proper ARIA labels on all interactive elements

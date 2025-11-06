@@ -1543,7 +1543,58 @@ export class BuildOrchestrator extends EventEmitter {
       progress: 80
     });
 
-    // Step 3: Write file to disk
+    // Step 3.5: Validate and enforce design token usage (CRITICAL - Phase 1.6)
+    this.emit('log', {
+      level: 'info',
+      message: `🔍 Validating design token usage...`
+    });
+
+    try {
+      const { DesignTokenValidator } = await import('./design-token-validator');
+      const validationResult = DesignTokenValidator.validateComponent(code, this.designProfile);
+
+      if (!validationResult.isValid) {
+        const severity = DesignTokenValidator.getSeverity(validationResult);
+
+        this.emit('log', {
+          level: severity === 'error' ? 'warning' : 'info',
+          message: `⚠️  Found ${validationResult.violations.length} design token violations`
+        });
+
+        // Log details
+        validationResult.suggestions.forEach(suggestion => {
+          this.emit('log', {
+            level: 'info',
+            message: `   • ${suggestion}`
+          });
+        });
+
+        // Auto-fix violations
+        if (validationResult.fixedCode) {
+          code = validationResult.fixedCode;
+          component.code = code;
+
+          this.emit('log', {
+            level: 'success',
+            message: `✅ Auto-fixed design token violations`
+          });
+        }
+      } else {
+        this.emit('log', {
+          level: 'success',
+          message: `✅ Passes design token validation`
+        });
+      }
+    } catch (error) {
+      console.error('Design token validation failed:', error);
+      this.emit('log', {
+        level: 'warning',
+        message: `⚠️  Design token validation skipped (error: ${error instanceof Error ? error.message : 'unknown'})`
+      });
+      // Continue with un-validated code
+    }
+
+    // Step 4: Write file to disk
     if (this.fileWriter && code) {
       try {
         // Use the file path inferred by the AI generator
