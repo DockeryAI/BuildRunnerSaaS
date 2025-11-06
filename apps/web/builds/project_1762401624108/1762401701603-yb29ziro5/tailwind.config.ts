@@ -10,49 +10,42 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-            background: {
-                  light: "#F8F7F4",
-                  dark: "#1A1D1A"
-            },
-            foreground: {
-                  light: "#1A1D1A",
-                  dark: "#E5E7E5"
-            },
-            surface: {
-                  light: "#FFFFFF",
-                  dark: "#242824"
-            },
+            background: "#FFFFFF",
+            foreground: "#111827",
+            surface: "#F9FAFB",
             primary: {
-                  DEFAULT: "#2D5A27",
+                  DEFAULT: "#6366F1",
                   foreground: "#FFFFFF"
             },
             secondary: {
-                  DEFAULT: "#8B4513",
+                  DEFAULT: "#8B5CF6",
                   foreground: "#FFFFFF"
             },
             accent: {
-                  DEFAULT: "#FF5C38",
+                  DEFAULT: "#6366F1",
                   foreground: "#FFFFFF"
             },
             muted: {
-                  DEFAULT: "#E6E4DE",
+                  DEFAULT: "#F3F4F6",
                   foreground: "#6B7280"
             },
-            border: "#D2D0C8",
-            ring: "#2D5A2733",
+            border: "#E5E7EB",
+            ring: "#6366F1",
             destructive: {
-                  DEFAULT: "#DC2626",
+                  DEFAULT: "#EF4444",
                   foreground: "#FFFFFF"
             }
       },
       fontFamily: {
             sans: [
                   "Inter",
-                  "system-ui",
                   "-apple-system",
+                  "BlinkMacSystemFont",
+                  "system-ui",
                   "sans-serif"
             ],
             mono: [
+                  "SF Mono",
                   "JetBrains Mono",
                   "monospace"
             ]
@@ -94,10 +87,10 @@ const config: Config = {
             full: "9999px"
       },
       boxShadow: {
-            sm: "0 2px 4px 0 rgba(45, 90, 39, 0.05)",
-            md: "0 4px 6px -1px rgba(45, 90, 39, 0.08), 0 2px 4px -2px rgba(45, 90, 39, 0.06)",
-            lg: "0 10px 15px -3px rgba(45, 90, 39, 0.08), 0 4px 6px -4px rgba(45, 90, 39, 0.06)",
-            xl: "0 20px 25px -5px rgba(45, 90, 39, 0.08), 0 8px 10px -6px rgba(45, 90, 39, 0.06)"
+            sm: "0 1px 2px rgba(0, 0, 0, 0.05)",
+            md: "0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            lg: "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            xl: "0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
       },
       backdropBlur: {
             xs: "2px",

@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import TripCreationForm from '../src/components/trip-creation-form';
-import LocationSelector from '../src/components/location-selector';
-import TaskAssignmentComponent from '../src/components/task-assignment-component';
-import TaskListDisplay from '../src/components/task-list-display';
-import CalendarCheckComponent from '../src/components/calendar-check-component';
-import GroupChatFeature from '../src/components/group-chat-feature';
-import RSVPManagement from '../src/components/rsvpmanagement';
+import LocationManagement from '../src/components/location-management';
+import TaskManagement from '../src/components/task-management';
+import SchedulingComponent from '../src/components/scheduling-component';
+import GroupChatComponent from '../src/components/group-chat-component';
 import MealMenuComponent from '../src/components/meal-menu-component';
+import RsvpManagementComponent from '../src/components/rsvp-management-component';
+import WeatherDisplayComponent from '../src/components/weather-display-component';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('tripcreationform');
+  const [activeTab, setActiveTab] = useState('locationmanagement');
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -21,74 +20,44 @@ export default function Home() {
         {/* Tab Navigation */}
         <div className="mb-4 flex gap-1 border-b-2 border-gray-200">
             <button
-              onClick={() => setActiveTab('tripcreationform')}
+              onClick={() => setActiveTab('locationmanagement')}
               className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'tripcreationform'
+                activeTab === 'locationmanagement'
                   ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Trip Creation Form
+              Location Management
             </button>
             <button
-              onClick={() => setActiveTab('locationselector')}
+              onClick={() => setActiveTab('taskmanagement')}
               className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'locationselector'
+                activeTab === 'taskmanagement'
                   ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Location Selector
+              Task Management
             </button>
             <button
-              onClick={() => setActiveTab('taskassignmentcomponent')}
+              onClick={() => setActiveTab('schedulingcomponent')}
               className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'taskassignmentcomponent'
+                activeTab === 'schedulingcomponent'
                   ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Task Assignment Component
+              Scheduling Component
             </button>
             <button
-              onClick={() => setActiveTab('tasklistdisplay')}
+              onClick={() => setActiveTab('groupchatcomponent')}
               className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'tasklistdisplay'
+                activeTab === 'groupchatcomponent'
                   ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Task List Display
-            </button>
-            <button
-              onClick={() => setActiveTab('calendarcheckcomponent')}
-              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'calendarcheckcomponent'
-                  ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Calendar Check Component
-            </button>
-            <button
-              onClick={() => setActiveTab('groupchatfeature')}
-              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'groupchatfeature'
-                  ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Group Chat Feature
-            </button>
-            <button
-              onClick={() => setActiveTab('rsvpmanagement')}
-              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                activeTab === 'rsvpmanagement'
-                  ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              R S V P Management
+              Group Chat Component
             </button>
             <button
               onClick={() => setActiveTab('mealmenucomponent')}
@@ -100,48 +69,63 @@ export default function Home() {
             >
               Meal Menu Component
             </button>
+            <button
+              onClick={() => setActiveTab('rsvpmanagementcomponent')}
+              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                activeTab === 'rsvpmanagementcomponent'
+                  ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Rsvp Management Component
+            </button>
+            <button
+              onClick={() => setActiveTab('weatherdisplaycomponent')}
+              className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
+                activeTab === 'weatherdisplaycomponent'
+                  ? 'bg-white text-blue-600 border-t-2 border-x-2 border-blue-600'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Weather Display Component
+            </button>
         </div>
 
         {/* Tab Content */}
         <div className="bg-white rounded-b-lg shadow-sm border border-gray-200">
-        {activeTab === 'tripcreationform' && (
+        {activeTab === 'locationmanagement' && (
           <div className="p-6">
-            <TripCreationForm />
+            <LocationManagement />
           </div>
         )}
-        {activeTab === 'locationselector' && (
+        {activeTab === 'taskmanagement' && (
           <div className="p-6">
-            <LocationSelector />
+            <TaskManagement />
           </div>
         )}
-        {activeTab === 'taskassignmentcomponent' && (
+        {activeTab === 'schedulingcomponent' && (
           <div className="p-6">
-            <TaskAssignmentComponent />
+            <SchedulingComponent />
           </div>
         )}
-        {activeTab === 'tasklistdisplay' && (
+        {activeTab === 'groupchatcomponent' && (
           <div className="p-6">
-            <TaskListDisplay />
-          </div>
-        )}
-        {activeTab === 'calendarcheckcomponent' && (
-          <div className="p-6">
-            <CalendarCheckComponent />
-          </div>
-        )}
-        {activeTab === 'groupchatfeature' && (
-          <div className="p-6">
-            <GroupChatFeature />
-          </div>
-        )}
-        {activeTab === 'rsvpmanagement' && (
-          <div className="p-6">
-            <RSVPManagement />
+            <GroupChatComponent />
           </div>
         )}
         {activeTab === 'mealmenucomponent' && (
           <div className="p-6">
             <MealMenuComponent />
+          </div>
+        )}
+        {activeTab === 'rsvpmanagementcomponent' && (
+          <div className="p-6">
+            <RsvpManagementComponent />
+          </div>
+        )}
+        {activeTab === 'weatherdisplaycomponent' && (
+          <div className="p-6">
+            <WeatherDisplayComponent />
           </div>
         )}
         </div>

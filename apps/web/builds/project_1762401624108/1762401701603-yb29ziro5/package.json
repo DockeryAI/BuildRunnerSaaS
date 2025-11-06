@@ -11,13 +11,7 @@
   "dependencies": {
     "next": "^14.2.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "framer-motion": "^10.16.0",
-    "lucide-react": "^0.294.0",
-    "@supabase/supabase-js": "^2.38.0",
-    "date-fns": "^2.30.0",
-    "lodash": "latest",
-    "react-responsive": "latest"
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

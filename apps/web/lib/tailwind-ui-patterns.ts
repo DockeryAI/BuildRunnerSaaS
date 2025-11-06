@@ -116,9 +116,9 @@ export class TailwindUIPatternLibrary {
  *
  * CUSTOMIZATION APPLIED:
  * - Colors replaced with design tokens (bg-primary, text-foreground, etc.)
- * - Spacing adjusted to ${profile?.visualStyle.density || 'balanced'} density
+ * - Spacing adjusted to ${profile?.visualStyle?.density || 'balanced'} density
  * - Typography: ${designSpec.typography.fontFamily.sans}
- * - Component style: ${profile?.componentPatterns.cardStyle || 'clean'}
+ * - Component style: ${profile?.componentPatterns?.cardStyle || 'clean'}
  * - Animations: Framer Motion micro-interactions added
  *
  * IMPORTANT: This is a Tailwind UI component. It has been customized to match
@@ -204,8 +204,10 @@ Add Framer Motion animations on top of the Tailwind UI structure.
     suggestions.push('Use proven, accessible component structure');
     suggestions.push('Customize with your design profile colors and spacing');
 
-    if (profile) {
+    if (profile && profile.referenceApps && profile.referenceApps.length > 0) {
       suggestions.push(`Match ${profile.referenceApps[0]}'s quality level`);
+    }
+    if (profile && profile.visualStyle && profile.visualStyle.aesthetic) {
       suggestions.push(`Apply ${profile.visualStyle.aesthetic} aesthetic`);
     }
 
