@@ -117,7 +117,7 @@ export class TailwindUIPatternLibrary {
  * CUSTOMIZATION APPLIED:
  * - Colors replaced with design tokens (bg-primary, text-foreground, etc.)
  * - Spacing adjusted to ${profile?.visualStyle?.density || 'balanced'} density
- * - Typography: ${designSpec.typography.fontFamily.sans}
+ * - Typography: ${designSpec?.typography?.fontFamily?.sans || 'Inter, system-ui, sans-serif'}
  * - Component style: ${profile?.componentPatterns?.cardStyle || 'clean'}
  * - Animations: Framer Motion micro-interactions added
  *

@@ -126,8 +126,8 @@ ${component.code}
    - Test contrast ratios
 
 5. **Typography:**
-   - Font family: ${designSystem.typography.fontFamily.sans}
-   - Use scale: ${Object.entries(designSystem.typography.scale).map(([k, v]) => `${k}: ${v}`).join(', ')}
+   - Font family: ${designSystem?.typography?.fontFamily?.sans || 'Inter, system-ui, sans-serif'}
+   - Use scale: ${Object.entries(designSystem?.typography?.scale || {}).map(([k, v]) => `${k}: ${v}`).join(', ')}
    - Consistent line heights and letter spacing
 
 **Add these polish elements if missing:**

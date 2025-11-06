@@ -596,13 +596,14 @@ Return ONLY the complete component code, no explanations or markdown formatting.
     }
 
     // Ensure font family is applied
-    if (!styledCode.includes('font-[') && design.typography.fontFamily.sans !== 'Inter, system-ui, sans-serif') {
+    const fontFamily = design?.typography?.fontFamily?.sans || 'Inter, system-ui, sans-serif';
+    if (!styledCode.includes('font-[') && fontFamily !== 'Inter, system-ui, sans-serif') {
       // Add font to className strings
       styledCode = styledCode.replace(
         /className=["']([^"']*)["']/g,
         (match, classes) => {
           if (!classes.includes('font-')) {
-            return `className="${classes} font-['${design.typography.fontFamily.sans}']"`;
+            return `className="${classes} font-['${fontFamily}']"`;
           }
           return match;
         }
