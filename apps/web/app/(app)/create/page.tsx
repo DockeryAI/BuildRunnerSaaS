@@ -1135,6 +1135,19 @@ function CreatePage() {
       if (restored.allSuggestions) setAllSuggestions(restored.allSuggestions);
       if (restored.productName) setProductName(restored.productName);
       if (restored.currentPhase) setCurrentPhase(restored.currentPhase);
+
+      // CRITICAL: Auto-generate PRD if restored data has idea but empty PRD sections
+      if (restored.productIdea && restored.prdSections) {
+        const hasPRDContent = Object.values(restored.prdSections as Record<number, PRDSection[]>)
+          .flat()
+          .some((section: any) => section.items && section.items.length > 0);
+
+        if (!hasPRDContent) {
+          console.log('🔄 Detected empty PRD in autosave - auto-generating from prompt...');
+          // Delay to ensure state is set
+          setTimeout(() => handleStart(restored.productIdea), 200);
+        }
+      }
     }
   }, [projectId, showOnboarding]);
 
