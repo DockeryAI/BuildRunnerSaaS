@@ -1874,7 +1874,7 @@ export class BuildOrchestrator extends EventEmitter {
 
     this.emit('log', {
       level: 'info',
-      message: '📦 Installing npm dependencies (this may take 1-2 minutes)...'
+      message: '📦 Installing npm dependencies (checking cache)...'
     });
 
     if (!this.fileWriter) {
@@ -1889,23 +1889,72 @@ export class BuildOrchestrator extends EventEmitter {
 
     try {
       const buildDir = this.fileWriter.getBuildDir();
+      const cacheDir = path.join(process.cwd(), 'builds', '.node_modules_cache');
+      const cachedNodeModules = path.join(cacheDir, 'node_modules');
+      const cachedPackageJson = path.join(cacheDir, 'package.json');
+      const currentPackageJson = path.join(buildDir, 'package.json');
 
-      // Run npm install with proper error handling
-      const { stdout, stderr } = await execAsync('npm install --legacy-peer-deps', {
-        cwd: buildDir,
-        timeout: 300000, // 5 minutes
-        maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large dependency trees
-      });
+      // Check if we can use cached node_modules
+      let useCache = false;
+      if (fs.existsSync(cachedNodeModules) && fs.existsSync(cachedPackageJson) && fs.existsSync(currentPackageJson)) {
+        const cachedPkg = fs.readFileSync(cachedPackageJson, 'utf-8');
+        const currentPkg = fs.readFileSync(currentPackageJson, 'utf-8');
 
-      if (stderr && !stderr.includes('npm WARN')) {
-        console.warn('npm install warnings:', stderr);
+        if (cachedPkg === currentPkg) {
+          useCache = true;
+          console.log('📦 Cache hit! Copying node_modules from cache...');
+          this.emit('log', {
+            level: 'info',
+            message: '⚡ Using cached dependencies (fast path)'
+          });
+        }
       }
 
-      console.log('✅ Dependencies installed successfully');
-      this.emit('log', {
-        level: 'success',
-        message: '✅ All dependencies installed successfully'
-      });
+      if (useCache) {
+        // Copy cached node_modules (much faster than npm install)
+        await execAsync(`cp -R "${cachedNodeModules}" "${buildDir}/"`, {
+          timeout: 60000 // 1 minute
+        });
+
+        console.log('✅ Dependencies copied from cache in <5 seconds');
+        this.emit('log', {
+          level: 'success',
+          message: '✅ Dependencies installed from cache (<5 seconds)'
+        });
+      } else {
+        // No cache or package.json changed - run full npm install
+        console.log('📦 Cache miss - running full npm install...');
+        this.emit('log', {
+          level: 'info',
+          message: '📦 Running full npm install (first build or dependencies changed)...'
+        });
+
+        const { stdout, stderr } = await execAsync('npm install --legacy-peer-deps', {
+          cwd: buildDir,
+          timeout: 300000, // 5 minutes
+          maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large dependency trees
+        });
+
+        if (stderr && !stderr.includes('npm WARN')) {
+          console.warn('npm install warnings:', stderr);
+        }
+
+        // Cache the installed node_modules for future builds
+        console.log('💾 Caching node_modules for future builds...');
+        await execAsync(`mkdir -p "${cacheDir}"`, { timeout: 10000 });
+        await execAsync(`cp -R "${path.join(buildDir, 'node_modules')}" "${cacheDir}/"`, {
+          timeout: 60000 // 1 minute
+        });
+        await execAsync(`cp "${currentPackageJson}" "${cachedPackageJson}"`, {
+          timeout: 10000
+        });
+
+        console.log('✅ Dependencies installed and cached successfully');
+        this.emit('log', {
+          level: 'success',
+          message: '✅ Dependencies installed and cached for future builds'
+        });
+      }
     } catch (error: any) {
       const errorMsg = error.message || 'Unknown error';
       console.error('❌ Failed to install dependencies:', errorMsg);
