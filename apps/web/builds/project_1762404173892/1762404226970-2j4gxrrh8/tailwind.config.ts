@@ -15,8 +15,8 @@ const config: Config = {
                   dark: "#1A1A18"
             },
             foreground: {
-                  light: "#292524",
-                  dark: "#E7E5E4"
+                  light: "#18181B",
+                  dark: "#E5E5E3"
             },
             surface: {
                   light: "#FFFFFF",
@@ -36,21 +36,21 @@ const config: Config = {
             },
             muted: {
                   DEFAULT: {
-                        light: "#F5F5F4",
+                        light: "#F3F3F1",
                         dark: "#2E2E2A"
                   },
                   foreground: {
-                        light: "#78716C",
-                        dark: "#A8A29E"
+                        light: "#71716D",
+                        dark: "#A1A19D"
                   }
             },
             border: {
-                  light: "rgba(28, 25, 23, 0.12)",
-                  dark: "rgba(255, 255, 255, 0.12)"
+                  light: "rgba(0,0,0,0.08)",
+                  dark: "rgba(255,255,255,0.08)"
             },
             ring: {
-                  light: "rgba(45, 90, 39, 0.3)",
-                  dark: "rgba(45, 90, 39, 0.4)"
+                  light: "rgba(45,90,39,0.3)",
+                  dark: "rgba(45,90,39,0.4)"
             },
             destructive: {
                   DEFAULT: "#DC2626",
@@ -65,7 +65,6 @@ const config: Config = {
                   "sans-serif"
             ],
             mono: [
-                  "SF Mono",
                   "JetBrains Mono",
                   "monospace"
             ]
@@ -97,9 +96,7 @@ const config: Config = {
             7: "6px",
             8: "8px",
             9: "12px",
-            10: "16px",
-            11: "20px",
-            12: "24px"
+            10: "16px"
       },
       borderRadius: {
             sm: "0.375rem",
@@ -109,10 +106,10 @@ const config: Config = {
             full: "9999px"
       },
       boxShadow: {
-            sm: "0 1px 2px rgba(28, 25, 23, 0.06)",
-            md: "0 4px 6px -1px rgba(28, 25, 23, 0.08), 0 2px 4px -2px rgba(28, 25, 23, 0.06)",
-            lg: "0 10px 15px -3px rgba(28, 25, 23, 0.08), 0 4px 6px -4px rgba(28, 25, 23, 0.04)",
-            xl: "0 20px 25px -5px rgba(28, 25, 23, 0.08), 0 8px 10px -6px rgba(28, 25, 23, 0.04)"
+            sm: "0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1)",
+            md: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)",
+            lg: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
+            xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)"
       },
       backdropBlur: {
             xs: "2px",

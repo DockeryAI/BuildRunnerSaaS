@@ -421,7 +421,8 @@ Return ONLY the JSON object.`
       console.warn('⚠️  Plan validation failed!');
       console.warn(validator.getValidationReport(validationResult));
 
-      if (validationResult.shouldRegenerate) {
+      // DISABLED: Regeneration loop is too slow - just log warnings and proceed
+      if (false && validationResult.shouldRegenerate) {
         console.log('🔄 Regenerating plan with fixes...');
 
         // Regenerate plan with validation feedback
