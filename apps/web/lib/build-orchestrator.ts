@@ -31,6 +31,7 @@ import * as fs from 'fs';
 import { PatternMatcher } from './pattern-matcher';
 import { getCacheManager } from './cache-manager';
 import { getSmartConsensus } from './smart-consensus';
+import { convertPRDSectionsToPRD, getPRDSummary } from './prd-converter';
 
 const execAsync = promisify(exec);
 
@@ -560,8 +561,25 @@ export class BuildOrchestrator extends EventEmitter {
         prdSections: project.prdSections,
       };
 
-      console.log(`✅ Loaded PRD context: ${prdContext.productName}`);
-      console.log(`📋 Features found: ${features.length}`);
+      // Convert prdSections to complete PRD object using converter
+      if (project.prdSections && Object.keys(project.prdSections).length > 0) {
+        const completePRD = convertPRDSectionsToPRD(
+          project.prdSections,
+          prdContext.productName,
+          prdContext.productIdea
+        );
+
+        console.log(`✅ Loaded PRD context: ${prdContext.productName}`);
+        console.log(`📋 Features found: ${features.length}`);
+        console.log(`📄 PRD auto-generated from sections:`);
+        console.log(getPRDSummary(completePRD));
+
+        // Store complete PRD in context for design system generation
+        (prdContext as any).completePRD = completePRD;
+      } else {
+        console.log(`✅ Loaded PRD context: ${prdContext.productName}`);
+        console.log(`📋 Features found: ${features.length}`);
+      }
 
       return prdContext;
 
@@ -673,7 +691,8 @@ export class BuildOrchestrator extends EventEmitter {
 
         try {
           // Build PRD object for DesignIntelligence
-          const prd: PRD = {
+          // Use completePRD if available (from prdSections converter), otherwise build basic PRD
+          const prd: PRD = (this.prdContext as any)?.completePRD || {
             projectName: this.prdContext?.productName || this.projectId || 'Unnamed Project',
             description: this.prdContext?.description || this.prdContext?.productIdea || this.productIdea || 'Modern web application',
             industry: this.prdContext?.industry,
