@@ -147,6 +147,13 @@ export interface OrchestrationConfig {
     verify_micro_steps: boolean;
     auto_execute_fallback: boolean;
   };
+  multi_agent: {
+    enabled: boolean;
+    max_concurrent_agents: number;
+    retry_failures: boolean;
+    max_retries: number;
+    fail_fast: boolean;
+  };
   safety: {
     auto_checkpoint: boolean;
     auto_rollback: boolean;
@@ -379,6 +386,13 @@ const DEFAULT_CONFIG: OrchestrationConfig = {
     synthesis_model: 'anthropic/claude-3-opus',
     verify_micro_steps: true,
     auto_execute_fallback: true
+  },
+  multi_agent: {
+    enabled: true,  // ENABLED: Sprint 2 - Multi-agent parallel system
+    max_concurrent_agents: 4,  // 4 agents building in parallel
+    retry_failures: true,  // Auto-retry failed components
+    max_retries: 2,  // Max 2 retry attempts
+    fail_fast: false  // Continue building even if some components fail
   },
   safety: {
     auto_checkpoint: true,
@@ -1204,6 +1218,13 @@ export class BuildOrchestrator extends EventEmitter {
   }
 
   private async buildComponents(): Promise<void> {
+    // Sprint 2: Multi-Agent Parallel System
+    if (this.config.multi_agent.enabled) {
+      await this.buildComponentsWithMultiAgent();
+      return;
+    }
+
+    // Legacy: Sequential/batched building (slower but stable)
     // Analyze dependencies
     const graph = this.dependencyAnalyzer.buildDependencyGraph(this.state.components);
 
@@ -1225,6 +1246,119 @@ export class BuildOrchestrator extends EventEmitter {
         await this.buildComponent(component);
       }
     );
+  }
+
+  /**
+   * NEW: Build components with multi-agent parallel system (Sprint 2)
+   * Target: <60 second builds with 5-10x speedup
+   */
+  private async buildComponentsWithMultiAgent(): Promise<void> {
+    this.emit('log', {
+      level: 'info',
+      message: `🚀 Sprint 2: Multi-agent parallel building enabled (${this.config.multi_agent.max_concurrent_agents} agents)`,
+    });
+
+    const { MultiAgentOrchestrator } = await import('./multi-agent-orchestrator');
+
+    const orchestrator = new MultiAgentOrchestrator({
+      maxConcurrentAgents: this.config.multi_agent.max_concurrent_agents,
+      retryFailures: this.config.multi_agent.retry_failures,
+      maxRetries: this.config.multi_agent.max_retries,
+      failFast: this.config.multi_agent.fail_fast,
+    });
+
+    // Forward orchestrator events to build events
+    orchestrator.on('log', (event) => this.emit('log', event));
+    orchestrator.on('wave:start', (event) => this.emit('wave:start', event));
+    orchestrator.on('wave:complete', (event) => this.emit('wave:complete', event));
+    orchestrator.on('component:start', (event) => this.emit('component:started', event));
+    orchestrator.on('component:complete', (event) => {
+      // Map multi-agent events to legacy component events
+      const component = this.state.components.find(c => c.name === event.componentName);
+      if (component) {
+        component.status = event.success ? 'completed' : 'error';
+        component.progress = event.success ? 100 : 0;
+
+        this.emit('component:completed', {
+          componentId: component.id,
+          componentName: component.name,
+          success: event.success,
+        });
+
+        this.emit('progress:updated', {
+          componentId: component.id,
+          componentName: component.name,
+          progress: component.progress,
+        });
+      }
+    });
+
+    // Build contexts for all components
+    const buildContexts = new Map<string, BuildContext>();
+
+    for (const component of this.state.components) {
+      const prdContext: PRDContext = this.prdContext || {
+        productName: this.productIdea || 'App',
+        productIdea: this.productIdea || '',
+        features: [],
+      };
+
+      const componentContext: ComponentContext = {
+        componentName: component.name,
+        componentType: component.type,
+        description: component.description,
+        relatedFeatures: component.relatedFeatures || [],
+        dataModels: component.dataModels || {},
+        dependencies: component.dependencies || [],
+        criticality: component.criticality,
+        qualityRequirements: component.qualityRequirements,
+      };
+
+      const buildContext: BuildContext = {
+        prd: prdContext,
+        design: this.state.designSystem!,
+        component: componentContext,
+        appConfig: this.appConfig || {},
+        profile: this.currentProfile,
+      };
+
+      buildContexts.set(component.id, buildContext);
+    }
+
+    // Execute multi-agent build
+    const startTime = Date.now();
+
+    const result = await orchestrator.buildComponents(
+      this.state.components,
+      buildContexts,
+      this.aiComponentGenerator,
+      this.designPolisher,
+      this.fileWriter
+    );
+
+    const duration = Date.now() - startTime;
+
+    // Log results
+    this.emit('log', {
+      level: result.success ? 'success' : 'warning',
+      message: `🎯 Multi-agent build complete: ${result.successfulComponents}/${result.totalComponents} successful in ${(duration / 1000).toFixed(1)}s`,
+    });
+
+    if (result.failedComponents > 0) {
+      this.emit('log', {
+        level: 'warning',
+        message: `⚠️  ${result.failedComponents} components failed. Check logs for details.`,
+      });
+    }
+
+    // Update component codes from results
+    for (const agentResult of result.results) {
+      const component = this.state.components.find(c => c.name === agentResult.componentName);
+      if (component && agentResult.success && agentResult.code) {
+        component.code = agentResult.code;
+        component.filePath = agentResult.filePath;
+      }
+    }
   }
 
   private async buildComponent(component: BuildComponent): Promise<void> {
