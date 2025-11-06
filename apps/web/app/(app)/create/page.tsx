@@ -1260,6 +1260,10 @@ function CreatePage() {
     setStoreProductIdea(idea); // Sync with orchestration store
     setShowOnboarding(false);
 
+    // Update URL with projectId to prevent useEffect from resetting showOnboarding
+    console.log('🔗 Updating URL with projectId:', useProjectId);
+    router.push(`/create?projectId=${useProjectId}`, { scroll: false });
+
     // CRITICAL: Parse prompt and auto-generate PRD FIRST (required for build)
     console.log('📝 Parsing prompt to auto-generate PRD...');
     setGeneratingPRD(true);
