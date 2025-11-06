@@ -1125,6 +1125,12 @@ function CreatePage() {
       return;
     }
 
+    // Don't restore while actively generating PRD (would overwrite new data)
+    if (generatingPRD) {
+      console.log('⏸️  Skipping autosave restore - PRD generation in progress');
+      return;
+    }
+
     // Try to restore from autosave on first load
     const restored = loadPRDDraft(projectId);
 
@@ -1168,11 +1174,17 @@ function CreatePage() {
         console.log('❌ Missing productIdea or prdSections - cannot auto-generate');
       }
     }
-  }, [projectId, showOnboarding]);
+  }, [projectId, showOnboarding, generatingPRD]);
 
   // Autosave on data changes (debounced)
   useEffect(() => {
     if (showOnboarding || !projectId) {
+      return;
+    }
+
+    // Don't autosave while actively generating PRD (would save empty state)
+    if (generatingPRD) {
+      console.log('⏸️  Skipping autosave - PRD generation in progress');
       return;
     }
 
@@ -1189,6 +1201,11 @@ function CreatePage() {
       timestamp: new Date().toISOString(),
     };
 
+    console.log('💾 Autosaving data...');
+    console.log('  - PRD sections items:', Object.values(prdSections)
+      .flat()
+      .reduce((sum: number, section: any) => sum + (section.items?.length || 0), 0));
+
     debouncedSave(projectId, autosaveData);
     setIsSaving(true);
   }, [
@@ -1198,6 +1215,7 @@ function CreatePage() {
     allSuggestions,
     currentPhase,
     showOnboarding,
+    generatingPRD,
   ]);
 
   // Add beforeunload handler to warn user before leaving with unsaved changes
@@ -1224,14 +1242,23 @@ function CreatePage() {
   }, [projectId, lastSaved, showOnboarding]);
 
   async function handleStart(idea: string) {
-    // Generate a new project ID
-    const newProjectId = `project_${Date.now()}`;
-    setProjectId(newProjectId);
+    // Use existing project ID if available, otherwise create new one
+    const useProjectId = projectId || `project_${Date.now()}`;
+
+    console.log('🚀 Starting PRD build for idea:', idea);
+    console.log('  - Using project ID:', useProjectId);
+    console.log('  - Is regeneration:', !!projectId);
+
+    // Clear old suggestions if regenerating
+    if (projectId) {
+      console.log('  - Clearing old suggestions for regeneration');
+      setAllSuggestions({});
+    }
+
+    setProjectId(useProjectId);
     setProductIdea(idea);
     setStoreProductIdea(idea); // Sync with orchestration store
     setShowOnboarding(false);
-
-    console.log('🚀 Starting PRD build for idea:', idea);
 
     // CRITICAL: Parse prompt and auto-generate PRD FIRST (required for build)
     console.log('📝 Parsing prompt to auto-generate PRD...');
@@ -1356,6 +1383,16 @@ function CreatePage() {
           return section;
         });
       }
+
+      console.log('💾 Setting PRD sections with new data...');
+      console.log('  - New PRD sections:', JSON.stringify(newPrdSections, null, 2));
+
+      // Count total items
+      const totalItems = Object.values(newPrdSections)
+        .flat()
+        .reduce((sum: number, section: any) => sum + (section.items?.length || 0), 0);
+
+      console.log('  - Total items being set:', totalItems);
 
       setPrdSections(newPrdSections);
       setGeneratingPRD(false);
