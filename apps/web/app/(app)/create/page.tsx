@@ -937,6 +937,7 @@ function CreatePage() {
   const [showImportWizard, setShowImportWizard] = useState(false);
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [productName, setProductName] = useState<string>('');
+  const [generatingPRD, setGeneratingPRD] = useState(false);
 
   // Chat feature state
   const [rightPanelTab, setRightPanelTab] = useState<'suggestions' | 'chat'>('suggestions');
@@ -1172,18 +1173,147 @@ function CreatePage() {
     setStoreProductIdea(idea); // Sync with orchestration store
     setShowOnboarding(false);
 
-    // Skip project setup wizard and go directly to PRD building
-    // Database/backend setup will happen in the plan phase when AI suggests tech stack
-
     console.log('🚀 Starting PRD build for idea:', idea);
 
-    // Skip auto-fill - let users populate PRD with AI suggestions by drag-and-drop
-    // This ensures relevant, AI-generated content instead of generic placeholders
-    console.log('✅ PRD initialized (ready for AI suggestions)');
+    // CRITICAL: Parse prompt and auto-generate PRD FIRST (required for build)
+    console.log('📝 Parsing prompt to auto-generate PRD...');
+    setGeneratingPRD(true);
 
-    // Generate AI suggestions for all phases automatically
-    // Backend will use OpenRouter if key is available, otherwise returns mock suggestions
-    console.log('🤖 Generating AI suggestions for all phases...');
+    try {
+      // Get API keys
+      const savedKeys = localStorage.getItem('buildrunner_api_keys');
+      const apiKeys = savedKeys ? JSON.parse(savedKeys) : {};
+
+      const parseResponse = await fetch('/api/prd/parse-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-keys': JSON.stringify(apiKeys),
+        },
+        body: JSON.stringify({ productIdea: idea }),
+      });
+
+      if (!parseResponse.ok) {
+        throw new Error('Failed to parse prompt');
+      }
+
+      const parseData = await parseResponse.json();
+
+      if (!parseData.hasFeatures) {
+        console.error('❌ No features extracted from prompt:', parseData.missingInfo);
+        alert(`Cannot create PRD: ${parseData.message}\n\nMissing:\n${parseData.missingInfo.join('\n')}`);
+        setGeneratingPRD(false);
+        return;
+      }
+
+      console.log('✅ PRD auto-generated from prompt');
+      console.log('- Features extracted:', parseData.sections.features?.length || 0);
+
+      // Auto-fill PRD sections with parsed data
+      const newPrdSections = { ...prdSections };
+
+      // Map parsed sections to PRD phases
+      if (parseData.sections.executive_summary) {
+        newPrdSections[1] = newPrdSections[1].map(section => {
+          if (section.id === 'executive_summary') {
+            return {
+              ...section,
+              items: parseData.sections.executive_summary.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                status: 'approved' as const
+              }))
+            };
+          }
+          return section;
+        });
+      }
+
+      if (parseData.sections.problem_statement) {
+        newPrdSections[1] = newPrdSections[1].map(section => {
+          if (section.id === 'problem_statement') {
+            return {
+              ...section,
+              items: parseData.sections.problem_statement.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                status: 'approved' as const
+              }))
+            };
+          }
+          return section;
+        });
+      }
+
+      if (parseData.sections.target_audience) {
+        newPrdSections[1] = newPrdSections[1].map(section => {
+          if (section.id === 'target_audience') {
+            return {
+              ...section,
+              items: parseData.sections.target_audience.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                status: 'approved' as const
+              }))
+            };
+          }
+          return section;
+        });
+      }
+
+      if (parseData.sections.value_proposition) {
+        newPrdSections[1] = newPrdSections[1].map(section => {
+          if (section.id === 'value_proposition') {
+            return {
+              ...section,
+              items: parseData.sections.value_proposition.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                status: 'approved' as const
+              }))
+            };
+          }
+          return section;
+        });
+      }
+
+      // CRITICAL: Features are required for build
+      if (parseData.sections.features) {
+        newPrdSections[2] = newPrdSections[2].map(section => {
+          if (section.id === 'features') {
+            return {
+              ...section,
+              items: parseData.sections.features.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                status: 'approved' as const
+              }))
+            };
+          }
+          return section;
+        });
+      }
+
+      setPrdSections(newPrdSections);
+      setGeneratingPRD(false);
+
+      console.log('✅ PRD sections auto-filled from prompt');
+      console.log('📊 PRD now has features - ready to build!');
+
+    } catch (error) {
+      console.error('Failed to parse prompt:', error);
+      alert('Failed to generate PRD from prompt. Please try again.');
+      setGeneratingPRD(false);
+      return;
+    }
+
+    // Generate AI suggestions as optional enhancements
+    console.log('🤖 Generating AI suggestions (optional enhancements)...');
     await generateAllPhaseSuggestions(idea);
     console.log('✅ AI suggestion generation complete');
   }
