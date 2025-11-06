@@ -144,9 +144,9 @@ TARGET AUDIENCE & TONE:
 - Emotional Tone: ${profile.emotionalTone.energy || 'Balanced'}, ${profile.emotionalTone.formality || 'Professional'}, ${profile.emotionalTone.personality || 'Friendly'}
 
 VISUAL STYLE:
-- Aesthetic: ${profile.visualStyle.aesthetic || 'Modern'}
-- Modernity: ${profile.visualStyle.modernity || 'Contemporary'}
-- Density: ${profile.visualStyle.density || 'Balanced'}
+- Aesthetic: ${profile?.visualStyle?.aesthetic || 'Modern'}
+- Modernity: ${profile?.visualStyle?.modernity || 'Contemporary'}
+- Density: ${profile?.visualStyle?.density || 'Balanced'}
 
 REFERENCE APPS (Match This Quality):
 ${profile.referenceApps && profile.referenceApps.length > 0
@@ -170,48 +170,48 @@ COMPONENT PATTERNS:
   private static buildDesignSystemSection(design: DesignSpec, prd: PRDContext): string {
     return `DESIGN SYSTEM (MUST USE EXACTLY):
 Brand Personality: ${this.inferBrandPersonality(prd.productIdea)}
-Visual Style: ${design.visualStyle}
+Visual Style: ${design?.visualStyle || 'modern'}
 
 Colors (USE THESE EXACT VALUES):
-- Primary: ${design.colorPalette.primary}
-- Primary Foreground: ${design.colorPalette.primaryForeground}
-- Secondary: ${design.colorPalette.secondary}
-- Accent: ${design.colorPalette.accent}
-- Background: ${design.colorPalette.background}
-- Foreground: ${design.colorPalette.foreground}
-- Border: ${design.colorPalette.border}
-- Muted: ${design.colorPalette.muted}
-- Destructive: ${design.colorPalette.destructive}
+- Primary: ${design?.colorPalette?.primary || '#3B82F6'}
+- Primary Foreground: ${design?.colorPalette?.primaryForeground || '#FFFFFF'}
+- Secondary: ${design?.colorPalette?.secondary || '#6B7280'}
+- Accent: ${design?.colorPalette?.accent || '#10B981'}
+- Background: ${design?.colorPalette?.background || '#FFFFFF'}
+- Foreground: ${design?.colorPalette?.foreground || '#111827'}
+- Border: ${design?.colorPalette?.border || '#E5E7EB'}
+- Muted: ${design?.colorPalette?.muted || '#F3F4F6'}
+- Destructive: ${design?.colorPalette?.destructive || '#EF4444'}
 
 Typography:
-- Font Family: ${design.typography.fontFamily.sans}
-- Mono Font: ${design.typography.fontFamily.mono}
-- Font Sizes: ${JSON.stringify(design.typography.scale)}
-- Font Weights: ${JSON.stringify(design.typography.weights)}
+- Font Family: ${design?.typography?.fontFamily?.sans || 'Inter, system-ui, sans-serif'}
+- Mono Font: ${design?.typography?.fontFamily?.mono || 'JetBrains Mono, monospace'}
+- Font Sizes: ${JSON.stringify(design?.typography?.scale || {})}
+- Font Weights: ${JSON.stringify(design?.typography?.weights || {})}
 
 Spacing (8px base unit):
 - Use Tailwind spacing: p-2 (8px), p-4 (16px), p-6 (24px), p-8 (32px)
 - Gap: gap-2, gap-3, gap-4, gap-6
-- Component Scale: ${design.designTokens.spacing.scale.join(', ')}
+- Component Scale: ${design?.designTokens?.spacing?.scale?.join(', ') || '0, 8, 16, 24, 32, 40, 48'}
 
 Border Radius:
-- Small: ${design.designTokens.borderRadius.sm}
-- Medium: ${design.designTokens.borderRadius.md}
-- Large: ${design.designTokens.borderRadius.lg}
-- Extra Large: ${design.designTokens.borderRadius.xl}
+- Small: ${design?.designTokens?.borderRadius?.sm || '0.125rem'}
+- Medium: ${design?.designTokens?.borderRadius?.md || '0.375rem'}
+- Large: ${design?.designTokens?.borderRadius?.lg || '0.5rem'}
+- Extra Large: ${design?.designTokens?.borderRadius?.xl || '0.75rem'}
 
 Shadows:
-- Small: ${design.designTokens.shadows.sm}
-- Medium: ${design.designTokens.shadows.md}
-- Large: ${design.designTokens.shadows.lg}
+- Small: ${design?.designTokens?.shadows?.sm || '0 1px 2px 0 rgb(0 0 0 / 0.05)'}
+- Medium: ${design?.designTokens?.shadows?.md || '0 4px 6px -1px rgb(0 0 0 / 0.1)'}
+- Large: ${design?.designTokens?.shadows?.lg || '0 10px 15px -3px rgb(0 0 0 / 0.1)'}
 
 Component Patterns:
-- Navigation: ${design.componentPatterns.navigation}
-- Layout: ${design.componentPatterns.layout}
-- Card Style: ${design.componentPatterns.cardStyle}
+- Navigation: ${design?.componentPatterns?.navigation || 'sidebar'}
+- Layout: ${design?.componentPatterns?.layout || 'standard'}
+- Card Style: ${design?.componentPatterns?.cardStyle || 'modern'}
 
 Design Inspiration:
-${design.inspiration.join(', ')}`;
+${design?.inspiration?.join(', ') || 'Modern web applications'}`;
   }
 
   private static buildDesignTokenRequirements(): string {

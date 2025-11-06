@@ -496,21 +496,23 @@ Generate the complete component now, maintaining Catalyst's premium quality whil
     const tokens: string[] = [];
 
     // Check for color usage
-    if (code.includes(designSystem.colorPalette.primary)) tokens.push('primary');
-    if (code.includes(designSystem.colorPalette.background)) tokens.push('background');
-    if (code.includes(designSystem.colorPalette.muted)) tokens.push('muted');
-    if (code.includes(designSystem.colorPalette.border)) tokens.push('border');
+    if (code.includes(designSystem?.colorPalette?.primary || '#3B82F6')) tokens.push('primary');
+    if (code.includes(designSystem?.colorPalette?.background || '#FFFFFF')) tokens.push('background');
+    if (code.includes(designSystem?.colorPalette?.muted || '#F3F4F6')) tokens.push('muted');
+    if (code.includes(designSystem?.colorPalette?.border || '#E5E7EB')) tokens.push('border');
 
     // Check for typography
-    if (code.includes(designSystem.typography.fontFamily.sans)) tokens.push('font-sans');
+    if (code.includes(designSystem?.typography?.fontFamily?.sans || 'Inter')) tokens.push('font-sans');
 
     // Check for spacing
     if (code.includes('gap-') || code.includes('space-')) tokens.push('spacing-system');
 
     // Check for shadows
-    Object.entries(designSystem.designTokens.shadows).forEach(([name, value]) => {
-      if (code.includes(`shadow-${name}`)) tokens.push(`shadow-${name}`);
-    });
+    if (designSystem?.designTokens?.shadows) {
+      Object.entries(designSystem.designTokens.shadows).forEach(([name, value]) => {
+        if (code.includes(`shadow-${name}`)) tokens.push(`shadow-${name}`);
+      });
+    }
 
     return Array.from(new Set(tokens));
   }

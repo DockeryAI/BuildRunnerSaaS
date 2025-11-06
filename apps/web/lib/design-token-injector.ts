@@ -42,13 +42,13 @@ export class DesignTokenInjector {
       ],
       theme: {
         extend: {
-          colors: this.convertColorPalette(designSpec.colorPalette),
-          fontFamily: this.convertFontFamily(designSpec.typography.fontFamily),
-          fontSize: this.convertFontScale(designSpec.typography.scale),
-          fontWeight: designSpec.typography.weights,
-          spacing: this.convertSpacing(designSpec.designTokens.spacing),
-          borderRadius: this.convertBorderRadius(designSpec.designTokens.borderRadius),
-          boxShadow: this.convertShadows(designSpec.designTokens.shadows),
+          colors: this.convertColorPalette(designSpec?.colorPalette || {}),
+          fontFamily: this.convertFontFamily(designSpec?.typography?.fontFamily || { sans: 'Inter, system-ui, sans-serif', mono: 'JetBrains Mono, monospace' }),
+          fontSize: this.convertFontScale(designSpec?.typography?.scale || {}),
+          fontWeight: designSpec?.typography?.weights || { normal: 400, medium: 500, semibold: 600, bold: 700 },
+          spacing: this.convertSpacing(designSpec?.designTokens?.spacing || { scale: [0, 8, 16, 24, 32, 40, 48, 56, 64] }),
+          borderRadius: this.convertBorderRadius(designSpec?.designTokens?.borderRadius || {}),
+          boxShadow: this.convertShadows(designSpec?.designTokens?.shadows || {}),
           backdropBlur: {
             xs: '2px',
             sm: '4px',
@@ -121,8 +121,8 @@ export class DesignTokenInjector {
    */
   private convertFontFamily(fontFamily: { sans: string; mono: string }): Record<string, string[]> {
     return {
-      sans: fontFamily.sans.split(',').map(f => f.trim()),
-      mono: fontFamily.mono.split(',').map(f => f.trim()),
+      sans: (fontFamily?.sans || 'Inter, system-ui, sans-serif').split(',').map(f => f.trim()),
+      mono: (fontFamily?.mono || 'JetBrains Mono, monospace').split(',').map(f => f.trim()),
     };
   }
 
@@ -138,9 +138,9 @@ export class DesignTokenInjector {
    */
   private convertSpacing(spacing: { base?: number; unit?: number; scale: number[] }): Record<string, string> {
     const result: Record<string, string> = {};
-    const baseUnit = spacing.base || spacing.unit || 8;
+    const baseUnit = spacing?.base || spacing?.unit || 8;
 
-    spacing.scale.forEach((value, index) => {
+    (spacing?.scale || [0, 8, 16, 24, 32, 40, 48, 56, 64]).forEach((value, index) => {
       result[index.toString()] = `${value}px`;
     });
 

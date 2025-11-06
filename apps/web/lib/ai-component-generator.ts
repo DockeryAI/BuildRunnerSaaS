@@ -168,18 +168,18 @@ ${catalystIntegration.catalystSource}
 **CRITICAL: ONLY USE THESE DESIGN TOKEN CLASSES - NEVER USE HARDCODED COLORS!**
 
 **Available Color Classes:**
-- **Primary:** bg-primary, text-primary, border-primary, ring-primary (${context.design.colorPalette.primary})
-- **Background:** bg-background, text-background (${context.design.colorPalette.background})
-- **Foreground:** text-foreground (${context.design.colorPalette.foreground})
-- **Surface:** bg-surface (for cards/panels - ${context.design.colorPalette.surface || context.design.colorPalette.muted})
-- **Muted:** bg-muted, text-muted-foreground (${context.design.colorPalette.muted})
-- **Border:** border-border (${context.design.colorPalette.border})
-- **Ring:** ring-ring (for focus states - ${context.design.colorPalette.ring})
-- **Destructive:** bg-destructive, text-destructive (${context.design.colorPalette.destructive})
-- **Accent:** bg-accent, text-accent-foreground (${context.design.colorPalette.accent})
+- **Primary:** bg-primary, text-primary, border-primary, ring-primary (${context.design?.colorPalette?.primary || '#3B82F6'})
+- **Background:** bg-background, text-background (${context.design?.colorPalette?.background || '#FFFFFF'})
+- **Foreground:** text-foreground (${context.design?.colorPalette?.foreground || '#111827'})
+- **Surface:** bg-surface (for cards/panels - ${context.design?.colorPalette?.surface || context.design?.colorPalette?.muted || '#F9FAFB'})
+- **Muted:** bg-muted, text-muted-foreground (${context.design?.colorPalette?.muted || '#F3F4F6'})
+- **Border:** border-border (${context.design?.colorPalette?.border || '#E5E7EB'})
+- **Ring:** ring-ring (for focus states - ${context.design?.colorPalette?.ring || '#3B82F6'})
+- **Destructive:** bg-destructive, text-destructive (${context.design?.colorPalette?.destructive || '#EF4444'})
+- **Accent:** bg-accent, text-accent-foreground (${context.design?.colorPalette?.accent || '#10B981'})
 
 **Typography:**
-- Font: font-sans (${context.design.typography.fontFamily.sans})
+- Font: font-sans (${context.design?.typography?.fontFamily?.sans || 'Inter, system-ui, sans-serif'})
 - Scale: Use text-xs, text-sm, text-base, text-lg, text-xl, text-2xl, text-3xl, text-4xl
 
 **❌ NEVER USE:**

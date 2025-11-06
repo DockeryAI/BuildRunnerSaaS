@@ -720,15 +720,15 @@ export class BuildOrchestrator extends EventEmitter {
 
           this.emit('log', {
             level: 'success',
-            message: `✨ Design system created: ${this.state.designSpec.visualStyle} style | Inspired by ${this.state.designSpec.inspiration?.slice(0, 2).join(', ')}${this.state.designSpec.inspiration && this.state.designSpec.inspiration.length > 2 ? ', ...' : ''}`
+            message: `✨ Design system created: ${this.state.designSpec?.visualStyle || 'modern'} style | Inspired by ${this.state.designSpec?.inspiration?.slice(0, 2).join(', ') || 'modern apps'}${this.state.designSpec?.inspiration && this.state.designSpec.inspiration.length > 2 ? ', ...' : ''}`
           });
 
           console.log('🎨 Advanced Design Spec:', {
-            style: this.state.designSpec.visualStyle,
-            industry: (this.state.designSpec as any).industry,
-            inspiration: this.state.designSpec.inspiration,
-            colors: this.state.designSpec.colorPalette.primary,
-            fonts: this.state.designSpec.typography.fontFamily.sans,
+            style: this.state.designSpec?.visualStyle || 'modern',
+            industry: (this.state.designSpec as any)?.industry,
+            inspiration: this.state.designSpec?.inspiration,
+            colors: this.state.designSpec?.colorPalette?.primary || '#3B82F6',
+            fonts: this.state.designSpec?.typography?.fontFamily?.sans || 'Inter',
           });
 
           // CRITICAL: Inject design tokens into build directory
@@ -1572,7 +1572,7 @@ export class BuildOrchestrator extends EventEmitter {
 
     this.emit('log', {
       level: 'info',
-      message: `📋 Context: ${buildContext.prd.productName} | ${relatedFeatures.length} related features | ${buildContext.design.visualStyle} design`
+      message: `📋 Context: ${buildContext.prd.productName} | ${relatedFeatures.length} related features | ${buildContext.design?.visualStyle || 'modern'} design`
     });
 
     // Step 2: Generate with AI using full context
@@ -3112,21 +3112,21 @@ REASON: Build plan dependencies are correctly ordered with no circular reference
       designGuidance = `
 🎨 DESIGN SYSTEM (FOLLOW EXACTLY):
 
-Visual Style: ${ds.visualStyle}
-Inspiration: ${ds.inspiration.join(', ')}
+Visual Style: ${ds?.visualStyle || 'modern'}
+Inspiration: ${ds?.inspiration?.join(', ') || 'Modern web applications'}
 
 Color Palette (use these exact colors):
-- Primary: ${ds.colorPalette.primary}
-- Secondary: ${ds.colorPalette.secondary}
-- Accent: ${ds.colorPalette.accent}
-- Background: ${ds.colorPalette.background}
-- Border: ${ds.colorPalette.border}
+- Primary: ${ds?.colorPalette?.primary || '#3B82F6'}
+- Secondary: ${ds?.colorPalette?.secondary || '#6B7280'}
+- Accent: ${ds?.colorPalette?.accent || '#10B981'}
+- Background: ${ds?.colorPalette?.background || '#FFFFFF'}
+- Border: ${ds?.colorPalette?.border || '#E5E7EB'}
 
 Typography:
-- Font: ${ds.typography.fontFamily.sans}
-- Use font weights: ${ds.typography.weights.medium} (medium), ${ds.typography.weights.semibold} (semibold), ${ds.typography.weights.bold} (bold)
+- Font: ${ds?.typography?.fontFamily?.sans || 'Inter, system-ui, sans-serif'}
+- Use font weights: ${ds?.typography?.weights?.medium || 500} (medium), ${ds?.typography?.weights?.semibold || 600} (semibold), ${ds?.typography?.weights?.bold || 700} (bold)
 
-Component Style: ${ds.componentPatterns.cardStyle} cards with ${ds.componentPatterns.navigation} navigation
+Component Style: ${ds?.componentPatterns?.cardStyle || 'modern'} cards with ${ds?.componentPatterns?.navigation || 'sidebar'} navigation
 
 **CRITICAL DESIGN REQUIREMENTS:**
 1. Use shadcn/ui components from @/components/ui (Button, Card, Input, Label, etc.)

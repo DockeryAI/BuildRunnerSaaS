@@ -104,13 +104,13 @@ ${component.code}
 
 1. **Color Consistency:**
    - ALL colors must match the design system exactly
-   - Use: ${designSystem.colorPalette.primary} for primary
-   - Use: ${designSystem.colorPalette.background} for background
-   - Use: ${designSystem.colorPalette.border} for borders
+   - Use: ${designSystem?.colorPalette?.primary || '#3B82F6'} for primary
+   - Use: ${designSystem?.colorPalette?.background || '#FFFFFF'} for background
+   - Use: ${designSystem?.colorPalette?.border || '#E5E7EB'} for borders
    - Replace any hardcoded colors (like #6366F1, blue-500, etc.)
 
 2. **Spacing Consistency:**
-   - Use spacing from the system: ${designSystem.designTokens.spacing.scale.join(', ')}
+   - Use spacing from the system: ${designSystem?.designTokens?.spacing?.scale?.join(', ') || '0, 8, 16, 24, 32, 40, 48'}
    - Ensure consistent gap, padding, margin usage
    - Remove any arbitrary spacing values
 
@@ -374,7 +374,7 @@ BEGIN CODE OUTPUT NOW:`;
     let score = 100;
 
     // Check primary color usage
-    if (!code.includes(designSystem.colorPalette.primary)) {
+    if (!code.includes(designSystem?.colorPalette?.primary || '#3B82F6')) {
       score -= 15;
     }
 

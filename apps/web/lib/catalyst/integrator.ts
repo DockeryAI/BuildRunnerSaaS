@@ -155,10 +155,10 @@ ${component.requirements.map((r) => `- ${r}`).join('\n')}
 - Supporting: ${mapping.supportingComponents.map((c: any) => c.name).join(', ')}
 
 **Design System Colors:**
-- Primary: ${designSystem.colorPalette.primary}
-- Secondary: ${designSystem.colorPalette.secondary}
-- Background: ${designSystem.colorPalette.background}
-- Text: ${designSystem.colorPalette.foreground}
+- Primary: ${designSystem?.colorPalette?.primary || '#3B82F6'}
+- Secondary: ${designSystem?.colorPalette?.secondary || '#6B7280'}
+- Background: ${designSystem?.colorPalette?.background || '#FFFFFF'}
+- Text: ${designSystem?.colorPalette?.foreground || '#111827'}
 
 **Catalyst Pattern Guidelines:**
 ${Object.entries(CATALYST_GUIDELINES)
