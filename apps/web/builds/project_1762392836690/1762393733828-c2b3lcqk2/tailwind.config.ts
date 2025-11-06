@@ -10,44 +10,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-            background: "#FFFFFF",
-            foreground: "#111827",
-            surface: "#F9FAFB",
+            background: {
+                  light: "#F8F7F4",
+                  dark: "#1A1D1A"
+            },
+            foreground: {
+                  light: "#1A1D1A",
+                  dark: "#E5E7E5"
+            },
+            surface: {
+                  light: "#FFFFFF",
+                  dark: "#242824"
+            },
             primary: {
-                  DEFAULT: "#6366F1",
+                  DEFAULT: "#2D5A27",
                   foreground: "#FFFFFF"
             },
             secondary: {
-                  DEFAULT: "#8B5CF6",
+                  DEFAULT: "#8B4513",
                   foreground: "#FFFFFF"
             },
             accent: {
-                  DEFAULT: "#6366F1",
+                  DEFAULT: "#FF5C38",
                   foreground: "#FFFFFF"
             },
             muted: {
-                  DEFAULT: "#F3F4F6",
+                  DEFAULT: "#E6E4DE",
                   foreground: "#6B7280"
             },
-            border: "#E5E7EB",
-            ring: "#6366F1",
+            border: "#D2D0C8",
+            ring: "#2D5A2733",
             destructive: {
-                  DEFAULT: "#EF4444",
+                  DEFAULT: "#DC2626",
                   foreground: "#FFFFFF"
             }
       },
       fontFamily: {
             sans: [
                   "Inter",
+                  "system-ui",
                   "-apple-system",
-                  "BlinkMacSystemFont",
-                  "'Segoe UI'",
-                  "Roboto",
                   "sans-serif"
             ],
             mono: [
                   "JetBrains Mono",
-                  "'Fira Code'",
                   "monospace"
             ]
       },
@@ -59,53 +65,39 @@ const config: Config = {
             xl: "1.25rem",
             2xl: "1.5rem",
             3xl: "1.875rem",
-            4xl: "2.25rem",
-            5xl: "3rem"
+            4xl: "2.25rem"
       },
       fontWeight: {
             normal: 400,
             medium: 500,
             semibold: 600,
-            bold: 700,
-            extrabold: 800
+            bold: 700
       },
       spacing: {
-            0: "1px",
-            1: "2px",
-            2: "3px",
-            3: "4px",
-            4: "5px",
-            5: "6px",
-            6: "8px",
-            7: "10px",
-            8: "12px",
-            9: "16px",
-            10: "20px",
-            11: "24px",
-            12: "32px",
-            13: "40px",
-            14: "48px",
-            15: "64px",
-            16: "80px",
-            17: "96px",
-            18: "128px"
+            0: "0.25px",
+            1: "0.5px",
+            2: "1px",
+            3: "1.5px",
+            4: "2px",
+            5: "3px",
+            6: "4px",
+            7: "6px",
+            8: "8px",
+            9: "12px",
+            10: "16px"
       },
       borderRadius: {
-            none: "0",
             sm: "0.375rem",
             md: "0.5rem",
             lg: "0.75rem",
             xl: "1rem",
-            2xl: "1.5rem",
             full: "9999px"
       },
       boxShadow: {
-            sm: "0 2px 4px 0 rgba(45, 80, 22, 0.08)",
-            md: "0 4px 8px 0 rgba(45, 80, 22, 0.12), 0 2px 4px 0 rgba(45, 80, 22, 0.06)",
-            lg: "0 8px 16px 0 rgba(45, 80, 22, 0.15), 0 4px 8px 0 rgba(45, 80, 22, 0.08)",
-            xl: "0 16px 32px 0 rgba(45, 80, 22, 0.2), 0 8px 16px 0 rgba(45, 80, 22, 0.1)",
-            inner: "inset 0 2px 4px 0 rgba(45, 80, 22, 0.06)",
-            glow: "0 0 20px rgba(255, 107, 53, 0.3)"
+            sm: "0 2px 4px 0 rgba(45, 90, 39, 0.05)",
+            md: "0 4px 6px -1px rgba(45, 90, 39, 0.08), 0 2px 4px -2px rgba(45, 90, 39, 0.06)",
+            lg: "0 10px 15px -3px rgba(45, 90, 39, 0.08), 0 4px 6px -4px rgba(45, 90, 39, 0.06)",
+            xl: "0 20px 25px -5px rgba(45, 90, 39, 0.08), 0 8px 10px -6px rgba(45, 90, 39, 0.06)"
       },
       backdropBlur: {
             xs: "2px",
