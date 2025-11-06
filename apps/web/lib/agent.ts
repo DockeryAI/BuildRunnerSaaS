@@ -164,18 +164,22 @@ export class BuildAgent {
         this.progress = 70;
       }
 
-      // Step 4: Validate design tokens - DISABLED for performance
-      // This was adding 30-90 regex operations per component, making parallel builds SLOWER than sequential
+      // Step 4: Validate design tokens - OPTIMIZED for parallel performance
+      // Run validation but don't block on fixes - log warnings instead
       this.status = 'validating';
-      // const validationResult = DesignTokenValidator.validateComponent(
-      //   code,
-      //   buildContext.profile
-      // );
-      //
-      // if (!validationResult.isValid && validationResult.fixedCode) {
-      //   code = validationResult.fixedCode;
-      //   console.log(`🔧 Agent ${this.config.id}: Auto-fixed ${validationResult.violations.length} design token violations`);
-      // }
+      const validationResult = DesignTokenValidator.validateComponent(
+        code,
+        buildContext.profile
+      );
+
+      if (!validationResult.isValid) {
+        // Apply fixes if available
+        if (validationResult.fixedCode) {
+          code = validationResult.fixedCode;
+        }
+        // Log summary, not individual violations
+        console.log(`🎨 Agent ${this.config.id}: Design tokens - ${validationResult.violations.length} issues ${validationResult.fixedCode ? 'fixed' : 'detected'}`);
+      }
 
       this.progress = 80;
 

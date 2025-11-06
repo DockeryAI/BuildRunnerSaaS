@@ -139,9 +139,23 @@ export class PlanValidator {
   private checkTechStackAsFeatures(plan: BuildPlan): ValidationError[] {
     const errors: ValidationError[] = [];
 
+    // Features that look like user features but might contain tech terms
+    const userFeaturePatterns = [
+      /group/i, /invite/i, /member/i, /team/i, /user/i,
+      /dashboard/i, /profile/i, /settings/i, /page/i,
+      /chat/i, /message/i, /notification/i,
+      /task/i, /assignment/i, /calendar/i,
+    ];
+
     for (const milestone of plan.milestones) {
       for (const component of milestone.components) {
         const nameLower = component.name.toLowerCase().replace(/[\s-_.]/g, '');
+
+        // Check if it matches user feature patterns first
+        const isUserFeature = userFeaturePatterns.some(pattern => pattern.test(component.name));
+        if (isUserFeature) {
+          continue; // Skip validation for clear user features
+        }
 
         const matchedTechTerm = this.techStackTerms.find(term =>
           nameLower.includes(term.replace(/[.\s-_]/g, ''))
