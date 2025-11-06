@@ -802,6 +802,27 @@ export { Label }
 
     // Write smart page
     await this.writeFile('app/page.tsx', pageContent);
+
+    // Write next.config.js with CORS support for preview
+    const nextConfig = `/** @type {import('next').NextConfig} */
+const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
+      },
+    ];
+  },
+};
+
+module.exports = nextConfig;
+`;
+    await this.writeFile('next.config.js', nextConfig);
   }
 
   /**
