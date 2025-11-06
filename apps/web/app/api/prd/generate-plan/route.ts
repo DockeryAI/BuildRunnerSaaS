@@ -195,6 +195,13 @@ Generate components based on FEATURES and PAGES from the PRD, NOT tech stack:
 - Tech stack setup (ShadcnSetup, TailwindConfig, etc.)
 - Infrastructure (AuthSystem, DatabaseSetup, APISetup, etc.)
 - Libraries or frameworks (these are auto-included)
+- ANY component ending in "System", "Setup", "Config", "Infrastructure"
+
+**NAMING RULES:**
+- Use user-facing names: "GroupInvites" NOT "InviteSystem"
+- Use feature names: "TaskAssignment" NOT "TaskManager"
+- Use page/view names: "TripDashboard" NOT "DashboardSetup"
+- If it sounds like infrastructure or a service, it's WRONG
 
 **Design system is automatic** - Do NOT create design-system, shadcn-setup, or app-layout components.
 These are auto-generated in the background. Focus ONLY on the user features described in the PRD.
@@ -289,9 +296,11 @@ Before returning, CRITICALLY verify:
    - Check EVERY dependency against this list
    - If dependency doesn't exist, it's INVALID - fix it!
 ✅ No component references non-existent dependencies
-✅ No ShadcnSetup, DesignSystem, TailwindConfig, AuthSystem, DatabaseSetup components
+✅ No components ending in "System", "Setup", "Config", "Infrastructure"
+✅ No ShadcnSetup, DesignSystem, TailwindConfig, AuthSystem, DatabaseSetup, InviteSystem components
+✅ Use user-facing names: "GroupInvites" NOT "InviteSystem", "TaskAssignment" NOT "TaskManager"
 
-⚠️ CRITICAL: If ANY component is tech stack/infrastructure, REMOVE IT and replace with user feature!
+⚠️ CRITICAL: If ANY component is tech stack/infrastructure OR ends in "System"/"Setup", REMOVE IT and replace with user feature!
 
 Return ONLY the JSON. No markdown fences, no extra text.`;
 
