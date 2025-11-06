@@ -32,6 +32,52 @@ export class AIComponentGenerator {
   }
 
   /**
+   * Intelligent model selection based on component complexity and criticality
+   * Optimizes cost by using faster/cheaper models for simple components
+   */
+  private selectModelForComponent(context: BuildContext): string {
+    const { component } = context;
+    const componentType = component.componentType.toLowerCase();
+    const componentName = component.componentName.toLowerCase();
+
+    // Simple UI components → Haiku (fast & cheap)
+    const simpleTypes = [
+      'button', 'input', 'label', 'divider', 'spacer', 'icon',
+      'badge', 'avatar', 'separator', 'skeleton', 'spinner'
+    ];
+
+    if (simpleTypes.some(type => componentType.includes(type) || componentName.includes(type))) {
+      console.log(`🚀 Using Haiku for simple component: ${component.componentName}`);
+      return 'anthropic/claude-3.5-haiku';
+    }
+
+    // Critical components → Sonnet 4 (best quality)
+    const criticalTypes = [
+      'auth', 'login', 'signup', 'payment', 'checkout', 'billing',
+      'security', 'admin', 'permission', 'encryption'
+    ];
+
+    if (criticalTypes.some(type => componentType.includes(type) || componentName.includes(type)) ||
+        component.criticality === 'ULTRA_CRITICAL' ||
+        component.criticality === 'CRITICAL') {
+      console.log(`🔒 Using Sonnet 4 for critical component: ${component.componentName}`);
+      return 'anthropic/claude-sonnet-4-20250514'; // Direct Anthropic model for critical
+    }
+
+    // Hero/landing pages → Sonnet (design-critical)
+    const designCriticalTypes = ['hero', 'landing', 'homepage', 'onboarding'];
+
+    if (designCriticalTypes.some(type => componentType.includes(type) || componentName.includes(type))) {
+      console.log(`🎨 Using Sonnet for design-critical component: ${component.componentName}`);
+      return 'anthropic/claude-3.5-sonnet';
+    }
+
+    // Default: Sonnet for balanced quality/cost
+    console.log(`⚖️  Using Sonnet (default) for: ${component.componentName}`);
+    return 'anthropic/claude-3.5-sonnet';
+  }
+
+  /**
    * Generate a component with full PRD and design context
    */
   async generateComponent(context: BuildContext): Promise<GenerationResult> {
@@ -60,11 +106,15 @@ export class AIComponentGenerator {
       prompt = ContextBuilder.buildComponentPrompt(context);
     }
 
+    // Select optimal model for this component
+    const selectedModel = this.selectModelForComponent(context);
+
     console.log(`🎨 Generating ${context.component.componentName} with full context...`);
     console.log(`📝 Prompt length: ${prompt.length} characters`);
+    console.log(`🤖 Model: ${selectedModel}`);
 
-    // Generate code with AI
-    const rawCode = await this.callAI(prompt);
+    // Generate code with AI using selected model
+    const rawCode = await this.callAI(prompt, selectedModel);
 
     // Post-process: Apply design tokens
     const styledCode = this.applyDesignTokens(rawCode, context.design);
@@ -281,7 +331,10 @@ Now generate the complete, production-quality component with Catalyst foundation
   /**
    * Call AI API with proper error handling and retries
    */
-  private async callAI(prompt: string, retries = 3): Promise<string> {
+  private async callAI(prompt: string, model?: string, retries = 3): Promise<string> {
+    // Use provided model or fall back to instance model
+    const selectedModel = model || this.model;
+
     // Start with 24k tokens to avoid truncation on first attempt
     // (Most components need 20-24k with full PRD context + design system)
     let maxTokens = 24000;
@@ -303,7 +356,7 @@ Now generate the complete, production-quality component with Catalyst foundation
             'X-Title': 'BuildRunner - Component Generator',
           },
           body: JSON.stringify({
-            model: this.model,
+            model: selectedModel,
             messages: [
               {
                 role: 'system',
