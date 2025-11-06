@@ -278,10 +278,21 @@ export default config
   /**
    * Convert hex color to HSL format for CSS variables
    */
-  private hexToHSL(hex: string | undefined): string {
+  private hexToHSL(hex: string | undefined | any): string {
     // Handle undefined/null values
     if (!hex) {
       // Return a safe default (neutral gray)
+      return '0 0% 50%';
+    }
+
+    // Handle object values (e.g., { DEFAULT: '#color' })
+    if (typeof hex === 'object' && hex.DEFAULT) {
+      hex = hex.DEFAULT;
+    }
+
+    // Ensure hex is a string
+    if (typeof hex !== 'string') {
+      console.warn('hexToHSL received non-string value:', hex);
       return '0 0% 50%';
     }
 
