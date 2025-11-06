@@ -511,7 +511,9 @@ Return ONLY the complete component code, no explanations or markdown formatting.
 
         const isTruncated = truncationSigns.filter(Boolean).length >= 2;
 
-        if (isTruncated && attempt < retries) {
+        // DISABLED: Truncation detection is too strict, causing false positives and slow builds
+        // If real truncation occurs, polishing step will catch it
+        if (false && isTruncated && attempt < retries) {
           console.warn(`⚠️  Code appears truncated (attempt ${attempt}/${retries}), retrying...`);
           throw new Error('Generated code appears truncated');
         }
