@@ -446,7 +446,9 @@ export class BuildOrchestrator extends EventEmitter {
     this.designPolisher = new DesignPolisher(this.apiKey);
     this.designTokenInjector = new DesignTokenInjector();
     this.designProfileDetector = new DesignProfileDetector(this.apiKey);
-    this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'anthropic/claude-3.5-sonnet');
+    // Use Gemini 2.5 Flash for 5-10x faster component generation
+    // Quality is still excellent but latency is ~2-4s vs 15-20s for Claude
+    this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'google/gemini-2.5-flash');
 
     // Initialize new components
     this.appTypeDetector = new AppTypeDetector();

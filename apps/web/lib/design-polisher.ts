@@ -201,7 +201,9 @@ BEGIN CODE OUTPUT NOW:`;
           'X-Title': 'BuildRunner - Design Polisher',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
+          // Use Gemini 2.5 Flash for 5-10x faster polishing (2-4s vs 15-20s)
+          // Quality is excellent for polishing tasks
+          model: 'google/gemini-2.5-flash',
           messages: [{
             role: 'user',
             content: prompt
