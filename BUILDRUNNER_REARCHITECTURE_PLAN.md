@@ -6,10 +6,12 @@ BuildRunner is transitioning from a slow, consensus-based architecture to a fast
 
 **Current State:**
 - ✅ Visual PRD builder (working great)
-- ✅ Design profile detection (working but disconnected)
+- ✅ Design profile detection (working!)
 - ✅ Pattern library (10MB, 100+ patterns)
+- ⚠️ Design tokens generated BUT not enforced (components use hardcoded colors)
+- ⚠️ Tailwind UI purchased BUT not integrated
+- ⚠️ Framer Motion installed BUT not consistently applied
 - ❌ 5-10 minute builds (too slow)
-- ❌ Generic-looking apps (design tokens not applied)
 - ❌ Sequential generation (inefficient)
 - ❌ 7-LLM consensus (expensive, slow)
 
@@ -58,8 +60,8 @@ BuildRunner is transitioning from a slow, consensus-based architecture to a fast
 
 **Result:** `tailwind.config.ts` and `globals.css` now successfully created
 
-### 1.3 Connect Design Profile to Generation ✅ COMPLETED
-**Status:** Done
+### 1.3 Connect Design Profile to Generation ✅ COMPLETED (WITH CAVEATS)
+**Status:** Partially done - Profile detected but NOT fully enforced
 **Files Modified:**
 - `lib/build-orchestrator.ts` - Store design profile
 - `lib/context-builder.ts` - Add profile section to prompts
@@ -71,6 +73,18 @@ BuildRunner is transitioning from a slow, consensus-based architecture to a fast
 - Reference app quality standards
 - Color psychology and reasoning
 - Component pattern specifications
+
+**⚠️ CRITICAL ISSUE DISCOVERED:**
+The profile detector IS working and shows:
+- ✨ "Design Profile: Off-Road Trip Planner"
+- ✨ "Design system created: bold-colorful style"
+
+BUT components are still using hardcoded colors instead of design tokens!
+- ❌ Getting: "⚠️ Uses hardcoded colors instead of design tokens"
+- ❌ Components use `bg-blue-500` instead of `bg-primary`
+- ❌ Components use `text-purple-600` instead of `text-secondary`
+
+**NEEDS STRONGER ENFORCEMENT - See Phase 1.6 below**
 
 ### 1.4 Add Framer Motion Requirements ✅ COMPLETED
 **Status:** Done
@@ -94,6 +108,127 @@ BuildRunner is transitioning from a slow, consensus-based architecture to a fast
 - Default → Sonnet (balanced quality/cost)
 
 **Expected Savings:** 40-60% cost reduction
+
+### 1.6 Enforce Design Token Usage & Tailwind UI 📋 TODO (HIGH PRIORITY)
+**Status:** CRITICAL - Must implement immediately
+**Priority:** HIGH (blocking professional designs)
+
+**The Problem:**
+- Profile detector works, design tokens are generated, BUT components ignore them
+- Components use `bg-blue-500` instead of `bg-primary`
+- Components use `text-gray-900` instead of `text-foreground`
+- Tailwind UI is purchased but not being leveraged
+
+**Solution Part 1: Stronger Prompt Enforcement**
+**File:** `lib/context-builder.ts`
+
+Add to component generation prompt:
+```typescript
+DESIGN TOKEN REQUIREMENTS (MANDATORY):
+You MUST use design tokens. NEVER use hardcoded colors.
+
+✅ CORRECT:
+- bg-primary (NOT bg-blue-500)
+- text-secondary (NOT text-purple-600)
+- bg-background (NOT bg-white or bg-gray-900)
+- text-foreground (NOT text-black or text-gray-800)
+- border-border (NOT border-gray-300)
+- bg-surface (for cards, NOT bg-gray-50)
+
+❌ FORBIDDEN:
+- ANY Tailwind color utilities (blue-500, red-600, gray-100, etc.)
+- ANY hex colors (#6366F1, #8B5CF6, etc.)
+- ANY RGB colors (rgb(99, 102, 241))
+
+The design system has been customized for this app. Use the tokens!
+```
+
+**Solution Part 2: Tailwind UI Pattern Library**
+**New File:** `lib/tailwind-ui-patterns.ts`
+
+```typescript
+export class TailwindUIPatternLibrary {
+  private purchasedComponents = [
+    'application-ui/navigation',
+    'application-ui/forms',
+    'application-ui/lists',
+    'marketing/sections/heroes',
+    'marketing/sections/features',
+    // ... all purchased Tailwind UI components
+  ];
+
+  // Check if we have a Tailwind UI component for this
+  async findTailwindUIPattern(componentType: string): Promise<Pattern | null> {
+    // Map component type to Tailwind UI component
+    // Return pattern with customization instructions
+  }
+
+  // Customize Tailwind UI pattern with design profile
+  async customizeWithProfile(pattern: Pattern, profile: DesignProfile): Promise<string> {
+    // Replace Tailwind UI's default colors with profile colors
+    // Adjust spacing based on profile density
+    // Add Framer Motion animations
+    // Return customized component
+  }
+}
+```
+
+**Solution Part 3: Post-Generation Validation**
+**New File:** `lib/design-token-validator.ts`
+
+```typescript
+export class DesignTokenValidator {
+  // Check if component uses hardcoded colors
+  validateComponent(code: string): ValidationResult {
+    const hardcodedColors = [
+      /bg-(blue|red|green|yellow|purple|pink|gray|indigo)-\d+/g,
+      /text-(blue|red|green|yellow|purple|pink|gray|indigo)-\d+/g,
+      /#[0-9A-Fa-f]{6}/g,
+    ];
+
+    const violations = [];
+    for (const pattern of hardcodedColors) {
+      const matches = code.match(pattern);
+      if (matches) {
+        violations.push(...matches);
+      }
+    }
+
+    return {
+      isValid: violations.length === 0,
+      violations,
+      suggestions: this.suggestTokenReplacements(violations),
+    };
+  }
+
+  // Auto-fix hardcoded colors
+  autoFixViolations(code: string, profile: DesignProfile): string {
+    let fixed = code;
+
+    // Replace common patterns
+    fixed = fixed.replace(/bg-blue-\d+/g, 'bg-primary');
+    fixed = fixed.replace(/bg-purple-\d+/g, 'bg-secondary');
+    fixed = fixed.replace(/text-gray-900/g, 'text-foreground');
+    fixed = fixed.replace(/bg-gray-50/g, 'bg-surface');
+    fixed = fixed.replace(/bg-white/g, 'bg-background');
+
+    return fixed;
+  }
+}
+```
+
+**Integration:**
+1. Add stronger prompt requirements to context-builder.ts
+2. Create Tailwind UI pattern library
+3. Add post-generation validation
+4. Auto-fix violations before saving component
+5. Log violations for learning (feed into Layer 1 feedback loop)
+
+**Success Metrics:**
+- Zero "hardcoded color" warnings
+- 80%+ components use Tailwind UI base patterns
+- Design consistency score >90%
+- Components match design profile exactly
 
 ---
 
@@ -738,12 +873,16 @@ The system learns from **7 different types of feedback**:
 
 ## Implementation Priority
 
-### Sprint 1: Foundation (Week 1) ✅ COMPLETED
+### Sprint 1: Foundation (Week 1) ✅ 90% COMPLETED
 - [x] Fix model IDs
 - [x] Fix design token injection
 - [x] Connect design profiles
-- [x] Add Framer Motion
+- [x] Add Framer Motion requirements
 - [x] Intelligent model routing
+- [ ] **Enforce design token usage (CRITICAL - Phase 1.6)**
+- [ ] **Integrate Tailwind UI patterns (HIGH PRIORITY - Phase 1.6)**
+
+**Status:** Core foundation complete, but components not respecting design tokens yet
 
 ### Sprint 2: Multi-Agent System (Week 2) 📋 NEXT
 - [ ] Build multi-agent orchestrator
@@ -983,13 +1122,57 @@ The system learns from **7 different types of feedback**:
 
 ---
 
+## Testing Protocol: Off-Road Trip Planner
+
+**After implementing Phase 1.6, test with the Off-Road Trip Planner app to verify:**
+
+### ✅ Design Token Compliance
+- [ ] Zero "hardcoded color" warnings in console
+- [ ] All components use `bg-primary`, `text-secondary`, etc. (NO `bg-blue-500`)
+- [ ] Background uses `bg-background` (NO `bg-white` or `bg-gray-900`)
+- [ ] Cards use `bg-surface` (NO `bg-gray-50`)
+
+### ✅ Design Profile Applied
+- [ ] Uses detected color scheme (orange/purple for outdoor adventure)
+- [ ] Typography matches profile (adventurous, bold)
+- [ ] Spacing matches profile (spacious for outdoor feel)
+- [ ] Components match "bold-colorful" style directive
+
+### ✅ Tailwind UI Integration
+- [ ] Navigation uses Tailwind UI pattern (customized with tokens)
+- [ ] Forms use Tailwind UI pattern (customized with tokens)
+- [ ] Lists use Tailwind UI pattern (customized with tokens)
+- [ ] Hero uses Tailwind UI pattern (customized with tokens)
+
+### ✅ Framer Motion Animations
+- [ ] Every component has entry animations
+- [ ] Buttons have hover/press effects
+- [ ] Lists have stagger animations
+- [ ] Modals have fade/zoom animations
+
+### ✅ Performance
+- [ ] Build completes in <60 seconds
+- [ ] Preview server starts without errors
+- [ ] No CORS errors
+- [ ] No console errors
+
+### ✅ Professional Quality
+- [ ] Looks like Linear/Stripe quality (NOT Bootstrap-like)
+- [ ] Consistent spacing throughout
+- [ ] Professional color usage
+- [ ] Smooth micro-interactions
+
+**If any checks fail, use feedback loops to learn and improve for next build!**
+
+---
+
 ## For Future Claude Instances
 
 When you see this plan:
 - **Keep** all existing working features
 - **Build** on the foundation we have
 - **Enhance** rather than rebuild
-- **Test** incrementally
+- **Test** incrementally with Off-Road Trip Planner
 - **Learn** from failures
 
 **The Ultimate Goal:** Professional apps in <60 seconds with zero babysitting.
@@ -997,9 +1180,11 @@ When you see this plan:
 **The Secret Weapon:** The 5-layer feedback loop system that makes BuildRunner exponentially better with every build. This isn't just about building apps—it's about building a system that learns and improves itself.
 
 **Current Progress:**
-- ✅ Sprint 1 Complete: Foundation (model IDs, design tokens, profiles, Framer Motion, model routing)
+- ✅ Sprint 1: 90% Complete (need Phase 1.6: Design token enforcement + Tailwind UI)
 - 📋 Sprint 2 Next: Multi-agent parallel system
 - 📋 Sprint 3-4: Contextual debugging, failure prevention, polish
 - 📋 Sprint 5: Full feedback loop system (the game-changer)
+
+**IMMEDIATE PRIORITY:** Complete Phase 1.6 to fix hardcoded color violations and integrate Tailwind UI patterns. This is blocking professional-quality designs.
 
 **Remember:** Every user interaction is a learning opportunity. Track it. Learn from it. Improve the system. This is how we get from 30% to 95% autonomous.
