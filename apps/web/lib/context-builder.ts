@@ -4,6 +4,7 @@
  */
 
 import { DesignSpec } from './design-system-generator';
+import type { DesignProfile } from './design-intelligence/types';
 
 export interface PRDContext {
   productName: string;
@@ -51,6 +52,7 @@ export interface BuildContext {
     typescript: boolean;
     mobileFirst: boolean;
   };
+  profile?: DesignProfile | null; // Optional design profile for enhanced generation
 }
 
 export class ContextBuilder {
@@ -58,13 +60,15 @@ export class ContextBuilder {
    * Build a comprehensive, v0.dev-quality prompt for component generation
    */
   static buildComponentPrompt(context: BuildContext): string {
-    const { prd, design, component, appConfig } = context;
+    const { prd, design, component, appConfig, profile } = context;
 
     return `You are an expert React developer building a production-quality web application.
 
 ${this.buildAppSection(prd)}
 
 ${this.buildFeatureSection(component, prd)}
+
+${profile ? this.buildDesignProfileSection(profile) : ''}
 
 ${this.buildDesignSystemSection(design, prd)}
 
@@ -108,6 +112,41 @@ ${relatedFeatures.length > 0
 
 User Stories:
 ${this.generateUserStories(component, prd)}`;
+  }
+
+  private static buildDesignProfileSection(profile: DesignProfile): string {
+    return `DESIGN PROFILE (CRITICAL - Follow Exactly):
+This app has been analyzed and matched to these design characteristics:
+
+Profile: ${profile.name}
+Category: ${profile.category}
+
+TARGET AUDIENCE & TONE:
+- Demographic: ${profile.audience.demographic}
+- Tech Level: ${profile.audience.techLevel}
+- Economic Level: ${profile.audience.economicLevel}
+- Emotional Tone: ${profile.emotionalTone.energy}, ${profile.emotionalTone.formality}, ${profile.emotionalTone.personality}
+
+VISUAL STYLE:
+- Aesthetic: ${profile.visualStyle.aesthetic}
+- Modernity: ${profile.visualStyle.modernity}
+- Density: ${profile.visualStyle.density}
+
+REFERENCE APPS (Match This Quality):
+${profile.referenceApps.map((app, i) => `${i + 1}. ${app}`).join('\n')}
+Make this component look as professional and polished as ${profile.referenceApps[0]}.
+
+COLOR REASONING:
+- Primary (${profile.colorScheme.primary}): ${profile.colorScheme.primaryReasoning}
+- Secondary (${profile.colorScheme.secondary}): ${profile.colorScheme.secondaryReasoning}
+- Accent (${profile.colorScheme.accent}): ${profile.colorScheme.accentReasoning}
+
+COMPONENT PATTERNS:
+- Card Style: ${profile.componentPatterns.cardStyle}
+- Button Style: ${profile.componentPatterns.buttonStyle}
+- Navigation: ${profile.componentPatterns.navigation}
+- Content Density: ${profile.componentPatterns.contentDensity}
+`;
   }
 
   private static buildDesignSystemSection(design: DesignSpec, prd: PRDContext): string {
@@ -174,7 +213,47 @@ Architecture:
 - Use 'use client' only when needed (state, effects, events)
 - Proper error boundaries
 - Loading states with Suspense
-- Optimistic UI updates where appropriate`;
+- Optimistic UI updates where appropriate
+
+ANIMATIONS (CRITICAL - Framer Motion Required):
+EVERY component MUST use Framer Motion for professional micro-interactions:
+
+1. Import at top of EVERY component:
+   import { motion, AnimatePresence } from 'framer-motion';
+
+2. Wrap main container in motion.div with entry animation:
+   <motion.div
+     initial={{ opacity: 0, y: 20 }}
+     animate={{ opacity: 1, y: 0 }}
+     transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+   >
+
+3. Add hover animations to ALL interactive elements:
+   - Buttons: whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+   - Cards: whileHover={{ y: -4, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)" }}
+   - Links: whileHover={{ x: 4 }}
+   - Icons: whileHover={{ rotate: 5 }}
+
+4. Use AnimatePresence for conditional rendering:
+   <AnimatePresence mode="wait">
+     {isVisible && <motion.div exit={{ opacity: 0 }}>...</motion.div>}
+   </AnimatePresence>
+
+5. Add stagger animations for lists:
+   const containerVariants = {
+     hidden: { opacity: 0 },
+     show: {
+       opacity: 1,
+       transition: { staggerChildren: 0.1 }
+     }
+   };
+   const itemVariants = {
+     hidden: { opacity: 0, x: -20 },
+     show: { opacity: 1, x: 0 }
+   };
+
+6. Smooth transitions:
+   transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}`;
   }
 
   private static buildDataModelSection(component: ComponentContext): string {

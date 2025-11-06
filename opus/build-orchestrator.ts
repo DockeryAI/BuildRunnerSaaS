@@ -415,7 +415,6 @@ export class BuildOrchestrator extends EventEmitter {
   private appConfig: any;
   private productIdea: string = ''; // Store product idea for design generation
   private prdContext: PRDContext | null = null; // Full PRD context for v0.dev-quality generation
-  private currentProfile: DesignProfile | null = null; // Store detected design profile for component generation
   // Phase 1 Speed Optimization Systems
   private patternMatcher: PatternMatcher;
   private cacheManager: ReturnType<typeof getCacheManager>;
@@ -677,9 +676,6 @@ export class BuildOrchestrator extends EventEmitter {
               description: prd.description,
               targetUsers: prd.targetAudience,
             });
-
-            // Store profile for use in component generation
-            this.currentProfile = designProfile;
 
             this.emit('log', {
               level: 'success',
@@ -1432,8 +1428,7 @@ export class BuildOrchestrator extends EventEmitter {
         typescript: true,
         mobileFirst: this.prdContext?.productIdea.toLowerCase().includes('mobile') ||
                      this.prdContext?.productIdea.toLowerCase().includes('off-road') || false
-      },
-      profile: this.currentProfile // Pass the design profile for enhanced generation
+      }
     };
 
     this.emit('log', {

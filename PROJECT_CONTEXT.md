@@ -1,8 +1,11 @@
+# BuildRunner SaaS - Current State
+
+## Build Status
 # BuildRunnerSaaS - Project Status
 
 **Version:** 1.1.0
 **Status:** Production Ready
-**Last Updated:** 2025-11-06
+**Last Updated:** 2025-11-05
 **Completion:** 82%
 
 ## Quick Stats
@@ -413,5 +416,108 @@ Advanced RBAC with custom roles, compliance dashboard, advanced audit logging wi
 
 ---
 
-*Generated from `.buildrunner/features.json` on 2025-11-06T01:19:43.967Z*
+*Generated from `.buildrunner/features.json` on 2025-11-05T23:51:49.141Z*
 *Generator: `.buildrunner/scripts/generate-status.mjs`*
+
+
+## Recent Commits
+
+3c64441 fix: Add comprehensive logging to diagnose app ideas generation issue
+2040a34 fix: Enable client API key for generate-examples endpoint
+19f78b9 fix: Remove generic PRD auto-fill and improve app ideas refresh UX
+ef9a8fd fix: Correct OpenRouter model names to resolve 401 authentication errors
+e960660 fix: Improve OpenRouter API key detection logic in DesignProfileDetector
+0cbbc2f fix: Use OpenRouter API directly instead of Anthropic SDK
+2e1dea1 fix: Integrate DesignProfileDetector with BuildOrchestrator API key
+c49f86c feat: Add graceful degradation for OpenAI embeddings
+cce49f8 chore: Add openai package for design intelligence embeddings
+fb4439a feat: Implement Intelligent Design System with multi-dimensional profiling
+
+
+## Project Structure
+
+.
+./design
+./dist
+./dist/utils
+./dist/schema
+./dist/commands
+./deploy
+./deploy/terraform
+./deploy/docker
+./tests
+./tests/load
+./tests/load/k6
+./.claude
+./docs
+./docs/Strategy Docs
+./.runner
+./.runner/tasks
+./.runner/gpt
+./.runner/scripts
+./.runner/governance
+./.runner/lib
+./supabase
+./supabase/migrations
+./supabase/.temp
+./supabase/functions
+./supabase/functions/usage-collector
+./supabase/functions/report-scheduler
+./supabase/functions/cost-reconciler
+./supabase/functions/spec-sync
+./supabase/functions/spec-diff
+./design-assets
+./buildrunner
+./buildrunner/specs
+./buildrunner/state
+./buildrunner/scripts
+./buildrunner/governance
+./sdk
+./sdk/examples
+./sdk/src
+./.buildrunner
+./.buildrunner/versions
+./.buildrunner/scripts
+./.buildrunner/standards
+./scripts
+./scripts/design
+./scripts/docs
+./governance
+./api
+./api/openapi
+./.vscode
+
+
+## Key Dependencies (apps/web)
+
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "@deepgram/sdk": "^4.11.2",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@elevenlabs/elevenlabs-js": "^2.21.0",
+    "@formkit/auto-animate": "^0.9.0",
+    "@heroicons/react": "^2.2.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@picovoice/porcupine-web": "^3.0.3",
+    "@radix-ui/colors": "^3.0.0",
+    "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-icons": "^1.3.0",
+    "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-separator": "^1.0.3",
+    "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@supabase/supabase-js": "^2.38.0",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-query": "^5.8.4",
+    "@types/diff": "^7.0.2",
+    "@types/qrcode": "^1.5.6",
+    "@upstash/redis": "^1.35.6",
+    "@visx/visx": "^3.12.0",
+    "bullmq": "^5.63.0",
+    "chokidar": "^4.0.3",
