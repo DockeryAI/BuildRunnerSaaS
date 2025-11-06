@@ -182,12 +182,22 @@ Quality enforcement happens LATER during code generation. Your job: define WHAT 
   ]
 }
 
-=== RULE 1: MILESTONE 1 = DESIGN SYSTEM ===
+=== RULE 1: EXTRACT USER-FACING FEATURES FROM PRD ===
 
-First milestone MUST be "Design System & Infrastructure" with:
-1. design-system (type: design-system, path: lib/design-system/index.ts)
-2. shadcn-setup (type: component, path: components/ui/button.tsx, deps: design-system)
-3. app-layout (type: layout, path: app/(app)/layout.tsx, deps: shadcn-setup)
+Generate components based on FEATURES and PAGES from the PRD, NOT tech stack:
+
+**DO generate:**
+- User-facing pages (Dashboard, Profile, Settings, etc.)
+- Feature components (TaskList, Calendar, Chat, etc.)
+- User workflows (Login, Signup, Checkout, etc.)
+
+**DO NOT generate:**
+- Tech stack setup (ShadcnSetup, TailwindConfig, etc.)
+- Infrastructure (AuthSystem, DatabaseSetup, APISetup, etc.)
+- Libraries or frameworks (these are auto-included)
+
+**Design system is automatic** - Do NOT create design-system, shadcn-setup, or app-layout components.
+These are auto-generated in the background. Focus ONLY on the user features described in the PRD.
 
 === RULE 2: CRITICALITY CLASSIFICATION ===
 
@@ -270,7 +280,7 @@ Before returning, CRITICALLY verify:
 ✅ Architecture has "recommendedStack" string
 ✅ Architecture.technologies has AT LEAST 5-8 technologies (frontend, database, services)
 ✅ Each technology has name, category, reasoning, difficulty, setupRequired
-✅ Milestone 1 has design-system first
+✅ Components are USER-FACING features, NOT tech stack items
 ✅ All file paths follow Next.js 14 conventions
 ✅ No circular dependencies
 ✅ All components have criticality
@@ -279,8 +289,9 @@ Before returning, CRITICALLY verify:
    - Check EVERY dependency against this list
    - If dependency doesn't exist, it's INVALID - fix it!
 ✅ No component references non-existent dependencies
+✅ No ShadcnSetup, DesignSystem, TailwindConfig, AuthSystem, DatabaseSetup components
 
-⚠️ CRITICAL: If ANY dependency is invalid, FIX IT before returning!
+⚠️ CRITICAL: If ANY component is tech stack/infrastructure, REMOVE IT and replace with user feature!
 
 Return ONLY the JSON. No markdown fences, no extra text.`;
 
