@@ -463,7 +463,54 @@ export default function PlanPage() {
   }
 
   if (!projectPlan) {
-    return null;
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md">
+          <p className="text-gray-800 font-semibold mb-2">No Project Plan Loaded</p>
+          <p className="text-gray-600 text-sm mb-4">
+            The plan may still be loading or there was an issue retrieving it.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case where plan exists but has no milestones
+  if (!projectPlan.milestones || projectPlan.milestones.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center max-w-md">
+          <p className="text-gray-800 font-semibold mb-2">Plan Has No Milestones</p>
+          <p className="text-gray-600 text-sm mb-4">
+            The project plan was generated but doesn't contain any milestones or phases.
+            This might indicate an issue with plan generation.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => {
+                clearPlanCache();
+                window.location.reload();
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Regenerate Plan
+            </button>
+            <button
+              onClick={() => router.push('/create')}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Back to PRD
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
