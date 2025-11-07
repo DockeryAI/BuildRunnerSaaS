@@ -16,21 +16,8 @@ type ComponentType = 'frontend' | 'backend' | 'api' | 'database' | 'service';
 export function extractBuildComponents(plan: ProjectPlan): BuildComponent[] {
   const components: BuildComponent[] = [];
 
-  // 1. Extract components from architecture/technologies
-  if (plan.architecture?.technologies) {
-    plan.architecture.technologies.forEach((tech, index) => {
-      const componentType = mapTechnologyToComponentType(tech.category);
-
-      components.push({
-        id: `tech-${tech.name.toLowerCase().replace(/\s+/g, '-')}`,
-        name: tech.name,
-        type: componentType,
-        dependencies: [],
-        status: 'pending',
-        priority: index + 1,
-      });
-    });
-  }
+  // 1. Skip architecture/technologies - those are infrastructure, not buildable components
+  // The build orchestrator will set up the tech stack automatically
 
   // 2. Extract high-level components from milestones
   plan.milestones.forEach((milestone, milestoneIndex) => {
