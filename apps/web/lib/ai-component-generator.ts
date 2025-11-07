@@ -76,8 +76,9 @@ export class AIComponentGenerator {
       return 'anthropic/claude-sonnet-4.5';
     }
 
-    // Default: Gemini 2.5 Flash (5-10x faster, excellent quality for standard components)
-    console.log(`⚡ Using Gemini 2.5 Flash for standard component: ${component.componentName}`);
+    // Default: Gemini 2.5 Flash for speed, with enhanced quality prompts
+    // The new MODERN UI/UX requirements + IMPORTANT tier should give us quality
+    console.log(`⚡ Using Gemini 2.5 Flash for ${component.componentName} (balanced mode)`);
     return 'google/gemini-2.5-flash';
   }
 

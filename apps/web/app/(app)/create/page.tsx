@@ -436,7 +436,7 @@ function PRDItemComponent({
             )}
           </div>
 
-          {item.citations.length > 0 && (
+          {item.citations && item.citations.length > 0 && (
             <div>
               <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
                 Sources
@@ -995,12 +995,17 @@ function CreatePage() {
           }
         }
       }
-    } else {
-      // No explicit project to load - always show brainstorm page
+    } else if (!projectId) {
+      // No explicit project to load AND no projectId in state - show brainstorm page
+      // Don't reset if we have projectId state (URL might not be updated yet)
       setShowOnboarding(true);
       console.log('💡 Showing brainstorm page (no project specified)');
+    } else {
+      // Have projectId in state - ensure we show PRD builder
+      setShowOnboarding(false);
+      console.log('💡 Have projectId in state, showing PRD builder');
     }
-  }, [searchParams]);
+  }, [searchParams, projectId]);
 
   // Autosave state
   const [isSaving, setIsSaving] = useState(false);
@@ -1315,8 +1320,11 @@ function CreatePage() {
               items: parseData.sections.executive_summary.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                description: item.description,
-                status: 'approved' as const
+                shortDescription: item.title,
+                fullDescription: item.description,
+                citations: [],
+                status: 'active' as const,
+                isExpanded: true
               }))
             };
           }
@@ -1332,8 +1340,11 @@ function CreatePage() {
               items: parseData.sections.problem_statement.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                description: item.description,
-                status: 'approved' as const
+                shortDescription: item.title,
+                fullDescription: item.description,
+                citations: [],
+                status: 'active' as const,
+                isExpanded: true
               }))
             };
           }
@@ -1349,8 +1360,11 @@ function CreatePage() {
               items: parseData.sections.target_audience.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                description: item.description,
-                status: 'approved' as const
+                shortDescription: item.title,
+                fullDescription: item.description,
+                citations: [],
+                status: 'active' as const,
+                isExpanded: true
               }))
             };
           }
@@ -1366,8 +1380,11 @@ function CreatePage() {
               items: parseData.sections.value_proposition.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                description: item.description,
-                status: 'approved' as const
+                shortDescription: item.title,
+                fullDescription: item.description,
+                citations: [],
+                status: 'active' as const,
+                isExpanded: true
               }))
             };
           }
@@ -1384,8 +1401,11 @@ function CreatePage() {
               items: parseData.sections.features.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                description: item.description,
-                status: 'approved' as const
+                shortDescription: item.title,
+                fullDescription: item.description,
+                citations: [],
+                status: 'active' as const,
+                isExpanded: true
               }))
             };
           }
@@ -2613,9 +2633,20 @@ function CreatePage() {
     }));
   }
 
+  // Debug: Log render decision
+  console.log('🎨 RENDER DECISION:', {
+    showOnboarding,
+    projectId,
+    hasPRDData: Object.values(prdSections).flat().some((s: any) => s.items?.length > 0),
+    totalPRDItems: Object.values(prdSections).flat().reduce((sum: number, s: any) => sum + (s.items?.length || 0), 0)
+  });
+
   if (showOnboarding) {
+    console.log('🎨 Rendering OnboardingFlow (showOnboarding=true)');
     return <OnboardingFlow onStart={handleStart} onImport={() => setShowImportWizard(true)} />;
   }
+
+  console.log('🎨 Rendering PRD Builder');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
@@ -2741,6 +2772,11 @@ function CreatePage() {
 
           {/* LEFT: PRD Sections for Current Phase */}
           <div className="col-span-2">
+            {console.log('📋 Passing to PRDSectionPanel:', {
+              currentPhase,
+              sectionsForPhase: prdSections[currentPhase],
+              totalItemsInPhase: prdSections[currentPhase]?.reduce((sum: number, s: any) => sum + (s.items?.length || 0), 0)
+            })}
             <PRDSectionPanel
               phase={currentPhase}
               sections={prdSections[currentPhase]}
@@ -2755,7 +2791,6 @@ function CreatePage() {
               onAddManualItem={handleAddManualItem}
             />
           </div>
-
           {/* RIGHT: AI Suggestions & Chat */}
           <div className="col-span-1">
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">

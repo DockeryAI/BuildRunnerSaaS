@@ -1645,49 +1645,10 @@ export class BuildOrchestrator extends EventEmitter {
     let code = generationResult.code;
     component.filePath = generationResult.filePath; // Store for assembleApplication
 
-    // Step 3: Polish the component (NEW - Design Quality Enhancement)
-    this.emit('log', {
-      level: 'info',
-      message: `✨ Polishing component with micro-interactions and design consistency...`
-    });
-
+    // Step 3: Polish the component - DISABLED FOR SPEED
+    // Design polishing adds 2-4s per component for minimal benefit
+    // TODO: Move to optional batch polishing at end if needed
     component.progress = 60;
-    this.emit('progress:updated', {
-      componentId: component.id,
-      componentName: component.name,
-      progress: 60
-    });
-
-    try {
-      const polishResult = await this.designPolisher.polishComponent(
-        { code, name: component.name, type: component.type },
-        buildContext.design
-      );
-
-      code = polishResult.polishedCode;
-
-      if (polishResult.improvementsApplied.length > 0) {
-        this.emit('log', {
-          level: 'success',
-          message: `💅 Polish applied: ${polishResult.improvementsApplied.join(', ')} | Consistency: ${polishResult.consistencyScore}/100`
-        });
-      }
-
-      if (polishResult.consistencyScore < 80) {
-        this.emit('log', {
-          level: 'warning',
-          message: `⚠️  Design consistency could be improved (score: ${polishResult.consistencyScore}/100)`
-        });
-      }
-
-    } catch (error) {
-      console.error('Polish failed, using unpolished code:', error);
-      this.emit('log', {
-        level: 'warning',
-        message: `⚠️  Polish failed, using original code`
-      });
-      // Continue with unpolished code
-    }
 
     component.code = code;
     component.progress = 80;

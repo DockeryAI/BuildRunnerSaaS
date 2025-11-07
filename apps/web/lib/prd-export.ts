@@ -174,3 +174,139 @@ export function exportToPPT(prdData: PRDData) {
   // Save
   pptx.writeFile({ fileName: `${prdData.productName || 'PRD'}.pptx` });
 }
+
+/**
+ * Export PRD as Markdown for Claude Code / Developer Context
+ * This format is optimized to be used as a source of truth in Claude Code conversations
+ */
+export function exportToMarkdown(prdData: PRDData): string {
+  let markdown = `# Product Requirements Document: ${prdData.productName}\n\n`;
+
+  // Metadata section
+  markdown += `> **Generated**: ${new Date().toLocaleDateString()}\n`;
+  markdown += `> **Status**: Active Development\n`;
+  markdown += `> **Purpose**: Source of truth for all feature development and AI-assisted coding\n\n`;
+
+  markdown += `---\n\n`;
+
+  // Product Vision
+  markdown += `## Product Vision\n\n`;
+  markdown += `${prdData.productIdea}\n\n`;
+  markdown += `---\n\n`;
+
+  // All Sections
+  Object.entries(prdData.prdSections).forEach(([phase, sections]) => {
+    markdown += `## Phase: ${phase}\n\n`;
+
+    sections.forEach((section: any) => {
+      if (section.items && section.items.length > 0) {
+        markdown += `### ${section.name || 'Section'}\n\n`;
+
+        if (section.description) {
+          markdown += `${section.description}\n\n`;
+        }
+
+        section.items.forEach((item: any) => {
+          markdown += `#### ${item.title}\n\n`;
+
+          // Add full description if available, otherwise short description
+          if (item.fullDescription) {
+            markdown += `${item.fullDescription}\n\n`;
+          } else {
+            markdown += `${item.shortDescription}\n\n`;
+          }
+
+          // Add acceptance criteria if available
+          if (item.acceptanceCriteria && item.acceptanceCriteria.length > 0) {
+            markdown += `**Acceptance Criteria:**\n\n`;
+            item.acceptanceCriteria.forEach((criterion: string) => {
+              markdown += `- ${criterion}\n`;
+            });
+            markdown += `\n`;
+          }
+        });
+
+        markdown += `\n`;
+      }
+    });
+  });
+
+  // Add usage instructions for Claude Code
+  markdown += `---\n\n`;
+  markdown += `## How to Use This PRD with Claude Code\n\n`;
+  markdown += `This document serves as the source of truth for all development decisions. When working with Claude Code:\n\n`;
+  markdown += `1. **Reference this PRD** in your prompts: "Following the PRD, implement the [feature name]"\n`;
+  markdown += `2. **Keep it updated** as requirements evolve\n`;
+  markdown += `3. **Use sections as context** when implementing specific features\n`;
+  markdown += `4. **Validate implementations** against the acceptance criteria listed here\n\n`;
+  markdown += `### Suggested Claude Code Workflow\n\n`;
+  markdown += `\`\`\`bash\n`;
+  markdown += `# Option 1: Reference in prompts\n`;
+  markdown += `"Read PRD.md and implement the User Authentication feature"\n\n`;
+  markdown += `# Option 2: Copy specific sections\n`;
+  markdown += `"Implement this feature: [paste section from PRD]"\n\n`;
+  markdown += `# Option 3: Use as project context\n`;
+  markdown += `# Place this file in your project root or .claude/context/ folder\n`;
+  markdown += `\`\`\`\n`;
+
+  return markdown;
+}
+
+/**
+ * Download markdown file to user's computer
+ */
+export function downloadMarkdown(prdData: PRDData) {
+  const markdown = exportToMarkdown(prdData);
+  const blob = new Blob([markdown], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${prdData.productName || 'PRD'}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Export PRD to Claude Builder daemon directory for automatic building
+ * This triggers the daemon to detect changes and start a build
+ */
+export async function exportToClaudeBuilder(
+  prdData: PRDData,
+  projectName: string
+): Promise<{ success: boolean; message: string; path?: string }> {
+  try {
+    const markdown = exportToMarkdown(prdData);
+
+    // Call API route to write file server-side
+    const response = await fetch('/api/claude-builder/export-prd', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectName,
+        prdContent: markdown,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to export PRD');
+    }
+
+    return {
+      success: true,
+      message: 'PRD exported successfully. Daemon will detect changes and start building.',
+      path: result.path,
+    };
+  } catch (error) {
+    console.error('Failed to export to Claude Builder:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to export PRD',
+    };
+  }
+}

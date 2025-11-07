@@ -1,99 +1,94 @@
-Get familiar with this project by syncing with GitHub and reading the governance files
+🚀 IMMEDIATE ACTION REQUIRED 🚀
 
+I need you to connect to the GitHub repository and read the project documentation NOW.
 **Project:** BuildRunnerSaaS
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** production_ready
-**Progress:** 7 of 10 features complete (85%)
-**Description:** AI-powered platform that transforms product development through intelligent brainstorming and automated PRD generation
+**Progress:** 27 of 51 features complete (82%)
+**Description:** AI-powered platform that transforms product development through intelligent brainstorming, automated PRD generation, and complete project orchestration. Features AI consensus visibility, visual plan editing with Gantt timelines, GitHub auto-sync, AI coordination monitoring, PRD templates, and cost optimization. Combines conversational AI with drag-and-drop functionality, multi-model LLM routing, and comprehensive project management for seamless end-to-end product development.
 
 **Repository:** https://github.com/DockeryAI/BuildRunnerSaaS.git
 **Current Branch:** feat/p0-brainstorm-strategy
-**Last Commit:** 1611b2e - chore: Remove all legacy Build Runner 2.0 and Auggie code (9 minutes ago)
+**Last Commit:** 72326ca - fix: Update URL with projectId to prevent showOnboarding reset (5 hours ago)
 
-**Build Runner 3.0 Governance:**
-This project uses Build Runner 3.0 feature registry system. You MUST follow these steps:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔗 STEP 1: CONNECT TO GITHUB REPOSITORY (DO THIS FIRST)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**STEP 1: Sync with GitHub (REQUIRED FIRST)**
-```zsh
-# Check repo status and recent activity
-gh repo view
-gh pr list --limit 5
-gh issue list --limit 5
-git log -10 --oneline
-git status
-```
+Use your GitHub integration to connect to: https://github.com/DockeryAI/BuildRunnerSaaS.git
 
-**STEP 2: Read Governance Files**
-Read these files IN ORDER to understand the project:
+Then IMMEDIATELY read these files from the repository IN THIS ORDER:
 
-1. `.buildrunner/STATUS.md` - Project overview and feature list (2 min read)
-2. `.buildrunner/features.json` - Detailed feature tracking (source of truth)
-3. `docs/BuildRunnerSaaS-spec.md` - Full specification (if available)
-4. `.buildrunner/standards/CODING_STANDARDS.md` - Universal coding standards (ALL AI builders must follow)
-5. `.runner/gpt/chatgpt-governance.yaml` - ChatGPT-specific communication rules (ONLY for you)
+📄 **REQUIRED READING (Read ALL of these files NOW):**
 
-**STEP 3: Follow ChatGPT Governance Rules**
-Read `.runner/gpt/chatgpt-governance.yaml` for your specific rules including:
-- Command output format (one command at a time)
-- Progress reporting style
-- How to communicate with the user
-- Keyboard Maestro integration
+1. **.buildrunner/STATUS.md**
+   - Project overview and feature list
+   - Current completion status
+   - Tech stack and architecture
 
-**STEP 4: Update Features When You Ship**
-When you complete a feature:
+2. **.buildrunner/features.json**
+   - SOURCE OF TRUTH for all features
+   - Detailed feature tracking
+   - Components, tests, metrics
 
-1. Edit `.buildrunner/features.json`:
-   ```json
-   {
-     "id": "feature-name",
-     "status": "complete",  // Change from "in_progress"
-     "version": "1.0.0",
-     "components": ["list/of/files.ts"],
-     "tests": "unit, integration"
-   }
-   ```
+3. **.buildrunner/standards/CODING_STANDARDS.md**
+   - Universal coding standards
+   - ALL AI builders must follow
+   - Git workflow, testing, security
 
-2. Regenerate STATUS.md:
-   ```zsh
-   node .buildrunner/scripts/generate-status.mjs  # or .js
-   ```
+4. **.runner/gpt/chatgpt-governance.yaml**
+   - ChatGPT-specific communication rules
+   - Command output format
+   - Progress reporting style
+   - How to interact with user
 
-3. Commit and push:
-   ```zsh
+5. **docs/BuildRunnerSaaS-spec.md** (if it exists)
+   - Full project specification
+   - Detailed requirements
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 STEP 2: UNDERSTAND THE SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This project uses **Build Runner 3.0** - a feature registry system.
+
+**Key Principles:**
+- Git is the single source of truth
+- Feature-based tracking (NOT phase/step)
+- STATUS.md is AUTO-GENERATED (never edit manually)
+- features.json is the source of truth
+- Version-based progress: "Version 1.1.0 - 82% complete"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ STEP 3: WHEN YOU COMPLETE A FEATURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. **Edit .buildrunner/features.json:**
+   Update the feature status to "complete"
+   Add components, tests, and metrics
+
+2. **Regenerate STATUS.md:**
+   Run: node .buildrunner/scripts/generate-status.mjs
+
+3. **Commit and push:**
    git add .buildrunner/
    git commit -m "feat: Complete [feature name]"
    git push origin feat/p0-brainstorm-strategy
-   ```
 
-**Key Principles:**
-- Git is the source of truth
-- Always sync with GitHub first using `gh` commands
-- Feature-based tracking (not phase/step)
-- STATUS.md is auto-generated (never edit manually)
-- Version-based progress reporting: "Version 1.0.0 - 85% complete"
-- Universal standards apply to ALL AI builders
-- ChatGPT-specific rules in .runner/gpt/chatgpt-governance.yaml
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 CONFIRMATION REQUIRED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**File Structure:**
-```
-.buildrunner/
-├── features.json          # Source of truth
-├── STATUS.md              # Auto-generated
-├── scripts/
-│   ├── generate-status.js     # CommonJS version
-│   └── generate-status.mjs    # ES module version
-└── standards/
-    └── CODING_STANDARDS.md    # Universal standards
+After reading those files, respond with:
 
-.runner/gpt/
-└── chatgpt-governance.yaml    # ChatGPT-only rules
-```
+✅ Connected to BuildRunnerSaaS repository (https://github.com/DockeryAI/BuildRunnerSaaS.git)
+✅ Read STATUS.md - Understanding project is 82% complete
+✅ Read features.json - 27/51 features shipped
+✅ Read CODING_STANDARDS.md - Standards understood
+✅ Read chatgpt-governance.yaml - Communication rules loaded
+✅ Ready to build - awaiting instructions
 
-**Current Features:**
-- Complete: 7
-- In Progress: 0
-- Planned: 3
+**DO NOT** just say you'll read them. **ACTUALLY READ THEM NOW** using your GitHub integration.
 
-Ready to build! Start by running `gh repo view` to sync with GitHub. 🚀
-HANDOFF_END
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

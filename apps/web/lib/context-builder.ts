@@ -366,41 +366,54 @@ State Management:
     const needsOffline = this.detectOfflineNeed(prd.productIdea);
 
     return `SPECIFIC REQUIREMENTS:
-1. Design Tokens Application:
+1. MODERN UI/UX (CRITICAL - PREMIUM QUALITY):
+   - Beautiful, polished visual design (Linear/Stripe/Vercel quality level)
+   - Generous whitespace and breathing room (never cramped or cluttered)
+   - Smooth transitions and micro-interactions (hover, focus, active states)
+   - Professional spacing hierarchy (proper padding: px-6 py-4, gaps: gap-6)
+   - Subtle shadows and depth (shadow-sm for cards, shadow-md for modals)
+   - Clean typography with proper hierarchy (text-lg for headers, text-sm for body)
+   - Interactive elements with clear affordances (buttons look clickable)
+   - Loading states: Elegant skeletons with subtle animations
+   - Empty states: Helpful, visually appealing with icons
+   - Error states: Clear, actionable, not alarming
+   - Polish every pixel - this should feel premium
+
+2. Design Tokens Application:
    - CRITICAL: Use design token classes (bg-primary, text-foreground, border-border)
    - NEVER use Tailwind color utilities (bg-blue-500, text-gray-900, etc.)
    - Font weight: ${component.componentType === 'heading' ? 'font-bold' : 'font-medium'}
    - Apply consistent shadows (shadow-${component.componentType === 'Card' ? 'lg' : 'md'})
 
-2. Accessibility (WCAG 2.1 AA):
+3. Accessibility (WCAG 2.1 AA):
    - Proper ARIA labels on all interactive elements
    - Keyboard navigation (Tab, Enter, Escape)
    - Focus indicators (ring-2 ring-offset-2)
    - Screen reader support
    - Color contrast ratio ≥ 4.5:1
 
-3. Mobile Optimization${isMobile ? ' (CRITICAL - Primary Platform)' : ''}:
+4. Mobile Optimization${isMobile ? ' (CRITICAL - Primary Platform)' : ''}:
    - Touch targets ≥ 44px × 44px
    - Responsive breakpoints: sm (640px), md (768px), lg (1024px)
    - Test on mobile viewport first
    - Thumb-friendly layouts (important actions at bottom)
    - No hover-only interactions
 
-4. Performance:
+5. Performance:
    - Code splitting (dynamic imports for heavy components)
    - Image optimization (next/image with proper sizing)
    - Lazy loading for below-fold content
    - Debounce search/filter inputs (300ms)
    - Virtualization for long lists (react-window)
 
-5. User Experience:
+6. User Experience:
    - Loading states: Skeleton screens (not spinners)
    - Error handling: User-friendly messages with retry
    - Empty states: Helpful guidance, not just "No data"
    - Success feedback: Toasts or inline confirmation
    - Optimistic updates: Instant UI response
 
-${needsOffline ? `6. Offline Support:
+${needsOffline ? `7. Offline Support:
    - Service worker caching for critical resources
    - IndexedDB for local data persistence
    - Sync queue for actions when offline
@@ -415,8 +428,14 @@ ${needsOffline ? `6. Offline Support:
    * STANDARD: Basic clean code
    */
   private static buildTieredQualityStandards(component: ComponentContext): string {
-    const criticality = component.criticality || 'STANDARD';
-    const requirements = component.qualityRequirements || {};
+    // Default to IMPORTANT for all components (quality is priority)
+    const criticality = component.criticality || 'IMPORTANT';
+    const requirements = component.qualityRequirements || {
+      accessibility: true,
+      responsive: true,
+      loadingStates: true,
+      errorHandling: true,
+    };
 
     // Start with base requirements (all tiers get these)
     let standards = `CODE QUALITY STANDARDS (${criticality} tier):\n\n`;
