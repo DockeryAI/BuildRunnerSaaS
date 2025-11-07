@@ -1541,6 +1541,9 @@ export class BuildOrchestrator extends EventEmitter {
     const relatedFeatures: string[] = [];
     if (this.prdContext?.features) {
       this.prdContext.features.forEach(feature => {
+        // Skip if feature or component data is incomplete
+        if (!feature || !feature.title || !feature.description || !component.name) return;
+
         const featureLower = feature.title.toLowerCase();
         const componentLower = component.name.toLowerCase();
 
