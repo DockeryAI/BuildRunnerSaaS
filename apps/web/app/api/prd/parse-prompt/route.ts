@@ -28,10 +28,15 @@ export async function POST(request: NextRequest) {
     const apiKeysHeader = request.headers.get('x-api-keys');
     let openrouterKey = '';
 
+    console.log('parse-prompt: x-api-keys header present:', !!apiKeysHeader);
+
     if (apiKeysHeader) {
       try {
         const keys = JSON.parse(apiKeysHeader);
         openrouterKey = keys.openrouter || '';
+        if (openrouterKey) {
+          console.log('✅ Using client-provided OpenRouter key from UI');
+        }
       } catch (e) {
         console.warn('Failed to parse API keys:', e);
       }
@@ -40,9 +45,13 @@ export async function POST(request: NextRequest) {
     // Fallback to env
     if (!openrouterKey) {
       openrouterKey = process.env.OPENROUTER_API_KEY || '';
+      if (openrouterKey) {
+        console.log('✅ Using server-side OpenRouter key');
+      }
     }
 
     if (!openrouterKey) {
+      console.error('❌ No OpenRouter API key available');
       return NextResponse.json(
         { error: 'OpenRouter API key not configured' },
         { status: 400 }
@@ -51,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Parsing prompt to extract PRD sections...');
     console.log('Prompt:', productIdea.substring(0, 100) + '...');
+    console.log('Using API key:', openrouterKey.substring(0, 20) + '...' + openrouterKey.slice(-8));
 
     // Call AI to parse the prompt into structured PRD sections
     const systemPrompt = `You are a product requirements analyst. Your job is to parse user product descriptions and extract structured PRD sections.
