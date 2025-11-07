@@ -22,6 +22,37 @@ interface ChatRequest {
   };
 }
 
+interface Suggestion {
+  id: string;
+  type: string;
+  title: string;
+  shortDescription: string;
+  fullDescription: string;
+  citations: string[];
+  section: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Parse JSON suggestion blocks from AI response
+ */
+function parseSuggestions(content: string): Suggestion[] {
+  const suggestions: Suggestion[] = [];
+  const regex = /```json-suggestion\s*([\s\S]*?)```/g;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    try {
+      const suggestionData = JSON.parse(match[1].trim());
+      suggestions.push(suggestionData);
+    } catch (e) {
+      console.warn('Failed to parse suggestion JSON:', e);
+    }
+  }
+
+  return suggestions;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { messages, projectContext } = await request.json() as ChatRequest;
@@ -46,7 +77,34 @@ You help users make strategic decisions about:
 - Bug triage and feature requests
 - Development workflow optimization
 
-Be insightful, direct, and actionable. Think strategically.`;
+Be insightful, direct, and actionable. Think strategically.
+
+## PRD Suggestions Format
+
+When suggesting items that should be added to the PRD (features, risks, objectives, etc.), format them as JSON blocks within your response:
+
+\`\`\`json-suggestion
+{
+  "id": "unique_id",
+  "type": "feature|risk|objective|scope|dependency|analytics|etc",
+  "title": "Brief title",
+  "shortDescription": "One-line description",
+  "fullDescription": "Detailed explanation with reasoning",
+  "citations": ["Source 1: Evidence", "Source 2: Study"],
+  "section": "features|risks|objectives|scope|dependencies|analytics|non_functional|monetization|rollout|open_questions",
+  "priority": "high|medium|low"
+}
+\`\`\`
+
+Use this format when:
+- User asks about what features to add
+- Discussing risks or mitigations
+- Suggesting objectives or success metrics
+- Recommending dependencies or integrations
+- Discussing analytics or monitoring
+- Suggesting non-functional requirements
+
+You can include multiple suggestions in a single response. Each should be in its own \`\`\`json-suggestion block.`;
 
     // Add project context if available
     if (projectContext) {
@@ -104,8 +162,12 @@ Be insightful, direct, and actionable. Think strategically.`;
     const data = await response.json();
     const assistantMessage = data.choices?.[0]?.message?.content || '';
 
+    // Parse suggestions from response
+    const suggestions = parseSuggestions(assistantMessage);
+
     return NextResponse.json({
       response: assistantMessage,
+      suggestions,
       usage: data.usage
     });
 
