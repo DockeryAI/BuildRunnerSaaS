@@ -9,7 +9,9 @@ import { ProjectProvider, useProject } from '../../lib/project';
 import { TabSafeProjectProvider, useTabSafeProject } from '../../lib/project-context';
 import { StrategeryProvider, useStrategery } from '../../lib/strategery-context';
 import { APIAssistantProvider, useAPIAssistant } from '../../lib/api-assistant-context';
+import { OracleProvider, useOracle } from '../../lib/oracle-context';
 import { ProjectSelector } from '../../components/project/ProjectSelector';
+import OracleChat from '../../components/OracleChat';
 import {
   FileText,
   Edit3,
@@ -91,6 +93,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { currentProject } = useTabSafeProject();
   const { toggleOpen: toggleStrategery } = useStrategery();
   const { toggleOpen: toggleAPIAssistant } = useAPIAssistant();
+  const { projectContext } = useOracle();
 
   // Check visibility for both assistants
   useEffect(() => {
@@ -387,6 +390,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           {/* Global Assistants */}
           <APIAssistant />
           <StrategeryAssistant />
+          <OracleChat projectContext={projectContext} />
         </div>
       </VoiceProvider>
   );
@@ -395,11 +399,13 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 // Wrapper component that provides the contexts
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   return (
-    <StrategeryProvider>
-      <APIAssistantProvider>
-        <AppLayoutInner>{children}</AppLayoutInner>
-      </APIAssistantProvider>
-    </StrategeryProvider>
+    <OracleProvider>
+      <StrategeryProvider>
+        <APIAssistantProvider>
+          <AppLayoutInner>{children}</AppLayoutInner>
+        </APIAssistantProvider>
+      </StrategeryProvider>
+    </OracleProvider>
   );
 }
 
