@@ -13,6 +13,7 @@ import TerminalPanel, { TerminalLog } from '../../../components/TerminalPanel';
 import ArchitectureFlowDiagram from '../../../components/ArchitectureFlowDiagram';
 import ConsensusLogPanel, { ConsensusMessage, ConsensusIteration } from '../../../components/ConsensusLogPanel';
 import { updateProjectStatus } from '../../../lib/autosave';
+import { exportToClaudeBuilder, exportToMarkdown } from '../../../lib/prd-export';
 import {
   PlayIcon,
   PauseIcon,
@@ -545,102 +546,62 @@ export default function WorkbenchPage() {
 
   const handleStartBuild = async () => {
     try {
-      const apiKeysStr = localStorage.getItem('buildrunner_api_keys');
-      const apiKeys = apiKeysStr ? JSON.parse(apiKeysStr) : {};
-
-      const buildComponents = components.map((c) => ({
-        id: c.id,
-        name: c.name,
-        type: c.type,
-        dependencies: c.dependencies,
-      }));
-
-      // Check for OpenRouter API key with multiple fallbacks
-      let openrouterKey = apiKeys.openrouter ||
-                          localStorage.getItem('openrouter_api_key') ||
-                          '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';
-
-      if (!openrouterKey) {
-        throw new Error('OpenRouter API key not found. Please configure it in Settings → API Keys.');
-      }
-
-      // Ensure the key is saved in the structured format for future use
-      if (!apiKeys.openrouter && openrouterKey) {
-        apiKeys.openrouter = openrouterKey;
-        localStorage.setItem('buildrunner_api_keys', JSON.stringify(apiKeys));
-      }
-
-      addLog('info', 'Starting build process...');
-      console.log('✅ Starting build with', buildComponents.length, 'components');
+      addLog('info', '🤖 Exporting PRD to Claude Builder...');
+      console.log('✅ Starting Claude Builder export');
 
       // Automatically open the feed when build starts
       setIsFeedMinimized(false);
 
       const currentProjectId = localStorage.getItem('currentProjectId') || '1';
 
-      // Get product idea from saved projects for design system generation
+      // Get project data
       const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
       const currentProject = savedProjects.find((p: any) => p.id === currentProjectId);
 
-      // CRITICAL: Load PRD as single source of truth (enhanced or simple)
+      if (!currentProject) {
+        throw new Error('No project found. Please create a project first.');
+      }
+
+      // Get PRD data - check for enhanced PRD first, then fall back to basic
       const prdCacheKey = `prd_cache_${currentProjectId}`;
       const cachedPRDData = localStorage.getItem(prdCacheKey);
-      let fullPRD = null;
+      let prdSections = {};
 
       if (cachedPRDData) {
         try {
-          fullPRD = JSON.parse(cachedPRDData);
+          const fullPRD = JSON.parse(cachedPRDData);
+          prdSections = fullPRD.prdSections || {};
           console.log('✅ Loaded enhanced PRD from brainstorm session');
         } catch (e) {
           console.warn('Failed to parse cached PRD:', e);
         }
       }
 
-      if (!fullPRD && currentProject?.productIdea) {
-        console.log('📝 Using prompt-only mode - simple PRD will be auto-generated');
+      const projectName = currentProject.productName || currentProject.name || 'Project';
+      const productIdea = currentProject.productIdea || '';
+
+      if (!productIdea && Object.keys(prdSections).length === 0) {
+        throw new Error('No product description found. Please describe what you want to build.');
       }
 
-      // Only error if we have neither PRD nor prompt
-      if (!fullPRD && !currentProject?.productIdea) {
-        throw new Error(
-          'No product description found. Please describe what you want to build.'
-        );
-      }
-
-      const response = await fetch('/api/build/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-keys': JSON.stringify(apiKeys),
+      // Export to Claude Builder
+      const result = await exportToClaudeBuilder(
+        {
+          productName: projectName,
+          productIdea,
+          prdSections,
         },
-        body: JSON.stringify({
-          components: buildComponents,
-          projectId: currentProjectId,
-          productIdea: currentProject?.productIdea || '',
-          prd: fullPRD, // Pass full PRD as single source of truth
-          appConfig: {
-            appType: projectPlan?.appType || 'web',
-            framework: projectPlan?.framework || 'nextjs',
-          },
-        }),
-      });
+        projectName
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to start build');
+      if (!result.success) {
+        throw new Error(result.message);
       }
 
-      const data = await response.json();
-      const newBuildId = data.buildId;
-
-      setBuildId(newBuildId);
       setBuildStatus('running');
-      addLog('success', `Build started with ID: ${newBuildId}`);
-
-      // Save as last build for auto-restore
-      const lastBuildKey = `last_build_${currentProjectId}`;
-      localStorage.setItem(lastBuildKey, newBuildId);
-      console.log(`💾 Saved last build ID: ${newBuildId}`);
+      addLog('success', `✅ PRD exported to: ${result.path || '~/Projects/BuildRunnerProjects/' + projectName}`);
+      addLog('info', '⏳ Claude Builder daemon will detect the PRD and start building...');
+      addLog('info', '📝 Monitor build progress in the daemon logs or in ~/Projects/' + projectName);
 
       // Update project status to 'build' phase
       updateProjectStatus(currentProjectId, {
@@ -650,365 +611,18 @@ export default function WorkbenchPage() {
       });
       console.log('✅ Updated project status to build phase');
 
-      // Close any existing connection
-      if (eventSourceRef.current) {
-        console.log('🔌 Closing existing EventSource connection');
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-
-      // Connect to SSE with error handling
-      console.log(`🔌 Connecting to EventSource: /api/build/events?buildId=${newBuildId}`);
-      const eventSource = new EventSource(`/api/build/events?buildId=${newBuildId}`);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log('✅ EventSource connection opened');
-        addLog('info', 'Connected to build feed');
+      // Add message to guide user
+      const aiMessage: BuildMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `🤖 PRD exported to Claude Builder!\n\nProject: ${projectName}\nLocation: ~/Projects/BuildRunnerProjects/${projectName}/PRD.md\n\nThe Claude Builder daemon is now monitoring for changes and will automatically start building your project. Monitor progress in:\n- ~/Projects/${projectName} (actual project files)\n- Daemon logs: cd ~/.claude-builder && node cli.js logs`,
+        timestamp: new Date(),
       };
+      setMessages((prev) => [...prev, aiMessage]);
 
-      eventSource.addEventListener('component_started', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('info', `Started building: ${data.componentName || data.componentId}`);
-        setComponents((prev) => {
-          const updated = prev.map((c) =>
-            c.id === data.componentId
-              ? { ...c, status: 'building' as ComponentStatus }
-              : c
-          );
-          // Autosave on component start
-          saveBuildProgress(newBuildId, updated, 'running');
-          return updated;
-        });
-      });
-
-      eventSource.addEventListener('component_completed', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('success', `Completed: ${data.componentName || data.componentId}`);
-        setComponents((prev) => {
-          const updated = prev.map((c) =>
-            c.id === data.componentId
-              ? {
-                  ...c,
-                  status: 'completed' as ComponentStatus,
-                  progress: 100,
-                  code: data.code,
-                  tests: data.tests,
-                  documentation: data.documentation,
-                }
-              : c
-          );
-          // Autosave on component completion - CRITICAL: Never lose component code
-          saveBuildProgress(newBuildId, updated, 'running');
-          return updated;
-        });
-      });
-
-      eventSource.addEventListener('component_failed', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('error', `Failed: ${data.componentName || data.componentId} - ${data.error || 'Unknown error'}`);
-        setComponents((prev) => {
-          const updated = prev.map((c) =>
-            c.id === data.componentId
-              ? { ...c, status: 'error' as ComponentStatus }
-              : c
-          );
-          // Autosave on component failure
-          saveBuildProgress(newBuildId, updated, 'running');
-          return updated;
-        });
-      });
-
-      eventSource.addEventListener('progress_updated', (event) => {
-        const data = JSON.parse(event.data);
-        setComponents((prev) => {
-          const updated = prev.map((c) =>
-            c.id === data.componentId
-              ? { ...c, progress: data.progress }
-              : c
-          );
-          // Autosave on progress update
-          saveBuildProgress(newBuildId, updated, 'running');
-          return updated;
-        });
-      });
-
-      eventSource.addEventListener('phase:started', (event) => {
-        const data = JSON.parse(event.data);
-        const phase = data.phase || 'unknown';
-        setBuildPhase(phase);
-
-        const phaseEmojis: Record<string, string> = {
-          planning: '📋',
-          building: '🔨',
-          verification: '🔍',
-          testing: '🧪',
-        };
-
-        const emoji = phaseEmojis[phase] || '⚙️';
-        addLog('info', `${emoji} Starting ${phase} phase...`);
-
-        // Track when verification/testing starts
-        if (phase === 'verification' || phase === 'testing') {
-          setIsVerificationRunning(true);
-        }
-      });
-
-      // Phase progress tracking
-      eventSource.addEventListener('phase_progress', (event) => {
-        const data = JSON.parse(event.data);
-        setPhaseProgress({
-          phase: data.phase,
-          current: data.current,
-          total: data.total,
-          percentage: data.percentage
-        });
-      });
-
-      // Preview ready (early completion)
-      eventSource.addEventListener('build_preview_ready', (event) => {
-        const buildData = JSON.parse(event.data);
-        addLog('success', '✅ Components built! Preview available.');
-        addLog('info', '⏳ Verification and testing running in background...');
-
-        // Show preview button early
-        if (buildData.isWebApp || buildData.isMobileApp) {
-          setShowPreviewButton(true);
-          setAppType(buildData.isMobileApp ? 'mobile' : 'web');
-          // Save preview button state
-          const currentProjectId = localStorage.getItem('currentProjectId') || '1';
-          localStorage.setItem(`showPreviewButton_${currentProjectId}_${buildData.buildId}`, 'true');
-          localStorage.setItem(`appType_${currentProjectId}_${buildData.buildId}`, buildData.isMobileApp ? 'mobile' : 'web');
-        }
-      });
-
-      // Consensus events
-      eventSource.addEventListener('consensus_started', (event) => {
-        const data = JSON.parse(event.data);
-        setConsensusModelsUsed(data.models || 5);
-        addLog('info', `🗳️  Starting consensus vote: ${data.task} (${data.models} models)`);
-        // Auto-show consensus log when consensus starts
-        setIsConsensusLogMinimized(false);
-      });
-
-      eventSource.addEventListener('consensus_completed', (event) => {
-        const data = JSON.parse(event.data);
-        const vote: ConsensusVote = {
-          id: `consensus_${Date.now()}`,
-          task: data.task,
-          timestamp: new Date(),
-          agreed: data.agreed,
-          agreementRatio: data.agreementRatio,
-          models: data.models || 5,
-        };
-
-        setConsensusVotes((prev) => [...prev, vote]);
-
-        const percentage = Math.round(data.agreementRatio * 100);
-        const icon = data.agreed ? '✅' : '❌';
-        const result = data.agreed ? 'PASSED' : 'FAILED';
-        addLog(
-          data.agreed ? 'success' : 'warning',
-          `${icon} Consensus ${result}: ${data.task} (${percentage}% agreement)`
-        );
-      });
-
-      // Consensus message event (detailed logging)
-      eventSource.addEventListener('consensus:message', (event) => {
-        const message: ConsensusMessage = JSON.parse(event.data);
-        setConsensusMessages((prev) => [...prev, message]);
-      });
-
-      // Consensus iteration complete event
-      eventSource.addEventListener('consensus:iteration', (event) => {
-        const iteration: ConsensusIteration = JSON.parse(event.data);
-        setConsensusIterations((prev) => [...prev, iteration]);
-      });
-
-      // Consensus achieved event
-      eventSource.addEventListener('consensus:achieved', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('success', `✅ Consensus achieved after ${data.iterations} iteration(s)`);
-      });
-
-      eventSource.addEventListener('build_completed', (event) => {
-        const buildData = JSON.parse(event.data);
-        setBuildStatus('completed');
-        setBuildPhase('completed');
-        setIsVerificationRunning(false);
-        setIsFullyComplete(true);
-        setPhaseProgress(null); // Clear phase progress
-        addLog('success', '🎉 Build fully complete! Verification and testing passed.');
-
-        // Clear build autosave since build is complete
-        localStorage.removeItem(`build_progress_${buildData.buildId}`);
-
-        // Save build metadata to project
-        const currentProjectId = localStorage.getItem('currentProjectId') || '1';
-        const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
-        const projectIndex = savedProjects.findIndex((p: any) => p.id === currentProjectId);
-
-        if (projectIndex !== -1) {
-          if (!savedProjects[projectIndex].builds) {
-            savedProjects[projectIndex].builds = [];
-          }
-
-          // Add new build metadata
-          savedProjects[projectIndex].builds.unshift({
-            buildId: buildData.buildId,
-            timestamp: buildData.timestamp || new Date().toISOString(),
-            componentCount: buildData.componentCount || components.length,
-            fileCount: buildData.fileCount || components.length,
-            status: buildData.status || 'completed',
-            buildDirectory: buildData.buildDirectory || `builds/${currentProjectId}/${buildData.buildId}`,
-            duration: buildData.duration,
-          });
-
-          // Keep only last 10 builds
-          if (savedProjects[projectIndex].builds.length > 10) {
-            savedProjects[projectIndex].builds = savedProjects[projectIndex].builds.slice(0, 10);
-          }
-
-          localStorage.setItem('buildrunner_projects', JSON.stringify(savedProjects));
-          console.log('✅ Saved build metadata to project:', currentProjectId);
-        }
-
-        // Update project status to completed and track last build
-        updateProjectStatus(currentProjectId, {
-          status: 'completed',
-          currentPhase: 'complete',
-          lastBuildId: buildData.buildId,
-          phaseProgress: { prd: true, plan: true, build: true },
-        });
-        console.log('✅ Updated project status to complete');
-        addLog('success', 'Project status updated to complete');
-
-        // Check if this is a web or mobile app and show preview button
-        if (buildData.isWebApp || buildData.isMobileApp) {
-          setShowPreviewButton(true);
-          setAppType(buildData.isMobileApp ? 'mobile' : 'web');
-          // Save preview button state to localStorage so it persists
-          const currentProjectId = localStorage.getItem('currentProjectId') || '1';
-          localStorage.setItem(`showPreviewButton_${currentProjectId}_${buildData.buildId}`, 'true');
-          localStorage.setItem(`appType_${currentProjectId}_${buildData.buildId}`, buildData.isMobileApp ? 'mobile' : 'web');
-          const appTypeLabel = buildData.isMobileApp ? '📱 Mobile app' : '🌐 Web app';
-          addLog('info', `${appTypeLabel} detected! Click "Preview" to start dev server.`);
-        }
-
-        const aiMessage: BuildMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `Build completed successfully! Built ${buildData.componentCount || components.length} components in ${Math.round((buildData.duration || 0) / 1000)}s.${buildData.isWebApp ? '\n\nThis is a web app! You can preview it using the "Preview Demo" button.' : ''}`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-      });
-
-      eventSource.addEventListener('build_error', (event) => {
-        const data = JSON.parse(event.data);
-        setBuildStatus('idle');
-        const errorMsg = data.error || data.message || JSON.stringify(data);
-        addLog('error', `Build error [${data.phase || 'unknown'}]: ${errorMsg}`);
-        const aiMessage: BuildMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `Build error in ${data.phase || 'unknown phase'}:\n${errorMsg}${data.component ? `\nComponent: ${data.component}` : ''}`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-      });
-
-      eventSource.addEventListener('intervention_triggered', (event) => {
-        const data = JSON.parse(event.data);
-        const details = data.details || data.reason || 'Intervention required';
-        addLog('warning', `Intervention needed: ${details}`);
-        const aiMessage: BuildMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `Intervention needed: ${details}\n\nReason: ${data.reason || 'Unknown'}\n\nStatus: ${data.status || 'Pending'}\n\nPlease provide guidance or wait for AI to resolve.`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        setIsChatOpen(true);
-      });
-
-      // User input required - show AI-generated strategies
-      eventSource.addEventListener('intervention_user_input_required', (event) => {
-        const data = JSON.parse(event.data);
-        const intervention = data.intervention;
-        const strategies = data.strategies || [];
-
-        addLog('warning', `Intervention requires user input: ${intervention.details}`);
-
-        // Format strategies message
-        let strategiesText = strategies.length > 0
-          ? `\n\nAI-Generated Strategies:\n${strategies.map((s: any, i: number) =>
-              `\n${i + 1}. ${s.name} (${s.model})\nConfidence: ${(s.confidence * 100).toFixed(0)}%\n${s.description}`
-            ).join('\n')}`
-          : '\n\nNo strategies generated yet.';
-
-        const aiMessage: BuildMessage = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `🚨 Critical Intervention Required\n\nReason: ${intervention.reason}\nDetails: ${intervention.details}${strategiesText}\n\nPlease review the strategies and provide guidance, or I will attempt to apply the highest confidence strategy.`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-        setIsChatOpen(true);
-      });
-
-      // Detailed logging events with metadata
-      eventSource.addEventListener('log', (event) => {
-        const data = JSON.parse(event.data);
-        const level = data.level || 'info';
-        const message = data.message || 'Log message';
-        addLog(level as any, message);
-      });
-
-      eventSource.addEventListener('llm_request', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('llm_request', data.prompt || `Calling ${data.model}`, {
-          model: data.model,
-          component: data.component,
-          promptLength: data.promptLength,
-        });
-      });
-
-      eventSource.addEventListener('llm_response', (event) => {
-        const data = JSON.parse(event.data);
-        const codePreview = data.codePreview || data.responsePreview || data.response || '';
-        addLog('llm_response', codePreview || 'Response received', {
-          model: data.model,
-          component: data.component,
-          responseLength: data.responseLength || data.codeLength || 0,
-        });
-      });
-
-      eventSource.addEventListener('file_write', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('file_operation', `Wrote file: ${data.filePath}`, {
-          filePath: data.filePath,
-        });
-      });
-
-      eventSource.addEventListener('consensus_check', (event) => {
-        const data = JSON.parse(event.data);
-        addLog('consensus', data.agreed ? 'Consensus reached' : 'Consensus failed', {
-          agreementRatio: data.agreementRatio,
-          models: data.models || [],
-        });
-      });
-
-      eventSource.onerror = (error) => {
-        console.error('❌ EventSource error:', error);
-        addLog('error', 'Connection to build feed lost. Browser will auto-reconnect...');
-
-        // Let the browser auto-reconnect - don't close the connection here
-        // Connection will be closed when build completes or user stops it
-      };
     } catch (error) {
-      console.error('Failed to start build:', error);
-      addLog('error', `Failed to start: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to export to Claude Builder:', error);
+      addLog('error', `❌ Failed to export: ${error instanceof Error ? error.message : 'Unknown error'}`);
       const aiMessage: BuildMessage = {
         id: Date.now().toString(),
         role: 'assistant',
