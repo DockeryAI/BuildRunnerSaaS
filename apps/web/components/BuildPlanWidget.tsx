@@ -95,6 +95,12 @@ export default function BuildPlanWidget({ projectName, isBuilding }: BuildPlanWi
   }, [isDragging, dragOffset]);
 
   const fetchBuildStatus = async () => {
+    // DISABLED: This widget is for the legacy external Claude Builder daemon system
+    // The new BuildOrchestrator uses SSE streaming directly in the workbench page
+    // This widget will be replaced or updated to work with the new system in a future update
+    return;
+
+    /* Legacy code - kept for reference
     try {
       const response = await fetch(`/api/build/status?projectName=${encodeURIComponent(projectName)}`);
       const data = await response.json();
@@ -106,6 +112,7 @@ export default function BuildPlanWidget({ projectName, isBuilding }: BuildPlanWi
     } catch (error) {
       console.error('Failed to fetch build status:', error);
     }
+    */
   };
 
   if (!isBuilding) {
