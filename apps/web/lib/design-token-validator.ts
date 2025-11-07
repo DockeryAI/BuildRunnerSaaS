@@ -164,7 +164,7 @@ export class DesignTokenValidator {
     }
 
     // If we have a profile, use its primary colors
-    if (profile && profile.colorScheme) {
+    if (profile && profile.colorScheme && profile.colorScheme.primary && profile.colorScheme.secondary) {
       const primaryHue = this.extractHue(profile.colorScheme.primary);
       const secondaryHue = this.extractHue(profile.colorScheme.secondary);
 
