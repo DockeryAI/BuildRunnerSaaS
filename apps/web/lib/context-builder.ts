@@ -93,11 +93,11 @@ ${prd.targetAudience ? `Target Users: ${prd.targetAudience}` : ''}
 ${prd.valueProposition ? `Value Proposition: ${prd.valueProposition}` : ''}
 
 Core Features:
-${prd.features.slice(0, 5).map(f => `- ${f.title}: ${f.description}`).join('\n')}`;
+${prd.features && prd.features.length > 0 ? prd.features.slice(0, 5).map(f => `- ${f.title}: ${f.description}`).join('\n') : 'No features defined yet'}`;
   }
 
   private static buildFeatureSection(component: ComponentContext, prd: PRDContext): string {
-    const relatedFeatures = prd.features.filter(f =>
+    const relatedFeatures = (prd.features || []).filter(f =>
       component.relatedFeatures.includes(f.id) ||
       f.title.toLowerCase().includes(component.componentName.toLowerCase())
     );
