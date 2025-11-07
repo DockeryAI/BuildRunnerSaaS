@@ -778,7 +778,7 @@ Return ONLY the complete component code, no explanations or markdown formatting.
    */
   private inferFilePath(component: ComponentContext): string {
     // Sanitize component name to kebab-case (same logic as file-writer.ts)
-    const name = component.componentName
+    const name = (component.componentName || 'component')
       .trim()
       .replace(/([a-z])([A-Z])/g, '$1-$2')  // camelCase → kebab-case
       .replace(/[\s_]+/g, '-')               // spaces/underscores → hyphens

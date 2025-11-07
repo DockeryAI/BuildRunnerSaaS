@@ -1558,9 +1558,9 @@ export class BuildOrchestrator extends EventEmitter {
 
     // Build component context
     const componentContext: ComponentContext = {
-      componentName: component.name,
-      componentType: component.type,
-      description: component.description,
+      componentName: component.name || 'UnnamedComponent',
+      componentType: component.type || 'component',
+      description: component.description || '',
       relatedFeatures,
       dataModels: {}, // TODO: Extract from PRD or infer from component
       dependencies: component.dependencies || []
