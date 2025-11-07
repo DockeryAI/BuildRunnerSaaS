@@ -41,11 +41,57 @@ export default function OracleChat({ projectContext }: OracleChatProps) {
   const [position, setPosition] = useState({ x: window.innerWidth - 420, y: window.innerHeight - 600 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+
+  // Load conversation history for current project
+  useEffect(() => {
+    const projectId = projectContext?.projectId || localStorage.getItem('currentProjectId');
+
+    if (projectId !== currentProjectId) {
+      setCurrentProjectId(projectId);
+
+      if (projectId) {
+        // Load saved messages for this project
+        const savedMessagesKey = `oracle_messages_${projectId}`;
+        const savedMessages = localStorage.getItem(savedMessagesKey);
+
+        if (savedMessages) {
+          try {
+            const parsed = JSON.parse(savedMessages);
+            // Restore Date objects
+            const messagesWithDates = parsed.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp),
+            }));
+            setMessages(messagesWithDates);
+            console.log(`📜 Loaded ${messagesWithDates.length} Oracle messages for project ${projectId}`);
+          } catch (e) {
+            console.warn('Failed to load Oracle messages:', e);
+            setMessages([]);
+          }
+        } else {
+          // No saved messages, start fresh
+          setMessages([]);
+        }
+      } else {
+        setMessages([]);
+      }
+    }
+  }, [projectContext?.projectId, currentProjectId]);
+
+  // Save messages whenever they change
+  useEffect(() => {
+    if (currentProjectId && messages.length > 0) {
+      const savedMessagesKey = `oracle_messages_${currentProjectId}`;
+      localStorage.setItem(savedMessagesKey, JSON.stringify(messages));
+      console.log(`💾 Saved ${messages.length} Oracle messages for project ${currentProjectId}`);
+    }
+  }, [messages, currentProjectId]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -232,9 +278,17 @@ export default function OracleChat({ projectContext }: OracleChatProps) {
             {messages.length === 0 && (
               <div className="text-center text-gray-500 py-8">
                 <Sparkles className="h-12 w-12 mx-auto mb-3 text-purple-400" />
-                <p className="text-sm">Ask Oracle strategic questions about your project</p>
+                <p className="text-sm font-medium">Ask Oracle strategic questions about your project</p>
+                {projectContext?.projectName && (
+                  <p className="text-xs mt-2 text-blue-600 font-semibold">
+                    📋 Loaded: {projectContext.projectName}
+                  </p>
+                )}
                 <p className="text-xs mt-2 text-gray-400">
-                  Context-aware • Opus 4.1 • Strategic insights
+                  Full PRD • Build status • Conversation history
+                </p>
+                <p className="text-xs text-gray-400">
+                  Powered by Opus 4.1
                 </p>
               </div>
             )}
