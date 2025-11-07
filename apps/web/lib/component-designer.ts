@@ -472,6 +472,8 @@ Generate the complete component now, maintaining Catalyst's premium quality whil
       'search': 'Linear Command Palette or Algolia',
     };
 
+    // Null/undefined safety
+    if (!type) return 'Linear or Notion';
     return inspirations[type.toLowerCase()] || 'Linear or Notion';
   }
 
