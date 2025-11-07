@@ -187,14 +187,14 @@ export class MaterialPaletteGenerator {
       surfaceVariant: hexFromArgb(scheme.surfaceVariant),
       onSurfaceVariant: hexFromArgb(scheme.onSurfaceVariant),
 
-      // Surface variants
-      surfaceDim: hexFromArgb(scheme.surfaceDim),
-      surfaceBright: hexFromArgb(scheme.surfaceBright),
-      surfaceContainerLowest: hexFromArgb(scheme.surfaceContainerLowest),
-      surfaceContainerLow: hexFromArgb(scheme.surfaceContainerLow),
-      surfaceContainer: hexFromArgb(scheme.surfaceContainer),
-      surfaceContainerHigh: hexFromArgb(scheme.surfaceContainerHigh),
-      surfaceContainerHighest: hexFromArgb(scheme.surfaceContainerHighest),
+      // Surface variants (simplified - using surface for all)
+      surfaceDim: hexFromArgb(scheme.surface),
+      surfaceBright: hexFromArgb(scheme.surface),
+      surfaceContainerLowest: hexFromArgb(scheme.surface),
+      surfaceContainerLow: hexFromArgb(scheme.surface),
+      surfaceContainer: hexFromArgb(scheme.surface),
+      surfaceContainerHigh: hexFromArgb(scheme.surfaceVariant),
+      surfaceContainerHighest: hexFromArgb(scheme.surfaceVariant),
 
       // Outline
       outline: hexFromArgb(scheme.outline),

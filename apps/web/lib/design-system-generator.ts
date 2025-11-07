@@ -22,6 +22,12 @@ export interface ColorPalette {
   ring: string;
   destructive: string;
   destructiveForeground: string;
+  // Optional Material Design extensions
+  surface?: string;
+  card?: string;
+  cardForeground?: string;
+  popover?: string;
+  popoverForeground?: string;
 }
 
 export interface Typography {
@@ -29,22 +35,8 @@ export interface Typography {
     sans: string;
     mono: string;
   };
-  scale: {
-    xs: string;
-    sm: string;
-    base: string;
-    lg: string;
-    xl: string;
-    '2xl': string;
-    '3xl': string;
-    '4xl': string;
-  };
-  weights: {
-    normal: number;
-    medium: number;
-    semibold: number;
-    bold: number;
-  };
+  scale: Record<string, string>; // Flexible scale to support any size keys
+  weights: Record<string, number>; // Flexible weights to support any weight keys
 }
 
 export interface DesignTokens {
@@ -52,33 +44,28 @@ export interface DesignTokens {
     unit: number; // Base unit in pixels
     scale: number[]; // Multipliers [0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 12, 16]
   };
-  borderRadius: {
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    full: string;
-  };
-  shadows: {
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-  };
+  borderRadius: Record<string, string>; // Flexible to support any radius keys
+  shadows: Record<string, string>; // Flexible to support any shadow keys
+  blur?: Record<string, string>; // Optional blur values
 }
 
 export interface DesignSpec {
-  visualStyle: 'modern-minimal' | 'bold-colorful' | 'elegant-corporate' | 'playful-friendly';
+  visualStyle: string; // Allow custom visual styles from Material Design
   colorPalette: ColorPalette;
   typography: Typography;
   designTokens: DesignTokens;
   inspiration: string[];
   componentPatterns: {
-    navigation: 'sidebar' | 'topnav' | 'tabs';
-    layout: 'centered' | 'full-width' | 'sidebar-layout';
+    navigation: 'sidebar' | 'topnav' | 'tabs' | 'command-palette';
+    layout: string; // Allow custom layouts
     cardStyle: 'flat' | 'elevated' | 'bordered';
+    buttonStyle?: string;
+    inputStyle?: string;
   };
   generatedAt: string;
+  industry?: string;
+  // Optional Material Design extensions
+  darkColorPalette?: ColorPalette;
 }
 
 export class DesignSystemGenerator {
