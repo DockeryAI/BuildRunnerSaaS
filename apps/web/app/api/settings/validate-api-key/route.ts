@@ -153,6 +153,73 @@ async function validateCalendlyKey(apiKey: string): Promise<{ valid: boolean; me
   }
 }
 
+async function validateSupabaseKey(apiKey: string): Promise<{ valid: boolean; message?: string }> {
+  // Supabase expects a JSON with url and anonKey
+  try {
+    const credentials = JSON.parse(apiKey);
+    const { url, anonKey, databaseUrl } = credentials;
+
+    if (!url || !anonKey) {
+      return { valid: false, message: 'Supabase requires both Project URL and anon key.' };
+    }
+
+    // Validate URL format
+    if (!url.includes('supabase.co') && !url.includes('localhost')) {
+      return { valid: false, message: 'Invalid Supabase URL format.' };
+    }
+
+    // Test the connection with a simple query
+    const response = await fetch(`${url}/rest/v1/`, {
+      headers: {
+        'apikey': anonKey,
+        'Authorization': `Bearer ${anonKey}`,
+      },
+    });
+
+    if (response.ok || response.status === 404) {
+      // 404 is ok - means API is reachable but route doesn't exist
+      return {
+        valid: true,
+        message: 'Supabase credentials validated successfully! Your project is reachable.'
+      };
+    }
+
+    return { valid: false, message: 'Supabase credentials are invalid or project is not accessible.' };
+  } catch (parseError) {
+    // If it's not JSON, maybe it's just the anon key
+    if (apiKey.length > 100 && apiKey.includes('.')) {
+      return {
+        valid: true,
+        message: 'Supabase anon key saved. Make sure to also configure your Project URL in .env'
+      };
+    }
+    return { valid: false, message: 'Invalid format. Provide JSON with {url, anonKey} or just the anon key.' };
+  }
+}
+
+async function validatePostgreSQLKey(apiKey: string): Promise<{ valid: boolean; message?: string }> {
+  // PostgreSQL connection string format: postgresql://user:password@host:port/database
+  if (!apiKey.startsWith('postgres://') && !apiKey.startsWith('postgresql://')) {
+    return { valid: false, message: 'Invalid PostgreSQL connection string. Should start with postgresql://' };
+  }
+
+  // Basic format validation
+  const regex = /postgres(ql)?:\/\/[^:]+:[^@]+@[^:]+:\d+\/\w+/;
+  if (regex.test(apiKey)) {
+    return {
+      valid: true,
+      message: 'PostgreSQL connection string format looks good! Test the connection in your app.'
+    };
+  }
+
+  return { valid: false, message: 'Invalid PostgreSQL connection string format.' };
+}
+
+async function validatePrismaKey(apiKey: string): Promise<{ valid: boolean; message?: string }> {
+  // Prisma just needs a DATABASE_URL, which is the same as PostgreSQL
+  return await validatePostgreSQLKey(apiKey);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { service, apiKey } = await request.json();
@@ -188,6 +255,15 @@ export async function POST(request: NextRequest) {
         break;
       case 'calendly':
         result = await validateCalendlyKey(apiKey);
+        break;
+      case 'supabase':
+        result = await validateSupabaseKey(apiKey);
+        break;
+      case 'postgresql':
+        result = await validatePostgreSQLKey(apiKey);
+        break;
+      case 'prisma':
+        result = await validatePrismaKey(apiKey);
         break;
       default:
         // For unknown services, just accept the key (basic validation)

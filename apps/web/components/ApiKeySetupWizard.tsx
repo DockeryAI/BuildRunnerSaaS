@@ -200,6 +200,74 @@ const setupInstructions: Record<string, SetupStep[]> = {
       description: 'Copy both your publishable key (starts with pk_) and secret key (starts with sk_).',
     },
   ],
+  'Supabase': [
+    {
+      title: 'Create a Supabase Account',
+      description: 'Sign up for Supabase to get a free PostgreSQL database with built-in auth and real-time features.',
+      action: 'Go to Supabase Signup',
+      actionUrl: 'https://supabase.com/dashboard/sign-up',
+    },
+    {
+      title: 'Create a New Project',
+      description: 'Click "New Project", choose a name, set a strong database password, and select a region close to your users.',
+      action: 'Create Project',
+      actionUrl: 'https://supabase.com/dashboard/projects',
+    },
+    {
+      title: 'Get Your Project URL',
+      description: 'Go to Settings → API. Copy your "Project URL" - this is your SUPABASE_URL.',
+      action: 'View API Settings',
+      actionUrl: 'https://supabase.com/dashboard/project/_/settings/api',
+    },
+    {
+      title: 'Get Your API Keys',
+      description: 'On the same API page, copy your "anon public" key (safe for client-side use) and optionally the "service_role" key (for server-side operations).',
+    },
+    {
+      title: 'Copy Your Connection String',
+      description: 'Go to Settings → Database and copy the Connection String (in "URI" format). You\'ll need this as DATABASE_URL.',
+      action: 'View Database Settings',
+      actionUrl: 'https://supabase.com/dashboard/project/_/settings/database',
+    },
+  ],
+  'PostgreSQL': [
+    {
+      title: 'Recommended: Use Supabase',
+      description: 'For easiest setup, we recommend using Supabase which provides managed PostgreSQL with a generous free tier.',
+      action: 'Switch to Supabase',
+      actionUrl: 'https://supabase.com/dashboard/sign-up',
+    },
+    {
+      title: 'Alternative: Local PostgreSQL',
+      description: 'Install PostgreSQL locally using Homebrew (Mac), apt (Linux), or download from postgresql.org (Windows).',
+      action: 'Download PostgreSQL',
+      actionUrl: 'https://www.postgresql.org/download/',
+    },
+    {
+      title: 'Create a Database',
+      description: 'After installation, create a new database: `createdb your_database_name`',
+    },
+    {
+      title: 'Get Connection String',
+      description: 'Format: postgresql://username:password@localhost:5432/database_name',
+    },
+  ],
+  'Prisma': [
+    {
+      title: 'Database Required',
+      description: 'Prisma needs a database connection. We recommend setting up Supabase first (see Supabase setup guide).',
+      action: 'Setup Supabase',
+      actionUrl: 'https://supabase.com/dashboard/sign-up',
+    },
+    {
+      title: 'Connection String',
+      description: 'After setting up your database, you\'ll add the connection string to your .env file as DATABASE_URL.',
+    },
+    {
+      title: 'Prisma Setup',
+      description: 'Prisma will be configured automatically in your generated project. Just make sure DATABASE_URL is set.',
+    },
+  ],
 };
 
 export default function ApiKeySetupWizard({

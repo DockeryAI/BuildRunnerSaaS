@@ -182,8 +182,10 @@ export function exportToPPT(prdData: PRDData) {
 export function exportToMarkdown(prdData: PRDData): string {
   let markdown = `# Product Requirements Document: ${prdData.productName}\n\n`;
 
-  // Metadata section
-  markdown += `> **Generated**: ${new Date().toLocaleDateString()}\n`;
+  // Metadata section with full timestamp to ensure unique hash on each export
+  const now = new Date();
+  markdown += `> **Generated**: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}\n`;
+  markdown += `> **Build Trigger**: ${now.toISOString()}\n`;
   markdown += `> **Status**: Active Development\n`;
   markdown += `> **Purpose**: Source of truth for all feature development and AI-assisted coding\n\n`;
 
@@ -277,9 +279,18 @@ export async function exportToClaudeBuilder(
   projectName: string
 ): Promise<{ success: boolean; message: string; path?: string }> {
   try {
+    console.log('[exportToClaudeBuilder] Starting export for project:', projectName);
+    console.log('[exportToClaudeBuilder] PRD data:', {
+      productName: prdData.productName,
+      ideaLength: prdData.productIdea?.length || 0,
+      sectionsCount: Object.keys(prdData.prdSections || {}).length,
+    });
+
     const markdown = exportToMarkdown(prdData);
+    console.log('[exportToClaudeBuilder] Generated markdown, length:', markdown.length);
 
     // Call API route to write file server-side
+    console.log('[exportToClaudeBuilder] Calling API endpoint...');
     const response = await fetch('/api/claude-builder/export-prd', {
       method: 'POST',
       headers: {
@@ -291,19 +302,22 @@ export async function exportToClaudeBuilder(
       }),
     });
 
+    console.log('[exportToClaudeBuilder] API response status:', response.status);
     const result = await response.json();
+    console.log('[exportToClaudeBuilder] API response data:', result);
 
     if (!response.ok) {
       throw new Error(result.error || 'Failed to export PRD');
     }
 
+    console.log('[exportToClaudeBuilder] ✅ Export successful!');
     return {
       success: true,
       message: 'PRD exported successfully. Daemon will detect changes and start building.',
       path: result.path,
     };
   } catch (error) {
-    console.error('Failed to export to Claude Builder:', error);
+    console.error('[exportToClaudeBuilder] ❌ Export failed:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Failed to export PRD',
