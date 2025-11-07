@@ -10,8 +10,10 @@ import LiveFeedPanel from '../../../components/LiveFeedPanel';
 import FileBrowser from '../../../components/FileBrowser';
 import ChatPanel from '../../../components/ChatPanel';
 import TerminalPanel, { TerminalLog } from '../../../components/TerminalPanel';
+import ClaudeOutputTerminal from '../../../components/ClaudeOutputTerminal';
 import ArchitectureFlowDiagram from '../../../components/ArchitectureFlowDiagram';
 import ConsensusLogPanel, { ConsensusMessage, ConsensusIteration } from '../../../components/ConsensusLogPanel';
+import BuildPlanWidget from '../../../components/BuildPlanWidget';
 import { updateProjectStatus } from '../../../lib/autosave';
 import { exportToClaudeBuilder, exportToMarkdown } from '../../../lib/prd-export';
 import {
@@ -439,8 +441,8 @@ export default function WorkbenchPage() {
         // Extract project name and idea from plan or project data
         const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
         const project = savedProjects.find((p: any) => p.id === currentProjectId);
-        // Use a simple name instead of the full product idea
-        const name = 'Build Workbench';
+        // Extract actual project name from current project data
+        const name = currentProject?.productName || currentProject?.name || project?.productName || project?.name || 'Build Workbench';
         setProjectName(name);
         console.log('📛 Project name:', name);
 
@@ -546,8 +548,8 @@ export default function WorkbenchPage() {
 
   const handleStartBuild = async () => {
     try {
-      addLog('info', '🤖 Exporting PRD to Claude Builder...');
-      console.log('✅ Starting Claude Builder export');
+      addLog('info', '🚀 Starting build with BuildOrchestrator...');
+      console.log('✅ Starting build via API');
 
       // Automatically open the feed when build starts
       setIsFeedMinimized(false);
@@ -577,31 +579,128 @@ export default function WorkbenchPage() {
         }
       }
 
-      const projectName = currentProject.productName || currentProject.name || 'Project';
+      const exportProjectName = currentProject.productName || currentProject.name || 'Project';
       const productIdea = currentProject.productIdea || '';
+
+      console.log('[workbench] Project data:', {
+        exportProjectName,
+        productIdeaLength: productIdea.length,
+        prdSectionsKeys: Object.keys(prdSections),
+        currentProject,
+      });
 
       if (!productIdea && Object.keys(prdSections).length === 0) {
         throw new Error('No product description found. Please describe what you want to build.');
       }
 
-      // Export to Claude Builder
-      const result = await exportToClaudeBuilder(
-        {
-          productName: projectName,
-          productIdea,
-          prdSections,
-        },
-        projectName
-      );
+      // Update state with the actual project name being exported
+      setProjectName(exportProjectName);
 
-      if (!result.success) {
-        throw new Error(result.message);
+      // Get plan components
+      const planCacheKey = `buildrunner_plan_${currentProjectId}`;
+      const savedPlan = localStorage.getItem(planCacheKey);
+
+      if (!savedPlan) {
+        throw new Error('No build plan found. Please generate a plan first.');
       }
 
+      const plan = JSON.parse(savedPlan);
+      const extractedComponents = extractBuildComponents(plan);
+
+      addLog('info', `📦 Extracted ${extractedComponents.length} components from plan`);
+
+      // Call BuildOrchestrator API
+      const response = await fetch('/api/build/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          components: extractedComponents,
+          config: {},
+          projectId: currentProjectId,
+          productIdea,
+          prd: prdSections,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to start build');
+      }
+
+      const result = await response.json();
+      const newBuildId = result.buildId;
+
+      setBuildId(newBuildId);
       setBuildStatus('running');
-      addLog('success', `✅ PRD exported to: ${result.path || '~/Projects/BuildRunnerProjects/' + projectName}`);
-      addLog('info', '⏳ Claude Builder daemon will detect the PRD and start building...');
-      addLog('info', '📝 Monitor build progress in the daemon logs or in ~/Projects/' + projectName);
+      addLog('success', `✅ Build started with ID: ${newBuildId}`);
+      addLog('info', '⏳ Connecting to build progress stream...');
+
+      // Set up Server-Sent Events for build progress
+      const eventSource = new EventSource(`/api/build/status?buildId=${newBuildId}`);
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        console.log('✅ Connected to build progress stream');
+        addLog('success', '✅ Connected to build progress stream');
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('[SSE] Build update:', data);
+
+          // Update component statuses
+          if (data.componentId) {
+            setComponents((prev) =>
+              prev.map((comp) =>
+                comp.id === data.componentId
+                  ? { ...comp, status: data.status, progress: data.progress || comp.progress }
+                  : comp
+              )
+            );
+          }
+
+          // Update phase progress
+          if (data.phase) {
+            setPhaseProgress({
+              phase: data.phase,
+              current: data.current || 0,
+              total: data.total || 0,
+              percentage: data.percentage || 0,
+            });
+          }
+
+          // Add logs
+          if (data.message) {
+            addLog('info', data.message);
+          }
+
+          // Handle completion
+          if (data.status === 'completed') {
+            setBuildStatus('completed');
+            addLog('success', '🎉 Build completed successfully!');
+            setIsFullyComplete(true);
+            eventSource.close();
+          }
+
+          // Handle errors
+          if (data.status === 'error') {
+            addLog('error', `❌ Build error: ${data.error || 'Unknown error'}`);
+            setBuildStatus('idle');
+            eventSource.close();
+          }
+        } catch (err) {
+          console.error('[SSE] Failed to parse event data:', err);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('[SSE] EventSource error:', error);
+        addLog('error', '❌ Lost connection to build stream');
+        eventSource.close();
+      };
 
       // Update project status to 'build' phase
       updateProjectStatus(currentProjectId, {
@@ -615,14 +714,14 @@ export default function WorkbenchPage() {
       const aiMessage: BuildMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `🤖 PRD exported to Claude Builder!\n\nProject: ${projectName}\nLocation: ~/Projects/BuildRunnerProjects/${projectName}/PRD.md\n\nThe Claude Builder daemon is now monitoring for changes and will automatically start building your project. Monitor progress in:\n- ~/Projects/${projectName} (actual project files)\n- Daemon logs: cd ~/.claude-builder && node cli.js logs`,
+        content: `🚀 Build started!\n\nProject: ${exportProjectName}\nBuild ID: ${newBuildId}\n\nMonitor progress in the terminal below. The BuildOrchestrator is now generating your project.`,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
 
     } catch (error) {
-      console.error('Failed to export to Claude Builder:', error);
-      addLog('error', `❌ Failed to export: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to start build:', error);
+      addLog('error', `❌ Failed to start build: ${error instanceof Error ? error.message : 'Unknown error'}`);
       const aiMessage: BuildMessage = {
         id: Date.now().toString(),
         role: 'assistant',
@@ -712,9 +811,18 @@ export default function WorkbenchPage() {
 
   const handleTerminalMouseMove = (e: MouseEvent) => {
     if (isDragging) {
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      // Bounds checking - keep at least 50px visible on each edge
+      const minX = -650; // 700px width - 50px visible = -650
+      const maxX = window.innerWidth - 50;
+      const minY = 0; // Don't allow above top
+      const maxY = window.innerHeight - 50;
+
       setTerminalPosition({
-        x: e.clientX - dragOffset.x,
-        y: e.clientY - dragOffset.y,
+        x: Math.max(minX, Math.min(maxX, newX)),
+        y: Math.max(minY, Math.min(maxY, newY)),
       });
     }
   };
@@ -1124,6 +1232,37 @@ export default function WorkbenchPage() {
                   </button>
                 </div>
               )}
+
+              {/* Claude Builder Project Actions */}
+              {buildStatus === 'running' && projectName && (
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://github.com/DockeryAI/${projectName}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors shadow-sm"
+                    title="View project on GitHub"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                    </svg>
+                    View on GitHub
+                  </a>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`~/Projects/${projectName}`);
+                      addLog('success', '📋 Project path copied to clipboard');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                    title="Copy project folder path"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    Copy Path
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Build Phase Indicator */}
@@ -1289,17 +1428,29 @@ export default function WorkbenchPage() {
 
       {/* Terminal Panel */}
       {!isFeedMinimized && !isFilesOpen && (
-        <TerminalPanel
-          logs={logs}
-          buildStatus={buildStatus}
-          onSendCommand={handleSendCommand}
-          onInterrupt={handleInterrupt}
-          isFilesOpen={isFilesOpen}
-          onToggleFiles={() => setIsFilesOpen(!isFilesOpen)}
-          position={terminalPosition}
-          onMouseDown={handleTerminalMouseDown}
-          onMinimize={() => setIsFeedMinimized(true)}
-        />
+        <>
+          {buildStatus === 'running' ? (
+            <ClaudeOutputTerminal
+              projectName={projectName || 'Project'}
+              isOpen={true}
+              onClose={() => setIsFeedMinimized(true)}
+              position={terminalPosition}
+              onMouseDown={handleTerminalMouseDown}
+            />
+          ) : (
+            <TerminalPanel
+              logs={logs}
+              buildStatus={buildStatus}
+              onSendCommand={handleSendCommand}
+              onInterrupt={handleInterrupt}
+              isFilesOpen={isFilesOpen}
+              onToggleFiles={() => setIsFilesOpen(!isFilesOpen)}
+              position={terminalPosition}
+              onMouseDown={handleTerminalMouseDown}
+              onMinimize={() => setIsFeedMinimized(true)}
+            />
+          )}
+        </>
       )}
 
       {/* File Browser Panel */}
@@ -1444,6 +1595,12 @@ export default function WorkbenchPage() {
           onClose={() => setSelectedComponent(null)}
         />
       )}
+
+      {/* Build Plan Widget */}
+      <BuildPlanWidget
+        projectName={projectName}
+        isBuilding={buildStatus === 'running'}
+      />
     </div>
   );
 }
