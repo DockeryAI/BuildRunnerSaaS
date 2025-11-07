@@ -39,8 +39,8 @@ export class AIComponentGenerator {
    */
   private selectModelForComponent(context: BuildContext): string {
     const { component } = context;
-    const componentType = component.componentType.toLowerCase();
-    const componentName = component.componentName.toLowerCase();
+    const componentType = (component.componentType || '').toLowerCase();
+    const componentName = (component.componentName || '').toLowerCase();
     const description = (component.description || '').toLowerCase();
 
     // Determine task type based on component characteristics
