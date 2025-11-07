@@ -97,10 +97,11 @@ ${prd.features && prd.features.length > 0 ? prd.features.slice(0, 5).map(f => `-
   }
 
   private static buildFeatureSection(component: ComponentContext, prd: PRDContext): string {
-    const relatedFeatures = (prd.features || []).filter(f =>
-      component.relatedFeatures.includes(f.id) ||
-      f.title.toLowerCase().includes(component.componentName.toLowerCase())
-    );
+    const relatedFeatures = (prd.features || []).filter(f => {
+      if (!f || !f.title || !component.componentName) return false;
+      return component.relatedFeatures.includes(f.id) ||
+             f.title.toLowerCase().includes(component.componentName.toLowerCase());
+    });
 
     return `CURRENT COMPONENT:
 Component: ${component.componentName}
@@ -547,21 +548,22 @@ ${needsOffline ? `7. Offline Support:
   private static generateUserStories(component: ComponentContext, prd: PRDContext): string {
     const appType = this.inferAppType(prd.productIdea);
     const persona = this.inferUserPersona(prd.targetAudience || prd.productIdea);
+    const componentName = (component.componentName || '').toLowerCase();
 
     // Generate contextual user stories based on component type
-    if (component.componentName.toLowerCase().includes('location')) {
+    if (componentName.includes('location')) {
       return `- As a ${persona}, I want to search for locations so I can plan my ${appType}
 - As a ${persona}, I want to save favorite locations so I can quickly access them later
 - As a ${persona}, I want to see location details (terrain, difficulty) so I can make informed decisions`;
     }
 
-    if (component.componentName.toLowerCase().includes('task')) {
+    if (componentName.includes('task')) {
       return `- As a ${persona}, I want to assign tasks to group members so everyone knows their responsibilities
 - As a ${persona}, I want to see who's assigned to what so I can track progress
 - As a ${persona}, I want to mark tasks complete so the team sees real-time updates`;
     }
 
-    if (component.componentName.toLowerCase().includes('weather')) {
+    if (componentName.includes('weather')) {
       return `- As a ${persona}, I want to see current weather conditions so I can prepare appropriately
 - As a ${persona}, I want to see 7-day forecasts so I can plan ahead
 - As a ${persona}, I want weather alerts so I can avoid dangerous conditions`;
@@ -609,7 +611,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static inferPrimaryAction(component: ComponentContext): string {
-    const name = component.componentName.toLowerCase();
+    const name = (component.componentName || '').toLowerCase();
     if (name.includes('selector') || name.includes('picker')) return 'select options';
     if (name.includes('form')) return 'submit information';
     if (name.includes('list') || name.includes('table')) return 'view and manage items';
