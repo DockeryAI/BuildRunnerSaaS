@@ -1288,6 +1288,8 @@ export class BuildOrchestrator extends EventEmitter {
       return;
     }
 
+    console.log('[buildComponentsWithMultiAgent] DEBUG: config.multi_agent =', JSON.stringify(this.config.multi_agent, null, 2));
+
     this.emit('log', {
       level: 'info',
       message: `🚀 Sprint 2: Multi-agent parallel building enabled (${this.config.multi_agent.max_concurrent_agents} agents)`,
@@ -1309,12 +1311,16 @@ export class BuildOrchestrator extends EventEmitter {
       throw error;
     }
 
+    console.log('[buildComponentsWithMultiAgent] DEBUG: About to create orchestrator instance...');
+
     const orchestrator = new MultiAgentOrchestrator({
       maxConcurrentAgents: this.config.multi_agent.max_concurrent_agents,
       retryFailures: this.config.multi_agent.retry_failures,
       maxRetries: this.config.multi_agent.max_retries,
       failFast: this.config.multi_agent.fail_fast,
     });
+
+    console.log('[buildComponentsWithMultiAgent] DEBUG: Orchestrator instance created');
 
     // Forward orchestrator events to build events
     orchestrator.on('log', (event) => this.emit('log', event));
@@ -1377,6 +1383,8 @@ export class BuildOrchestrator extends EventEmitter {
     // Execute multi-agent build
     const startTime = Date.now();
 
+    console.log('[buildComponentsWithMultiAgent] DEBUG: About to call orchestrator.buildComponents() with', this.state.components.length, 'components');
+
     const result = await orchestrator.buildComponents(
       this.state.components,
       buildContexts,
@@ -1385,9 +1393,12 @@ export class BuildOrchestrator extends EventEmitter {
       this.fileWriter
     );
 
+    console.log('[buildComponentsWithMultiAgent] DEBUG: orchestrator.buildComponents() completed!');
+
     const duration = Date.now() - startTime;
 
     // Log results
+    console.log('[buildComponentsWithMultiAgent] DEBUG: Result:', result);
     this.emit('log', {
       level: result.success ? 'success' : 'warning',
       message: `🎯 Multi-agent build complete: ${result.successfulComponents}/${result.totalComponents} successful in ${(duration / 1000).toFixed(1)}s`,
