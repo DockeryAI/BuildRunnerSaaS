@@ -170,8 +170,8 @@ function groupMicrostepsIntoComponents(
  * Infer component type from microstep content
  */
 function inferComponentTypeFromMicrostep(microstep: Microstep): ComponentType {
-  const title = microstep.title.toLowerCase();
-  const description = microstep.description.toLowerCase();
+  const title = (microstep.title || '').toLowerCase();
+  const description = (microstep.description || '').toLowerCase();
   const text = `${title} ${description}`;
 
   if (
