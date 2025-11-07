@@ -607,6 +607,88 @@
       "tests": "pending",
       "docs": ["docs/intelligent_design_system.md"],
       "migration": "20251105000001_design-profiles.sql"
+    },
+    {
+      "id": "claude-cli-daemon",
+      "name": "Claude CLI Global PRD Watcher Daemon",
+      "status": "in_progress",
+      "version": "1.2.0",
+      "description": "Global daemon that watches all project directories for PRD.md changes and automatically triggers Claude CLI builds. Replaces manual CLI orchestration with fully automated build system. Includes hash-based change detection, debounced file watching (2s delay), build locking to prevent concurrent builds, WebSocket server for error/chat communication, and daemon management commands (start/stop/status/logs). One-time setup, then BuildRunnerSaaS UI exports PRD and daemon handles everything automatically.",
+      "components": [
+        "~/.claude-builder/daemon.js",
+        "~/.claude-builder/command-router.js",
+        "~/.claude-builder/config.json",
+        "apps/web/lib/prd-export.ts",
+        "apps/web/components/BuildStatusMonitor.tsx"
+      ],
+      "apis": [],
+      "priority": "critical",
+      "tests": "pending",
+      "docs": ["docs/CLAUDE_CLI_INTEGRATION.md"],
+      "implementation_details": {
+        "projects_root": "/Users/byronhudson/Projects/BuildRunnerProjects",
+        "websocket_port": 8765,
+        "debounce_delay": "2000ms",
+        "features": [
+          "Auto-detect new project directories",
+          "Watch PRD.md in each project",
+          "Hash-based change detection (no false triggers)",
+          "Build locking (prevent concurrent builds)",
+          "WebSocket server for error collector and chat widget",
+          "Daemon management CLI (start/stop/status/logs)"
+        ]
+      },
+      "phase": "Phase 1: Daemon + PRD Watching",
+      "timeline": "3-4 days"
+    },
+    {
+      "id": "self-healing-system-phase2",
+      "name": "Self-Healing System: Error Collector + Chat Widget + Command Router",
+      "status": "in_progress",
+      "version": "1.2.0",
+      "description": "Automatic error capture and intelligent command routing system. Injects error collector and contextual chat widget into preview apps. Captures all browser errors (console.error, runtime exceptions, promise rejections, React errors) with full context (page, component, user state, form data, chat history, DOM snapshot). Contextual chat widget knows exactly what page/component user is on and all visible elements. Command router receives errors and chat messages, uses Claude to classify intent (FEATURE_REQUEST → PRD.md, BUG_REPORT → BUGS.md, QUESTION → answer), and routes accordingly. Eliminates copy-pasting console logs and manual bug tracking.",
+      "components": [
+        "~/.claude-builder/templates/error-collector.js",
+        "~/.claude-builder/templates/chat-widget.js",
+        "~/.claude-builder/command-router.js",
+        "apps/web/app/(app)/preview/page.tsx"
+      ],
+      "apis": [],
+      "priority": "critical",
+      "tests": "pending",
+      "docs": ["docs/CLAUDE_CLI_INTEGRATION.md"],
+      "implementation_details": {
+        "error_capture": [
+          "console.error logs",
+          "Uncaught exceptions (window.error)",
+          "Unhandled promise rejections",
+          "React errors",
+          "Full context: page, component, user state, form data, chat history, DOM snapshot"
+        ],
+        "chat_widget_context": [
+          "Current page detection",
+          "Active component detection",
+          "Visible elements in viewport",
+          "User action tracking",
+          "Chat history capture"
+        ],
+        "command_router_logic": [
+          "Error categorization: import, null reference, API, React",
+          "Intent classification using Claude API",
+          "Feature requests → append to PRD.md",
+          "Bug reports → log in BUGS.md with priority",
+          "Questions → answer with context"
+        ],
+        "file_artifacts": [
+          "PRD.md (source of truth for features)",
+          "BUGS.md (bug tracker with Open/In Progress/Fixed sections)",
+          "BUILD_STATUS.md (real-time build progress)",
+          "CHANGELOG.md (all fixes logged)"
+        ]
+      },
+      "phase": "Phase 2-3: Error Collection + Chat + Routing",
+      "timeline": "7-9 days",
+      "dependencies": ["claude-cli-daemon"]
     }
   ],
 
@@ -795,16 +877,16 @@
 
   "metrics": {
     "features_complete": 27,
-    "features_in_progress": 13,
+    "features_in_progress": 15,
     "features_planned": 11,
     "completion_percentage": 82,
-    "components_count": 63,
+    "components_count": 68,
     "api_endpoints_count": 58,
     "typescript_files": 11700,
     "pages_routes": 46,
     "database_migrations": 18,
     "migration_sql_lines": 6335,
-    "documentation_files": 35,
+    "documentation_files": 36,
     "design_assets": 2,
     "total_commits": 201,
     "active_branches": 21
