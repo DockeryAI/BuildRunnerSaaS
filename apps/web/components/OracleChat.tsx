@@ -59,7 +59,7 @@ function OracleSuggestionCard({
   onFuture: (suggestion: Suggestion) => void;
   onDelete: (id: string) => void;
 }) {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const priorityColors = {
     high: 'border-red-300 bg-red-50',
