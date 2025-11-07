@@ -201,7 +201,6 @@ export default function PlanPage() {
       if (cachedPlan && cachedHash) {
         try {
           const parsedCache = JSON.parse(cachedPlan);
-          setProjectPlan(parsedCache);
           console.log('✅ Loaded cached plan for project:', currentProjectId);
           console.log('📊 Plan structure:', {
             hasMilestones: !!parsedCache.milestones,
@@ -209,6 +208,48 @@ export default function PlanPage() {
             firstMilestone: parsedCache.milestones?.[0],
             sampleKeys: parsedCache.milestones?.[0] ? Object.keys(parsedCache.milestones[0]) : []
           });
+
+          // Convert old plan format (milestones → components) to new format (milestones → steps → microsteps)
+          if (parsedCache.milestones && parsedCache.milestones.length > 0) {
+            const firstMilestone = parsedCache.milestones[0];
+
+            // Check if this is the old format (has 'components' instead of 'steps')
+            if (firstMilestone.components && !firstMilestone.steps) {
+              console.log('🔄 Converting old plan format to new format...');
+
+              parsedCache.milestones = parsedCache.milestones.map((milestone: any, mIdx: number) => ({
+                id: milestone.id || `milestone-${mIdx + 1}`,
+                title: milestone.name || milestone.title || `Milestone ${mIdx + 1}`,
+                description: milestone.description || `Phase ${mIdx + 1} implementation`,
+                estimatedWeeks: milestone.estimatedWeeks || Math.ceil((milestone.estimatedHours || 40) / 40),
+                dependencies: milestone.dependencies || [],
+                status: 'pending' as const,
+                steps: (milestone.components || []).map((component: any, sIdx: number) => ({
+                  id: component.id || `step-${mIdx}-${sIdx}`,
+                  title: component.name || `Step ${sIdx + 1}`,
+                  description: component.description || '',
+                  estimatedDays: Math.ceil((component.estimatedHours || 8) / 8),
+                  dependencies: component.dependencies || [],
+                  status: 'pending' as const,
+                  microsteps: component.microsteps || [{
+                    id: `microstep-${mIdx}-${sIdx}-1`,
+                    title: component.name || `Implement ${component.name || 'component'}`,
+                    description: component.description || '',
+                    estimatedHours: component.estimatedHours || 8,
+                    dependencies: [],
+                    status: 'pending' as const
+                  }]
+                }))
+              }));
+
+              console.log('✅ Converted plan to new format:', {
+                milestones: parsedCache.milestones.length,
+                totalSteps: parsedCache.milestones.reduce((sum: number, m: any) => sum + (m.steps?.length || 0), 0)
+              });
+            }
+          }
+
+          setProjectPlan(parsedCache);
 
           // Expand first milestone by default
           if (parsedCache.milestones && parsedCache.milestones.length > 0) {
