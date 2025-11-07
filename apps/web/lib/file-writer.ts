@@ -793,9 +793,14 @@ export { Label }
    * Assemble Next.js web app (Layer 3: Smart Page Generation)
    */
   private async assembleNextJSApp(components: any[]): Promise<void> {
+    console.log(`📊 Received ${components.length} components to assemble`);
+    console.log(`📊 Component types:`, components.map(c => ({ name: c.name, type: c.type })));
+
     const frontendComponents = components.filter(c =>
       c.type === 'frontend' || c.type === 'component'
     );
+
+    console.log(`📊 After type filter: ${frontendComponents.length} frontend components`);
 
     // Generate tabs-based layout (Layer 3)
     const pageContent = this.generateTabsPage(frontendComponents);
@@ -893,6 +898,9 @@ module.exports = nextConfig;
    * FILTERS OUT tech stack components to show only real features
    */
   private generateTabsPage(components: any[]): string {
+    console.log(`📊 generateTabsPage received ${components.length} components`);
+    console.log(`📊 Component names:`, components.map(c => c.name));
+
     const imports: string[] = [
       `'use client';`,
       ``,
@@ -908,12 +916,16 @@ module.exports = nextConfig;
       const componentName = this.sanitizeComponentName(component.name);
       const isTechStack = this.isTechStackComponent(componentName);
 
+      console.log(`🔍 Checking ${component.name} -> ${componentName}: isTechStack=${isTechStack}`);
+
       if (isTechStack) {
         console.log(`🚫 Filtered out tech stack component: ${componentName}`);
       }
 
       return !isTechStack;
     });
+
+    console.log(`📊 After tech stack filter: ${featureComponents.length} feature components`);
 
     // If ALL components were tech stack, use a default empty state
     if (featureComponents.length === 0) {
