@@ -203,6 +203,12 @@ export default function PlanPage() {
           const parsedCache = JSON.parse(cachedPlan);
           setProjectPlan(parsedCache);
           console.log('✅ Loaded cached plan for project:', currentProjectId);
+          console.log('📊 Plan structure:', {
+            hasMilestones: !!parsedCache.milestones,
+            milestoneCount: parsedCache.milestones?.length || 0,
+            firstMilestone: parsedCache.milestones?.[0],
+            sampleKeys: parsedCache.milestones?.[0] ? Object.keys(parsedCache.milestones[0]) : []
+          });
 
           // Expand first milestone by default
           if (parsedCache.milestones && parsedCache.milestones.length > 0) {
