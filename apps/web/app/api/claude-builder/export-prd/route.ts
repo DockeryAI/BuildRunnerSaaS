@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { ClaudeDesignAdapter } from '../../../../lib/claude-design-adapter';
+import { DesignSpec } from '../../../../lib/design-system-generator';
 
 /**
  * Export PRD to Claude Builder daemon directory
@@ -19,7 +21,7 @@ import * as os from 'os';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { projectName, prdContent } = await request.json();
+    const { projectName, prdContent, designSpec, industry } = await request.json();
 
     // Validate input
     if (!projectName || !prdContent) {
@@ -56,8 +58,22 @@ export async function POST(request: NextRequest) {
       fs.mkdirSync(projectPath, { recursive: true });
     }
 
+    // Inject design system if provided (Material Design 3 integration)
+    let finalPRD = prdContent;
+
+    if (designSpec) {
+      console.log(`[Claude Builder] Injecting Material Design 3 tokens for ${industry || 'default'} industry`);
+      finalPRD = ClaudeDesignAdapter.injectDesignSystemIntoPRD(
+        prdContent,
+        projectName,
+        industry || 'default',
+        designSpec as DesignSpec
+      );
+      console.log(`[Claude Builder] Design system injected (${finalPRD.length - prdContent.length} chars added)`);
+    }
+
     // Write PRD.md
-    fs.writeFileSync(prdPath, prdContent, 'utf8');
+    fs.writeFileSync(prdPath, finalPRD, 'utf8');
 
     console.log(`[Claude Builder] PRD exported to: ${prdPath}`);
 
