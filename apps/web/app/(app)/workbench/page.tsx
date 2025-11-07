@@ -651,45 +651,79 @@ export default function WorkbenchPage() {
           const data = JSON.parse(event.data);
           console.log('[SSE] Build update:', data);
 
-          // Update component statuses
-          if (data.componentId) {
-            setComponents((prev) =>
-              prev.map((comp) =>
-                comp.id === data.componentId
-                  ? { ...comp, status: data.status, progress: data.progress || comp.progress }
-                  : comp
-              )
-            );
-          }
+          // Handle different event types
+          switch (data.type) {
+            case 'connected':
+              console.log('✅ Connected to build stream');
+              break;
 
-          // Update phase progress
-          if (data.phase) {
-            setPhaseProgress({
-              phase: data.phase,
-              current: data.current || 0,
-              total: data.total || 0,
-              percentage: data.percentage || 0,
-            });
-          }
+            case 'log':
+              // Add log to terminal
+              const logType = data.level === 'error' ? 'error' : data.level === 'success' ? 'success' : 'info';
+              addLog(logType, data.message);
+              break;
 
-          // Add logs
-          if (data.message) {
-            addLog('info', data.message);
-          }
+            case 'component:started':
+              setComponents((prev) =>
+                prev.map((comp) =>
+                  comp.id === data.componentId
+                    ? { ...comp, status: 'building', progress: 0 }
+                    : comp
+                )
+              );
+              addLog('info', `🔨 Building ${data.componentName}...`);
+              break;
 
-          // Handle completion
-          if (data.status === 'completed') {
-            setBuildStatus('completed');
-            addLog('success', '🎉 Build completed successfully!');
-            setIsFullyComplete(true);
-            eventSource.close();
-          }
+            case 'component:completed':
+              setComponents((prev) =>
+                prev.map((comp) =>
+                  comp.id === data.componentId
+                    ? { ...comp, status: 'completed', progress: 100 }
+                    : comp
+                )
+              );
+              addLog('success', `✅ Completed ${data.componentName}`);
+              break;
 
-          // Handle errors
-          if (data.status === 'error') {
-            addLog('error', `❌ Build error: ${data.error || 'Unknown error'}`);
-            setBuildStatus('idle');
-            eventSource.close();
+            case 'progress:updated':
+              setComponents((prev) =>
+                prev.map((comp) =>
+                  comp.id === data.componentId
+                    ? { ...comp, progress: data.progress }
+                    : comp
+                )
+              );
+              break;
+
+            case 'phase:started':
+              addLog('info', `📋 Phase started: ${data.phase}`);
+              setPhaseProgress({
+                phase: data.phase,
+                current: 0,
+                total: 100,
+                percentage: 0,
+              });
+              break;
+
+            case 'phase:completed':
+              addLog('success', `✅ Phase completed: ${data.phase}`);
+              break;
+
+            case 'build:completed':
+              setBuildStatus('completed');
+              addLog('success', '🎉 Build completed successfully!');
+              setIsFullyComplete(true);
+              eventSource.close();
+              break;
+
+            case 'build:error':
+              addLog('error', `❌ Build error: ${data.error || 'Unknown error'}`);
+              setBuildStatus('idle');
+              eventSource.close();
+              break;
+
+            default:
+              console.log('[SSE] Unknown event type:', data.type);
           }
         } catch (err) {
           console.error('[SSE] Failed to parse event data:', err);
