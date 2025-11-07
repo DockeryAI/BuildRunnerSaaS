@@ -1,12 +1,14 @@
 /**
  * AI Component Generator
  * Uses context-aware prompts to generate production-quality components
+ * with intelligent LLM routing based on task complexity
  */
 
 import { ContextBuilder, BuildContext, PRDContext, ComponentContext } from './context-builder';
 import { DesignSpec } from './design-system-generator';
 import { CatalystIntegrator } from './catalyst/integrator';
 import { ComponentSpec } from './component-designer';
+import { modelRouter, type BuildTask } from './model-router';
 
 export interface GenerationResult {
   code: string;
@@ -33,7 +35,7 @@ export class AIComponentGenerator {
 
   /**
    * Intelligent model selection based on component complexity and criticality
-   * Routes to optimal model for speed + quality balance
+   * Uses ModelRouter for optimal model selection across 500+ available models
    */
   private selectModelForComponent(context: BuildContext): string {
     const { component } = context;
@@ -41,7 +43,10 @@ export class AIComponentGenerator {
     const componentName = component.componentName.toLowerCase();
     const description = (component.description || '').toLowerCase();
 
-    // Critical components → Claude 3.5 Sonnet (highest quality)
+    // Determine task type based on component characteristics
+    let task: BuildTask = 'component_generation'; // Default
+
+    // Critical security/payment components
     const criticalTypes = [
       'auth', 'login', 'signup', 'payment', 'checkout', 'billing',
       'security', 'admin', 'permission', 'encryption', 'subscription'
@@ -50,36 +55,42 @@ export class AIComponentGenerator {
     if (criticalTypes.some(type => componentType.includes(type) || componentName.includes(type) || description.includes(type)) ||
         component.criticality === 'ULTRA_CRITICAL' ||
         component.criticality === 'CRITICAL') {
-      console.log(`🔒 Using Claude 3.5 Sonnet for critical component: ${component.componentName}`);
-      return 'anthropic/claude-sonnet-4.5';
+      task = componentType.includes('auth') || componentName.includes('auth')
+        ? 'auth_implementation'
+        : 'payment_integration';
+
+      modelRouter.logModelSelection(task, `Critical component: ${component.componentName}`);
+      return modelRouter.getModelForTask(task).id;
     }
 
-    // Visual/creative/hero pages → Claude 3.5 Sonnet (better design sense)
-    const visualTypes = [
-      'hero', 'landing', 'homepage', 'onboarding', 'welcome',
-      'marketing', 'showcase', 'featured', 'banner', 'jumbotron',
-      'pricing', 'plans'
-    ];
-
-    if (visualTypes.some(type => componentType.includes(type) || componentName.includes(type) || description.includes(type))) {
-      console.log(`🎨 Using Claude 3.5 Sonnet for visual/creative component: ${component.componentName}`);
-      return 'anthropic/claude-sonnet-4.5';
-    }
-
-    // Complex dashboards/analytics → Claude 3.5 Sonnet (complex visualization)
+    // Complex dashboards/analytics
     const complexVizTypes = ['dashboard', 'analytics', 'metrics', 'insights', 'report'];
     const hasComplexViz = complexVizTypes.some(type => componentType.includes(type) || componentName.includes(type) || description.includes(type));
     const isComplex = description.includes('complex') || description.includes('advanced') || description.includes('interactive');
 
     if (hasComplexViz && isComplex) {
-      console.log(`📊 Using Claude 3.5 Sonnet for complex visualization: ${component.componentName}`);
-      return 'anthropic/claude-sonnet-4.5';
+      task = 'component_generation'; // Still standard component, but we'll note it
+      modelRouter.logModelSelection(task, `Complex visualization: ${component.componentName}`);
+      return modelRouter.getModelForTask(task).id;
     }
 
-    // Default: Gemini 2.5 Flash for speed, with enhanced quality prompts
-    // The new MODERN UI/UX requirements + IMPORTANT tier should give us quality
-    console.log(`⚡ Using Gemini 2.5 Flash for ${component.componentName} (balanced mode)`);
-    return 'google/gemini-2.5-flash';
+    // Database-related components
+    if (componentType.includes('database') || componentType.includes('schema') || componentName.includes('db')) {
+      task = 'database_schema';
+      modelRouter.logModelSelection(task, `Database component: ${component.componentName}`);
+      return modelRouter.getModelForTask(task).id;
+    }
+
+    // API endpoints
+    if (componentType.includes('api') || componentType.includes('endpoint') || componentName.includes('api')) {
+      task = 'api_generation';
+      modelRouter.logModelSelection(task, `API component: ${component.componentName}`);
+      return modelRouter.getModelForTask(task).id;
+    }
+
+    // Default: Standard component generation (uses DeepSeek Chat - excellent quality, low cost)
+    modelRouter.logModelSelection(task, `Standard component: ${component.componentName}`);
+    return modelRouter.getModelForTask(task).id;
   }
 
   /**

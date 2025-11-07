@@ -532,7 +532,7 @@ export default function OracleChat({ projectContext }: OracleChatProps) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 p-4 bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center gap-2 group"
+        className="fixed bottom-6 left-6 z-50 p-4 bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center gap-2 group"
         title="Open Oracle (Opus 4.1)"
       >
         <Sparkles className="h-6 w-6" />

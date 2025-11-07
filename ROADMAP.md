@@ -9,7 +9,7 @@
 
 **Goal:** Ship minimal viable product with core PRD → Plan → Build workflow
 
-### ✅ Completed (26 features)
+### ✅ Completed (27 features)
 - Interactive PRD Builder with AI suggestions
 - Claude-powered Oracle for brainstorming
 - 5-model consensus plan generation & verification
@@ -19,6 +19,7 @@
 - Project archival with GitHub push
 - Build progress tracking
 - Architecture visualization
+- **Intelligent LLM Model Routing** (OpenRouter 500+ models) 🆕
 
 ### 🚧 In Progress (0 features)
 - Testing current MVP
@@ -189,6 +190,32 @@ Intelligent component library that:
 ---
 
 ## Decision Log
+
+### 2025-01-07: Intelligent LLM Model Routing 🆕
+**Decision:** Implement smart model routing across OpenRouter's 500+ models
+**Rationale:**
+- **Cost optimization**: 48% cost reduction vs using Sonnet for everything
+- **Quality maintenance**: Premium models (Opus) only for critical code (auth/payments)
+- **Free tier leverage**: Gemini 2.0 Flash Thinking is FREE with excellent reasoning
+- **Speed improvements**: Fast models (DeepSeek, Haiku) for simple tasks
+
+**Model Selection Strategy:**
+- **Trivial tasks** (boilerplate, config) → Gemini Flash Free ($0)
+- **Standard components** (CRUD, UI) → DeepSeek Chat ($0.27/1M)
+- **Complex reasoning** (architecture, schemas) → Gemini 2.0 Flash Thinking ($0)
+- **Critical code** (auth, payments) → Claude Opus 4 ($15/1M)
+
+**Cost Comparison** (14-component app):
+- Old (all Sonnet): $3.27
+- New (intelligent routing): $1.71
+- **Savings: 48%**
+
+**Implementation:**
+- `lib/model-router.ts`: Task → model mapping system
+- `lib/ai-component-generator.ts`: Integrated with component generation
+- Real-time cost tracking via `modelRouter.getCostSummary()`
+
+**See Full Guide:** `docs/INTELLIGENT_MODEL_ROUTING.md`
 
 ### 2025-01-07: Component Library System Design
 **Decision:** Implement component library as Phase 1 after P0 MVP

@@ -34,15 +34,29 @@ interface SavedProject {
   builds?: BuildMetadata[];
 }
 
+interface ArchivedProject {
+  projectId: string;
+  projectName: string;
+  archivedAt: string;
+  size: number;
+  archivePath: string;
+}
+
 export default function ProjectsLibraryPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<SavedProject[]>([]);
+  const [archives, setArchives] = useState<ArchivedProject[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'projects' | 'archives'>('projects');
+  const [isLoadingArchives, setIsLoadingArchives] = useState(false);
 
   useEffect(() => {
     loadProjects();
-  }, []);
+    if (activeTab === 'archives') {
+      loadArchives();
+    }
+  }, [activeTab]);
 
   function loadProjects() {
     const savedProjects = JSON.parse(localStorage.getItem('buildrunner_projects') || '[]');
@@ -51,6 +65,74 @@ export default function ProjectsLibraryPage() {
       new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     );
     setProjects(savedProjects);
+  }
+
+  async function loadArchives() {
+    setIsLoadingArchives(true);
+    try {
+      const response = await fetch('/api/build/archives');
+      if (response.ok) {
+        const data = await response.json();
+        setArchives(data.archives || []);
+      } else {
+        console.error('Failed to load archives');
+      }
+    } catch (error) {
+      console.error('Error loading archives:', error);
+    } finally {
+      setIsLoadingArchives(false);
+    }
+  }
+
+  async function handleRestoreArchive(archiveId: string) {
+    if (!confirm('Restore this archived project? It will be added back to your projects list.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/build/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ archiveId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Project restored successfully!\n\nProject ID: ${data.projectId}\n\nNote: You may need to refresh localStorage data.`);
+        loadArchives(); // Reload archives list
+      } else {
+        const error = await response.json();
+        alert(`Failed to restore archive:\n${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error restoring archive:', error);
+      alert('Failed to restore archive');
+    }
+  }
+
+  async function handleDeleteArchive(archiveId: string) {
+    if (!confirm('PERMANENTLY delete this archive? This cannot be undone!')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/build/archives?archiveId=${archiveId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('Archive permanently deleted');
+        loadArchives(); // Reload archives list
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete archive:\n${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting archive:', error);
+      alert('Failed to delete archive');
+    }
   }
 
   function handleNewProject() {
@@ -108,19 +190,30 @@ export default function ProjectsLibraryPage() {
   }
 
   async function handleDeleteProject(projectId: string) {
-    // Call cleanup API to delete build files
+    // Find project to get name for archive
+    const project = projects.find(p => p.id === projectId);
+
+    // Call cleanup API to delete build files (which now archives first)
     try {
       const response = await fetch('/api/build/cleanup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ projectId }),
+        body: JSON.stringify({
+          projectId,
+          projectName: project?.name || projectId,
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         console.log('✅ Build cleanup successful:', data);
+
+        // Show success message with archive info
+        if (data.archived) {
+          alert(`Project deleted and archived!\n\nArchive: ${data.archiveInfo?.archivePath}\nSize: ${(data.archiveInfo?.size / 1024 / 1024).toFixed(2)} MB\n\nYou can restore it from the Archives tab within 30 days.`);
+        }
 
         // Clean up localStorage keys
         localStorage.removeItem(`last_build_${projectId}`);
@@ -224,7 +317,35 @@ export default function ProjectsLibraryPage() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200">
+        <div className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
+              activeTab === 'projects'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Active Projects ({projects.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('archives')}
+            className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
+              activeTab === 'archives'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Archives ({archives.length})
+          </button>
+        </div>
+      </div>
+
       {/* Projects Grid */}
+      {activeTab === 'projects' && (
+        <>
       {projects.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl shadow-sm">
           <FolderIcon className="h-24 w-24 text-gray-400 mx-auto mb-6" />
@@ -321,6 +442,83 @@ export default function ProjectsLibraryPage() {
             </div>
           ))}
         </div>
+      )}
+        </>
+      )}
+
+      {/* Archives Grid */}
+      {activeTab === 'archives' && (
+        <>
+          {isLoadingArchives ? (
+            <div className="text-center py-16">
+              <p className="text-gray-600">Loading archives...</p>
+            </div>
+          ) : archives.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+              <FolderIcon className="h-24 w-24 text-gray-400 mx-auto mb-6" />
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">No archived projects</h2>
+              <p className="text-gray-600">Deleted projects will be archived here for 30 days</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {archives.map((archive) => {
+                const archiveId = archive.archivePath.split('/').pop()?.replace('.tar.gz', '') || '';
+                return (
+                  <div
+                    key={archiveId}
+                    className="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow overflow-hidden"
+                  >
+                    <div className="p-6">
+                      {/* Archive Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 truncate mb-1">
+                            {archive.projectName}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Project ID: {archive.projectId}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Archive Meta */}
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <ClockIcon className="h-4 w-4 mr-2" />
+                          <span>Archived {formatDate(archive.archivedAt)}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span className="font-mono">{(archive.size / 1024 / 1024).toFixed(2)} MB</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full font-medium">
+                            Archived
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleRestoreArchive(archiveId)}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          onClick={() => handleDeleteArchive(archiveId)}
+                          className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Delete Confirmation Modal */}

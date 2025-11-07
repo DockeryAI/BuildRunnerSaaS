@@ -618,6 +618,8 @@ export class BuildOrchestrator extends EventEmitter {
    */
   public async startBuild(components: BuildComponent[]): Promise<void> {
     try {
+      console.log(`[startBuild] Received ${components.length} components:`, components.map(c => ({ id: c.id, name: c.name })));
+
       this.state.components = components;
       this.state.status = 'planning';
       this.state.startTime = new Date();
@@ -1275,12 +1277,37 @@ export class BuildOrchestrator extends EventEmitter {
    * Target: <60 second builds with 5-10x speedup
    */
   private async buildComponentsWithMultiAgent(): Promise<void> {
+    console.log(`[buildComponentsWithMultiAgent] Components count: ${this.state.components.length}`);
+    console.log(`[buildComponentsWithMultiAgent] Components:`, this.state.components.map(c => ({ id: c.id, name: c.name })));
+
+    if (this.state.components.length === 0) {
+      this.emit('log', {
+        level: 'warning',
+        message: '⚠️  No components to build - skipping build phase',
+      });
+      return;
+    }
+
     this.emit('log', {
       level: 'info',
       message: `🚀 Sprint 2: Multi-agent parallel building enabled (${this.config.multi_agent.max_concurrent_agents} agents)`,
     });
 
-    const { MultiAgentOrchestrator } = await import('./multi-agent-orchestrator');
+    console.log('[buildComponentsWithMultiAgent] About to import MultiAgentOrchestrator...');
+
+    let MultiAgentOrchestrator;
+    try {
+      const imported = await import('./multi-agent-orchestrator');
+      MultiAgentOrchestrator = imported.MultiAgentOrchestrator;
+      console.log('[buildComponentsWithMultiAgent] Successfully imported MultiAgentOrchestrator');
+    } catch (error) {
+      console.error('[buildComponentsWithMultiAgent] Failed to import MultiAgentOrchestrator:', error);
+      this.emit('log', {
+        level: 'error',
+        message: `❌ Failed to load multi-agent system: ${error.message}`,
+      });
+      throw error;
+    }
 
     const orchestrator = new MultiAgentOrchestrator({
       maxConcurrentAgents: this.config.multi_agent.max_concurrent_agents,
