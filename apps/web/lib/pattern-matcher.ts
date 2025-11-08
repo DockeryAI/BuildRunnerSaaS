@@ -246,8 +246,8 @@ export class PatternMatcher {
     let weights = 0;
 
     // Check component type (40% weight)
-    const componentTypeLower = component.type.toLowerCase();
-    const nameTypeLower = component.name.toLowerCase();
+    const componentTypeLower = (component.type || '').toLowerCase();
+    const nameTypeLower = (component.name || '').toLowerCase();
 
     if (pattern.componentTypes.some(t =>
       componentTypeLower.includes(t) || nameTypeLower.includes(t)
@@ -376,13 +376,13 @@ export class PatternMatcher {
     // Create new pattern
     const pattern: Pattern = {
       id: `pattern_${Date.now()}_${component.id}`,
-      name: component.name,
-      description: component.description || `Pattern for ${component.name}`,
-      componentTypes: [component.type, component.name.toLowerCase()],
-      keywords: this.extractKeywords(component.description || component.name),
-      dependencies: component.dependencies,
+      name: component.name || 'Component',
+      description: component.description || `Pattern for ${component.name || 'Component'}`,
+      componentTypes: [(component.type || 'component'), (component.name || 'component').toLowerCase()],
+      keywords: this.extractKeywords(component.description || component.name || 'component'),
+      dependencies: component.dependencies || [],
       code: {
-        [component.type]: component.code,
+        [(component.type || 'component')]: component.code,
       },
       buildTime: 0,
       successRate: 0.5, // Start with neutral success rate
