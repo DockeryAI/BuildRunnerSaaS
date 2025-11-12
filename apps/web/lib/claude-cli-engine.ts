@@ -275,6 +275,34 @@ Start working on this task now. Use your tools to build it properly.`;
   }
 
   /**
+   * Load context files for Claude
+   */
+  async loadContext(projectPath: string): Promise<BuildContext> {
+    const buildRunnerDir = path.join(projectPath, '.buildrunner');
+
+    const context: BuildContext = {
+      buildDoc: await this.readFileOrEmpty(path.join(buildRunnerDir, 'BUILD_DOC.md')),
+      tasks: await this.readFileOrEmpty(path.join(buildRunnerDir, 'TASKS.md')),
+      designSystem: await this.readFileOrEmpty(path.join(buildRunnerDir, 'DESIGN_SYSTEM.md')),
+      componentCatalog: await this.readFileOrEmpty(path.join(buildRunnerDir, 'COMPONENT_CATALOG.md')),
+      handoff: await this.readFileOrEmpty(path.join(buildRunnerDir, 'HANDOFF.md'))
+    };
+
+    return context;
+  }
+
+  /**
+   * Helper to read file or return empty string
+   */
+  private async readFileOrEmpty(filePath: string): Promise<string> {
+    try {
+      return await fs.readFile(filePath, 'utf-8');
+    } catch {
+      return '';
+    }
+  }
+
+  /**
    * Stop current Claude process
    */
   stop(): void {
