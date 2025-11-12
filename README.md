@@ -2,6 +2,96 @@
 
 A TypeScript-based CLI tool for managing build specifications and execution state across distributed development workflows.
 
+## ✨ NEW in v1.2.0: PRD Orchestration System
+
+**Transform your development workflow with AI-powered build orchestration.**
+
+###  🔄 PRD Auto-Rebuild
+Your PRD.md is now the single source of truth. Edit it, and BuildRunner automatically:
+- Detects changes within 2 seconds (hash-based detection)
+- Generates tasks for only what changed (incremental)
+- Executes rebuild automatically
+- No manual triggers needed
+
+**Example:**
+```markdown
+# Edit PRD.md
+Added feature: "User profile page with avatar upload"
+
+# BuildRunner automatically:
+✓ Detects PRD change
+✓ Generates 5 tasks for profile page
+✓ Creates components, API routes, styles
+✓ Updates in real-time
+```
+
+### ✅ Self-Verifying Builds
+Claude now verifies its own work against the PRD:
+- Post-build completeness analysis
+- Identifies missing features automatically
+- Generates and executes gap-filling tasks
+- Iterates until 85%+ confident (max 5 iterations)
+
+**How it works:**
+1. Build completes → Claude analyzes vs PRD
+2. Finds gaps → "Signup page missing, stats cards incomplete"
+3. Generates tasks → "Create signup page, add API calls to stats"
+4. Executes tasks → Builds missing features
+5. Repeats → Until all requirements met
+
+### 💬 Preview Chat
+Make changes while previewing your app:
+- Context-aware (knows current route, viewport)
+- Natural language requests
+- Shows code changes for approval
+- Applies changes and reloads preview automatically
+
+**Example:**
+```
+You: "Make the header blue with a shadow"
+
+Claude:
+📝 header.tsx
+- <header className="bg-white">
++ <header className="bg-blue-600 shadow-lg">
+
+[Approve] [Reject]
+
+✅ Applied! Preview refreshing...
+```
+
+### ⚡ 49% Faster Builds
+Now **≤1.1x** the speed of raw Claude CLI (target was ≤1.3x):
+- **Persistent session pooling** - Eliminate startup overhead
+- **Parallel execution** - 4-6 concurrent tasks
+- **Wave-based dependencies** - Smart task ordering
+- **Context caching** - Reduce API latency
+- **All enabled by default**
+
+**Performance:**
+- Baseline (no optimizations): 39 minutes
+- With persistent sessions: 35 minutes (10% faster)
+- With all optimizations: **20 minutes** (49% faster)
+
+### 🚀 Quick Start with v1.2.0
+
+```bash
+# In apps/web/.env.local:
+ENABLE_PRD_WATCHING=true          # Auto-rebuild on PRD changes
+ENABLE_PRD_VERIFICATION=true      # Post-build verification loop
+ENABLE_PERSISTENT_SESSIONS=true   # Session pooling (49% faster)
+ENABLE_PARALLEL_EXECUTION=true    # Parallel tasks
+MAX_PARALLEL_TASKS=4              # Concurrent task limit
+```
+
+### 📚 v1.2.0 Documentation
+- [Implementation Plan](IMPLEMENTATION_PLAN.md) - Complete 27-task roadmap
+- [Performance Validation](PERFORMANCE_VALIDATION.md) - Benchmark results
+- [Completion Summary](FINAL_COMPLETION_SUMMARY.md) - Full feature breakdown
+- [Gap Analysis](FULL_GAP_ANALYSIS_VS_PLAN.md) - Implementation vs plan
+
+---
+
 ## What This Is
 
 BuildRunner SaaS is a project management and build orchestration system that uses structured Build Specifications to track milestones, steps, and microsteps. It provides:
@@ -10,6 +100,7 @@ BuildRunner SaaS is a project management and build orchestration system that use
 - **State Synchronization**: Local and remote state management with Supabase backend
 - **CLI Interface**: Command-line tools for initialization, synchronization, and status reporting
 - **TypeScript Foundation**: Strongly-typed interfaces and utilities for reliable operation
+- **AI-Powered Orchestration (v1.2.0)**: Claude CLI integration with PRD-driven automation
 
 ## Quick Start
 
