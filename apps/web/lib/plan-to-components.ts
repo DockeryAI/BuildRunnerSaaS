@@ -16,10 +16,35 @@ type ComponentType = 'frontend' | 'backend' | 'api' | 'database' | 'service';
 export function extractBuildComponents(plan: ProjectPlan): BuildComponent[] {
   const components: BuildComponent[] = [];
 
-  // 1. Skip architecture/technologies - those are infrastructure, not buildable components
+  // 1. Check if plan has components in architecture (new format)
+  if ((plan as any).architecture?.components && Array.isArray((plan as any).architecture.components)) {
+    (plan as any).architecture.components.forEach((component: any, index: number) => {
+      components.push({
+        id: component.id || `arch-comp-${index}`,
+        name: component.name || 'Unnamed Component',
+        type: component.type || 'frontend',
+        dependencies: component.dependencies || [],
+        status: 'pending',
+        priority: (index + 1) * 100,
+        description: component.description || '',
+        filePath: component.filePath,
+        criticality: component.criticality,
+      });
+    });
+
+    console.log(`✅ Extracted ${components.length} components from architecture`);
+    return components;
+  }
+
+  // 2. Skip architecture/technologies - those are infrastructure, not buildable components
   // The build orchestrator will set up the tech stack automatically
 
-  // 2. Extract high-level components from milestones
+  // 3. Extract high-level components from milestones (old format)
+  if (!plan.milestones || plan.milestones.length === 0) {
+    console.warn('⚠️  No milestones or architecture.components found in plan');
+    return [];
+  }
+
   plan.milestones.forEach((milestone, milestoneIndex) => {
     // Handle new plan format with components directly in milestones
     if (milestone.components) {
