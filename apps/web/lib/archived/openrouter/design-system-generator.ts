@@ -3,9 +3,16 @@
  * Phase 1: Generate beautiful, cohesive design specifications before code generation
  *
  * Integrates with design-presets.ts for consistent, professional styling
+ *
+ * ARCHIVED: This code is no longer used. Claude is the only build engine.
  */
 
+/* ARCHIVED CODE - Import commented to prevent issues
 import { DESIGN_PRESETS, inferDesignPreset, DesignPreset } from '../../design-presets';
+*/
+
+// Stub type
+type DesignPreset = any;
 
 export interface ColorPalette {
   primary: string;

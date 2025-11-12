@@ -11,14 +11,26 @@
  * - Smart model selection per component
  *
  * Target: <60 second builds with 5-10x speedup
+ *
+ * ARCHIVED: This code is no longer used. Claude is the only build engine.
  */
 
+/* ARCHIVED CODE - DISABLED TO PREVENT COMPILATION ERRORS
 import { BuildAgent, type ComponentTask, type AgentResult, type AgentProgress } from '../../agent';
 import { LockManager } from '../../lock-manager';
 import type { BuildContext } from '../../context-builder';
 import type { AIComponentGenerator } from './ai-component-generator';
 import type { DesignPolisher } from '../../design-polisher';
+*/
 import { EventEmitter } from 'events';
+
+// Stub types to prevent compilation errors
+type BuildContext = any;
+type AIComponentGenerator = any;
+type DesignPolisher = any;
+type ComponentTask = any;
+type AgentResult = any;
+type AgentProgress = any;
 
 export interface DependencyGraph {
   components: Map<string, ComponentNode>;

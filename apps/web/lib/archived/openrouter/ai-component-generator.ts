@@ -2,13 +2,24 @@
  * AI Component Generator
  * Uses context-aware prompts to generate production-quality components
  * with intelligent LLM routing based on task complexity
+ *
+ * ARCHIVED: This code is no longer used. Claude is the only build engine.
  */
 
+/* ARCHIVED CODE - DISABLED TO PREVENT COMPILATION ERRORS
 import { ContextBuilder, BuildContext, PRDContext, ComponentContext } from '../../context-builder';
 import { DesignSpec } from './design-system-generator';
 import { CatalystIntegrator } from '../../catalyst/integrator';
 import { ComponentSpec } from '../../component-designer';
 import { modelRouter, type BuildTask } from '../../model-router';
+*/
+
+// Stub types to prevent compilation errors
+type BuildContext = any;
+type PRDContext = any;
+type ComponentContext = any;
+type DesignSpec = any;
+type ComponentSpec = any;
 
 export interface GenerationResult {
   code: string;
