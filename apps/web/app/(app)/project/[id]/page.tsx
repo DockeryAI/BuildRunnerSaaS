@@ -15,6 +15,7 @@ import LivePreviewTab from '@/components/LivePreviewTab';
 import ArchitectureVisualization from '@/components/ArchitectureVisualization';
 import BugQueueManager from '@/components/BugQueueManager';
 import FeatureRequestFlow from '@/components/FeatureRequestFlow';
+import PRDWatcherIndicator from '@/components/PRDWatcherIndicator';
 
 type TabType = 'preview' | 'architecture' | 'bugs' | 'features' | 'status';
 
@@ -115,6 +116,12 @@ export default function ProjectDashboard() {
           </div>
         )}
       </div>
+
+      {/* PRD Watcher Indicator (floating) */}
+      <PRDWatcherIndicator
+        buildId={projectId}
+        projectPath={`~/Projects/${projectId}`}
+      />
     </div>
   );
 }
