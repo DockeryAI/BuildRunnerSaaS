@@ -45,6 +45,7 @@ import { buildStateManager } from './build-state-manager';
 import { gitManager } from './git-manager';
 import { handoffGenerator } from './handoff-generator';
 import { gapAnalyzerV2 } from './gap-analyzer-v2';
+import { performanceMetricsManager, type PerformanceMetrics } from './performance-metrics';
 
 const execAsync = promisify(exec);
 
@@ -3898,6 +3899,18 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  private formatDuration(ms: number): string {
+    if (ms < 1000) {
+      return `${ms}ms`;
+    } else if (ms < 60000) {
+      return `${(ms / 1000).toFixed(1)}s`;
+    } else {
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      return `${minutes}m ${seconds}s`;
+    }
+  }
+
   /**
    * CLAUDE CLI BUILD ENGINE
    * Builds project using Claude CLI with ~/Projects/ directory structure
@@ -3911,6 +3924,14 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
   }): Promise<void> {
     try {
       this.emit('log', { level: 'info', message: '🚀 Starting Claude CLI build...' });
+
+      // Initialize performance metrics
+      const metrics = performanceMetricsManager.create(config.projectId, {
+        persistentSessions: process.env.ENABLE_PERSISTENT_SESSIONS === 'true',
+        parallelExecution: process.env.ENABLE_PARALLEL_EXECUTION === 'true',
+        maxParallelTasks: parseInt(process.env.MAX_PARALLEL_TASKS || '4', 10)
+      });
+      metrics.startBuild();
 
       // Step 1: Initialize project in ~/Projects/
       this.emit('log', { level: 'info', message: `📁 Initializing project: ${config.projectName}` });
@@ -3958,12 +3979,50 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
 
       // Map plan components to features format for task generator
       let features = config.prd?.features;
-      if (config.projectPlan?.architecture?.components) {
+
+      // Extract components from plan milestones
+      // Supports two formats:
+      // 1. Old format: milestones[].components (from API)
+      // 2. New format: milestones[].steps (after client-side conversion)
+      if (config.projectPlan?.milestones && Array.isArray(config.projectPlan.milestones)) {
+        const allComponents: any[] = [];
+
+        config.projectPlan.milestones.forEach((milestone: any) => {
+          // Format 1: milestones[].components (old/API format)
+          if (milestone.components && Array.isArray(milestone.components)) {
+            allComponents.push(...milestone.components);
+          }
+          // Format 2: milestones[].steps (new format after conversion)
+          else if (milestone.steps && Array.isArray(milestone.steps)) {
+            // Each step represents a component
+            milestone.steps.forEach((step: any) => {
+              allComponents.push({
+                name: step.title,
+                description: step.description,
+                type: 'component',
+                criticality: 'IMPORTANT'
+              });
+            });
+          }
+        });
+
+        if (allComponents.length > 0) {
+          features = allComponents.map((comp: any) => ({
+            name: comp.name || comp.title,
+            description: comp.description || `${comp.type || 'component'} for ${config.projectName}`,
+            priority: comp.criticality === 'CRITICAL' ? 'high' : comp.criticality === 'IMPORTANT' ? 'medium' : 'low'
+          }));
+          this.emit('log', { level: 'info', message: `📦 Extracted ${features.length} components from plan milestones` });
+        }
+      }
+      // Fallback to architecture.components if that format exists
+      else if (config.projectPlan?.architecture?.components) {
         features = config.projectPlan.architecture.components.map((comp: any) => ({
           name: comp.name,
           description: comp.description || `${comp.type} component for ${config.projectName}`,
-          priority: 'high' // All plan components are high priority
+          priority: 'high'
         }));
+        this.emit('log', { level: 'info', message: `📦 Extracted ${features.length} components from plan architecture` });
       }
 
       const tasks = taskListGeneratorV2.generate({
@@ -4000,18 +4059,34 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
       // Step 4: Initialize Claude CLI Engine (spawns actual claude command)
       this.emit('log', { level: 'info', message: '🤖 Initializing Claude CLI Engine...' });
 
+      // Check if persistent sessions are enabled (feature flag)
+      const usePersistentSessions = process.env.ENABLE_PERSISTENT_SESSIONS === 'true';
+
+      // Check if parallel execution is enabled (feature flag)
+      const enableParallelExecution = process.env.ENABLE_PARALLEL_EXECUTION === 'true';
+      const maxParallelTasks = parseInt(process.env.MAX_PARALLEL_TASKS || '4', 10);
+
+      // Log optimization status
+      this.emit('log', {
+        level: 'info',
+        message: `⚙️  Performance Optimizations: Persistent Sessions=${usePersistentSessions}, Parallel Execution=${enableParallelExecution}${enableParallelExecution ? ` (max ${maxParallelTasks} concurrent)` : ''}`
+      });
+
       const claudeEngine = new ClaudeCLIEngine({
         projectId: config.projectId,
         projectName: config.projectName,
         projectPath,
-        model: 'sonnet' // Use Claude Sonnet via CLI
+        model: 'sonnet', // Use Claude Sonnet via CLI
+        usePersistentSessions // Enable persistent sessions if flag is set
       });
 
       const claudeExecutor = new ClaudeTaskExecutorV2(
         {
           projectId: config.projectId,
           projectName: config.projectName,
-          projectPath
+          projectPath,
+          enableParallelExecution,
+          maxParallelTasks
         },
         claudeEngine
       );
@@ -4019,19 +4094,49 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
       // Forward events to orchestrator
       claudeExecutor.on('log', (data) => this.emit('log', data));
       claudeExecutor.on('claude:prompt', (data) => this.emit('claude:prompt', data));
+      claudeExecutor.on('claude:output', (data) => this.emit('claude:output', data));
+      claudeExecutor.on('claude:error', (data) => this.emit('claude:error', data));
       claudeExecutor.on('claude:stream', (data) => this.emit('claude:stream', data));
       claudeExecutor.on('claude:file_written', (data) => this.emit('claude:file_written', data));
       claudeExecutor.on('task:started', (data) => this.emit('task:started', data));
       claudeExecutor.on('task:completed', (data) => this.emit('task:completed', data));
       claudeExecutor.on('task:failed', (data) => this.emit('task:failed', data));
 
-      // Step 5: Update build phase
+      // Step 5: Initialize session pool (if persistent sessions enabled)
+      if (usePersistentSessions) {
+        this.emit('log', { level: 'info', message: '♻️  Initializing persistent session pool...' });
+
+        // Use larger pool size for parallel execution
+        const poolConfig = enableParallelExecution ? {
+          maxPoolSize: Math.min(maxParallelTasks + 2, 6), // Allow room for growth, max 6
+          warmStandbyCount: 1
+        } : undefined;
+
+        await claudeEngine.initializeSessionPool(poolConfig);
+
+        if (enableParallelExecution) {
+          this.emit('log', {
+            level: 'info',
+            message: `⚡ Parallel execution enabled (max ${maxParallelTasks} concurrent tasks)`
+          });
+        }
+      }
+
+      // Step 6: Update build phase
       await buildStateManager.updatePhase(projectPath, 'in_progress');
 
-      // Step 6: Execute all tasks
+      // Step 7: Execute all tasks
       this.emit('log', { level: 'info', message: '⚡ Executing tasks with Claude...' });
 
-      const result = await claudeExecutor.executeAll();
+      let result;
+      try {
+        result = await claudeExecutor.executeAll();
+      } finally {
+        // Always shutdown session pool to cleanup resources
+        if (usePersistentSessions) {
+          await claudeEngine.shutdownSessionPool();
+        }
+      }
 
       if (result.success) {
         this.emit('log', {
@@ -4051,6 +4156,15 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
         this.emit('log', { level: 'info', message: '🔍 Running gap analysis...' });
         const gapReport = await gapAnalyzerV2.analyzeGaps(projectPath);
         await gapAnalyzerV2.saveReport(gapReport);
+
+        // Generate and emit performance report
+        metrics.endBuild();
+        const performanceReport = metrics.getReport();
+        this.emit('performance:report', performanceReport);
+        this.emit('log', {
+          level: 'info',
+          message: `📊 Build completed in ${this.formatDuration(performanceReport.totalDuration)} (${performanceReport.taskMetrics.completed} tasks)`
+        });
 
         if (gapReport.gaps.length > 0) {
           this.emit('log', {
@@ -4144,11 +4258,15 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
       // Initialize Claude CLI Engine (spawns actual claude command)
       this.emit('log', { level: 'info', message: '🤖 Initializing Claude CLI Engine...' });
 
+      // Check if persistent sessions are enabled (feature flag)
+      const usePersistentSessions = process.env.ENABLE_PERSISTENT_SESSIONS === 'true';
+
       const claudeEngine = new ClaudeCLIEngine({
         projectId,
         projectName,
         projectPath: config.projectPath,
-        model: 'sonnet' // Use Claude Sonnet via CLI
+        model: 'sonnet', // Use Claude Sonnet via CLI
+        usePersistentSessions // Enable persistent sessions if flag is set
       });
 
       const claudeExecutor = new ClaudeTaskExecutorV2(
@@ -4163,11 +4281,19 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
       // Forward events
       claudeExecutor.on('log', (data) => this.emit('log', data));
       claudeExecutor.on('claude:prompt', (data) => this.emit('claude:prompt', data));
+      claudeExecutor.on('claude:output', (data) => this.emit('claude:output', data));
+      claudeExecutor.on('claude:error', (data) => this.emit('claude:error', data));
       claudeExecutor.on('claude:stream', (data) => this.emit('claude:stream', data));
       claudeExecutor.on('claude:file_written', (data) => this.emit('claude:file_written', data));
       claudeExecutor.on('task:started', (data) => this.emit('task:started', data));
       claudeExecutor.on('task:completed', (data) => this.emit('task:completed', data));
       claudeExecutor.on('task:failed', (data) => this.emit('task:failed', data));
+
+      // Initialize session pool (if persistent sessions enabled)
+      if (usePersistentSessions) {
+        this.emit('log', { level: 'info', message: '♻️  Initializing persistent session pool...' });
+        await claudeEngine.initializeSessionPool();
+      }
 
       // Update build phase
       await buildStateManager.updatePhase(config.projectPath, 'in_progress');
@@ -4175,7 +4301,15 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
       // Resume execution
       this.emit('log', { level: 'info', message: '⚡ Resuming task execution...' });
 
-      const result = await claudeExecutor.executeAll();
+      let result;
+      try {
+        result = await claudeExecutor.executeAll();
+      } finally {
+        // Always shutdown session pool to cleanup resources
+        if (usePersistentSessions) {
+          await claudeEngine.shutdownSessionPool();
+        }
+      }
 
       if (result.success) {
         this.emit('log', {

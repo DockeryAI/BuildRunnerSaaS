@@ -101,6 +101,24 @@ export default function ClaudeOutputTerminal({
             setLines((prev) => [...prev, '🤖 Sending prompt to Claude...']);
             break;
 
+          case 'claude:output':
+            // Raw Claude CLI output streaming
+            if (data.chunk) {
+              setLines((prev) => {
+                // Split by newlines and add each line
+                const newLines = data.chunk.split('\n').filter((line: string) => line.trim());
+                return [...prev, ...newLines];
+              });
+            }
+            break;
+
+          case 'claude:error':
+            // Claude CLI errors
+            if (data.chunk) {
+              setLines((prev) => [...prev, `⚠️ ${data.chunk}`]);
+            }
+            break;
+
           case 'claude:stream':
             // Accumulate streaming chunks
             if (data.content) {

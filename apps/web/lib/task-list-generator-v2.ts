@@ -358,6 +358,64 @@ Reference COMPONENT_CATALOG.md for available components.`
 
     return markdown;
   }
+
+  /**
+   * Generate tasks for PRD changes (incremental)
+   */
+  generateForChanges(changes: any): BuildTask[] {
+    const tasks: BuildTask[] = [];
+    let taskCounter = 1;
+
+    // Handle added features
+    if (changes.added && changes.added.length > 0) {
+      changes.added.forEach((feature: any) => {
+        tasks.push({
+          id: `change-add-${taskCounter++}`,
+          description: `Add new feature: ${feature.name || feature}`,
+          type: 'component',
+          dependencies: [],
+          estimatedComplexity: 'medium',
+          priority: 4,
+          status: 'pending',
+          prompt: `Implement new feature: ${feature.name || feature}\n${feature.description || ''}`
+        });
+      });
+    }
+
+    // Handle modified features
+    if (changes.modified && changes.modified.length > 0) {
+      changes.modified.forEach((feature: any) => {
+        tasks.push({
+          id: `change-mod-${taskCounter++}`,
+          description: `Update feature: ${feature.name || feature}`,
+          type: 'component',
+          dependencies: [],
+          estimatedComplexity: 'low',
+          priority: 5,
+          status: 'pending',
+          prompt: `Update existing feature: ${feature.name || feature}\n${feature.description || ''}`
+        });
+      });
+    }
+
+    // Handle removed features
+    if (changes.removed && changes.removed.length > 0) {
+      changes.removed.forEach((feature: any) => {
+        tasks.push({
+          id: `change-del-${taskCounter++}`,
+          description: `Remove feature: ${feature.name || feature}`,
+          type: 'component',
+          dependencies: [],
+          estimatedComplexity: 'low',
+          priority: 6,
+          status: 'pending',
+          prompt: `Remove feature and cleanup: ${feature.name || feature}`
+        });
+      });
+    }
+
+    return tasks;
+  }
 }
 
 export const taskListGeneratorV2 = new TaskListGeneratorV2();

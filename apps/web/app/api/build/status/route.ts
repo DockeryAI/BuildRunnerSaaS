@@ -128,7 +128,14 @@ export async function GET(request: NextRequest) {
         'microstep:fallback',
         'rollback:started',
         'rollback:completed',
-        'message:received'
+        'message:received',
+        'claude:output',
+        'claude:error',
+        'claude:prompt',
+        'task:started',
+        'task:completed',
+        'task:failed',
+        'task:list_generated'
       ];
 
       // Create handlers map

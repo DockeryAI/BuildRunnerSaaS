@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import { spawn, ChildProcess } from 'child_process';
-import { BuildTask } from './task-list-generator';
+import { BuildTask } from './task-list-generator-v2';
+import { SessionPool } from './session-pool';
+import { CircuitBreaker } from './circuit-breaker';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -9,6 +11,7 @@ export interface ClaudeCLIConfig {
   projectName: string;
   projectPath: string;
   model?: string;
+  usePersistentSessions?: boolean; // Feature flag
 }
 
 export interface BuildContext {
@@ -34,6 +37,11 @@ export class ClaudeCLIEngine extends EventEmitter {
   private config: ClaudeCLIConfig;
   private claudeProcess: ChildProcess | null = null;
   private currentTaskOutput: string = '';
+  private contextCache: BuildContext | null = null; // In-memory context cache
+  private contextCacheTime: number = 0; // Timestamp of last cache
+  private sessionPool: SessionPool | null = null; // Persistent session pool
+  private circuitBreaker: CircuitBreaker; // Failure detection and auto-degradation
+  private usePersistentSessions: boolean;
 
   constructor(config: ClaudeCLIConfig) {
     super();
@@ -43,12 +51,107 @@ export class ClaudeCLIEngine extends EventEmitter {
       ...config
     };
 
-    this.emit('log', { level: 'info', message: '✅ Claude CLI Engine initialized' });
+    this.usePersistentSessions = config.usePersistentSessions ?? false;
+
+    // Initialize circuit breaker for graceful degradation
+    this.circuitBreaker = new CircuitBreaker({
+      failureThreshold: 3,
+      successThreshold: 2,
+      timeout: 30000,
+      windowSize: 10
+    });
+
+    this.emit('log', {
+      level: 'info',
+      message: `✅ Claude CLI Engine initialized (persistent sessions: ${this.usePersistentSessions ? 'enabled' : 'disabled'})`
+    });
+  }
+
+  /**
+   * Initialize session pool (call before executing tasks)
+   * @param options Optional pool configuration (maxPoolSize, warmStandbyCount)
+   */
+  async initializeSessionPool(options?: { maxPoolSize?: number; warmStandbyCount?: number }): Promise<void> {
+    if (!this.usePersistentSessions) {
+      this.emit('log', {
+        level: 'info',
+        message: '⏭️  Persistent sessions disabled, skipping session pool initialization'
+      });
+      return;
+    }
+
+    if (this.sessionPool) {
+      this.emit('log', {
+        level: 'warn',
+        message: '⚠️  Session pool already initialized'
+      });
+      return;
+    }
+
+    try {
+      this.sessionPool = new SessionPool({
+        projectPath: this.config.projectPath,
+        model: this.config.model,
+        maxPoolSize: options?.maxPoolSize ?? 3,
+        warmStandbyCount: options?.warmStandbyCount ?? 1,
+        healthCheckInterval: 30000
+      });
+
+      // Forward session pool events
+      this.sessionPool.on('log', (data) => this.emit('log', data));
+      this.sessionPool.on('session:error', (data) => this.emit('session:error', data));
+      this.sessionPool.on('session:failover', (data) => this.emit('session:failover', data));
+
+      await this.sessionPool.initialize();
+
+      this.emit('log', {
+        level: 'success',
+        message: '✅ Session pool initialized and ready'
+      });
+
+    } catch (error) {
+      this.emit('log', {
+        level: 'error',
+        message: `❌ Failed to initialize session pool: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+      // Disable persistent sessions on initialization failure
+      this.usePersistentSessions = false;
+      this.circuitBreaker.open();
+    }
+  }
+
+  /**
+   * Shutdown session pool (call after build completes)
+   */
+  async shutdownSessionPool(): Promise<void> {
+    if (this.sessionPool) {
+      await this.sessionPool.shutdown();
+      this.sessionPool = null;
+      this.emit('log', {
+        level: 'info',
+        message: '✅ Session pool shutdown complete'
+      });
+    }
+  }
+
+  /**
+   * Get session pool for parallel execution
+   */
+  getSessionPool(): SessionPool | null {
+    return this.sessionPool;
+  }
+
+  /**
+   * Check if task is critical (should always use fresh session)
+   */
+  private isCriticalTask(task: BuildTask): boolean {
+    const criticalTypes = ['quality_gate', 'test', 'integration_test', 'e2e_test'];
+    return criticalTypes.includes(task.type);
   }
 
   /**
    * Execute a single task with Claude CLI
-   * This spawns `claude` command and gives it full context + tools
+   * Routes to persistent session or fresh session based on configuration and circuit breaker state
    */
   async executeTask(task: BuildTask, context: BuildContext): Promise<{
     success: boolean;
@@ -56,9 +159,100 @@ export class ClaudeCLIEngine extends EventEmitter {
     filesCreated: string[];
     error?: Error;
   }> {
-    this.emit('log', { level: 'info', message: `🔨 Executing task with Claude CLI: ${task.title}` });
+    this.emit('log', { level: 'info', message: `🔨 Executing task with Claude CLI: ${task.description}` });
     this.emit('task:started', { task });
 
+    // Determine execution mode
+    const shouldUsePersistentSession =
+      this.usePersistentSessions &&
+      this.circuitBreaker.canAttempt() &&
+      !this.isCriticalTask(task) &&
+      this.sessionPool !== null;
+
+    if (shouldUsePersistentSession) {
+      this.emit('log', {
+        level: 'info',
+        message: `♻️  Using persistent session for task: ${task.id}`
+      });
+      return await this.executeWithPersistentSession(task, context);
+    } else {
+      const reason = this.isCriticalTask(task)
+        ? 'critical task'
+        : this.circuitBreaker.getState() === 'OPEN'
+        ? 'circuit breaker open'
+        : 'persistent sessions disabled';
+
+      this.emit('log', {
+        level: 'info',
+        message: `🆕 Using fresh session for task: ${task.id} (${reason})`
+      });
+      return await this.executeWithFreshSession(task, context);
+    }
+  }
+
+  /**
+   * Execute task using persistent session from pool
+   */
+  private async executeWithPersistentSession(task: BuildTask, context: BuildContext): Promise<{
+    success: boolean;
+    output: string;
+    filesCreated: string[];
+    error?: Error;
+  }> {
+    try {
+      if (!this.sessionPool) {
+        throw new Error('Session pool not initialized');
+      }
+
+      // Get healthy session from pool
+      const session = await this.sessionPool.getHealthySession();
+
+      // Execute task using persistent session
+      const output = await session.executeTask(task, context);
+
+      // Parse output to find created files
+      const filesCreated = await this.detectCreatedFiles(task);
+
+      // Record success in circuit breaker
+      this.circuitBreaker.recordSuccess();
+
+      this.emit('task:completed', { task, filesCreated });
+      this.emit('log', {
+        level: 'success',
+        message: `✅ Task completed with persistent session: ${task.description} (${filesCreated.length} files)`
+      });
+
+      return {
+        success: true,
+        output,
+        filesCreated
+      };
+
+    } catch (error) {
+      const err = error as Error;
+
+      // Record failure in circuit breaker
+      this.circuitBreaker.recordFailure(err);
+
+      this.emit('log', {
+        level: 'warn',
+        message: `⚠️  Persistent session failed, retrying with fresh session: ${err.message}`
+      });
+
+      // Fallback to fresh session
+      return await this.executeWithFreshSession(task, context);
+    }
+  }
+
+  /**
+   * Execute task using fresh (per-task) Claude CLI session
+   */
+  private async executeWithFreshSession(task: BuildTask, context: BuildContext): Promise<{
+    success: boolean;
+    output: string;
+    filesCreated: string[];
+    error?: Error;
+  }> {
     try {
       // Build comprehensive prompt for Claude
       const prompt = this.buildTaskPrompt(task, context);
@@ -81,7 +275,7 @@ export class ClaudeCLIEngine extends EventEmitter {
       this.emit('task:completed', { task, filesCreated });
       this.emit('log', {
         level: 'success',
-        message: `✅ Task completed: ${task.title} (${filesCreated.length} files)`
+        message: `✅ Task completed: ${task.description} (${filesCreated.length} files)`
       });
 
       return {
@@ -126,12 +320,11 @@ ${context.componentCatalog}
 
 **ID:** ${task.id}
 **Type:** ${task.type}
-**Title:** ${task.title}
 **Description:** ${task.description}
 
-${task.expectedFile ? `**Expected File:** ${task.expectedFile}` : ''}
-${task.endpoint ? `**Endpoint:** ${task.endpoint}` : ''}
-${task.componentName ? `**Component Name:** ${task.componentName}` : ''}
+${(task as any).expectedFile ? `**Expected File:** ${(task as any).expectedFile}` : ''}
+${(task as any).endpoint ? `**Endpoint:** ${(task as any).endpoint}` : ''}
+${(task as any).componentName ? `**Component Name:** ${(task as any).componentName}` : ''}
 
 # DEPENDENCIES COMPLETED
 
@@ -275,10 +468,35 @@ Start working on this task now. Use your tools to build it properly.`;
   }
 
   /**
-   * Load context files for Claude
+   * Load context files for Claude (with caching for performance)
    */
   async loadContext(projectPath: string): Promise<BuildContext> {
     const buildRunnerDir = path.join(projectPath, '.buildrunner');
+
+    // Check if cache is still fresh (files haven't changed)
+    const contextFiles = [
+      'BUILD_DOC.md',
+      'TASKS.md',
+      'DESIGN_SYSTEM.md',
+      'COMPONENT_CATALOG.md',
+      'HANDOFF.md'
+    ];
+
+    const isCacheFresh = await this.isContextCacheFresh(buildRunnerDir, contextFiles);
+
+    if (isCacheFresh && this.contextCache) {
+      this.emit('log', {
+        level: 'info',
+        message: '⚡ Using cached context (no files changed)'
+      });
+      return this.contextCache;
+    }
+
+    // Cache miss or stale - reload context
+    this.emit('log', {
+      level: 'info',
+      message: '📂 Loading fresh context from disk'
+    });
 
     const context: BuildContext = {
       buildDoc: await this.readFileOrEmpty(path.join(buildRunnerDir, 'BUILD_DOC.md')),
@@ -288,7 +506,46 @@ Start working on this task now. Use your tools to build it properly.`;
       handoff: await this.readFileOrEmpty(path.join(buildRunnerDir, 'HANDOFF.md'))
     };
 
+    // Update cache
+    this.contextCache = context;
+    this.contextCacheTime = Date.now();
+
     return context;
+  }
+
+  /**
+   * Check if context cache is still fresh (files haven't changed since last load)
+   */
+  private async isContextCacheFresh(buildRunnerDir: string, files: string[]): Promise<boolean> {
+    // No cache yet
+    if (!this.contextCache || this.contextCacheTime === 0) {
+      return false;
+    }
+
+    // Check if any context files were modified after cache time
+    try {
+      for (const file of files) {
+        const filePath = path.join(buildRunnerDir, file);
+        try {
+          const stats = await fs.stat(filePath);
+          const fileModTime = stats.mtimeMs;
+
+          // If file was modified after cache, cache is stale
+          if (fileModTime > this.contextCacheTime) {
+            return false;
+          }
+        } catch {
+          // File doesn't exist, skip
+          continue;
+        }
+      }
+
+      // All files are older than cache or don't exist - cache is fresh
+      return true;
+    } catch {
+      // Error checking files - invalidate cache to be safe
+      return false;
+    }
   }
 
   /**
@@ -350,8 +607,7 @@ Start working on this task now. Use your tools to build it properly.`;
         break;
       }
 
-      // Small delay between tasks
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Removed 1s delay between tasks for performance
     }
 
     return {

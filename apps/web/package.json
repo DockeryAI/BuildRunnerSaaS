@@ -6,7 +6,10 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "benchmark": "ts-node scripts/benchmark.ts",
+    "test:integration": "echo 'Integration tests coming in Phase 5'",
+    "test:api": "echo 'API tests coming in Phase 5'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
