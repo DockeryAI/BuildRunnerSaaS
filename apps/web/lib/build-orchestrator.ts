@@ -36,7 +36,7 @@ import { convertPRDSectionsToPRD, getPRDSummary } from './prd-converter';
 import { taskListGenerator, type TaskList } from './task-list-generator';
 import { taskExecutor } from './task-executor';
 import { gapAnalyzer } from './gap-analyzer';
-import { ClaudeBuildEngine } from './claude-build-engine';
+import { ClaudeCLIEngine } from './claude-cli-engine'; // REAL Claude CLI - spawns actual claude command
 import { ClaudeTaskExecutorV2 } from './claude-task-executor-v2';
 import { projectInitializer } from './project-initializer';
 import { buildDocGenerator } from './build-doc-generator';
@@ -3995,13 +3995,14 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
 
       this.emit('log', { level: 'success', message: `✅ Task list created (${tasks.length} tasks)` });
 
-      // Step 4: Initialize Claude build engine
-      this.emit('log', { level: 'info', message: '🤖 Initializing Claude build engine...' });
+      // Step 4: Initialize Claude CLI Engine (spawns actual claude command)
+      this.emit('log', { level: 'info', message: '🤖 Initializing Claude CLI Engine...' });
 
-      const claudeEngine = new ClaudeBuildEngine({
+      const claudeEngine = new ClaudeCLIEngine({
         projectId: config.projectId,
         projectName: config.projectName,
-        projectPath
+        projectPath,
+        model: 'sonnet' // Use Claude Sonnet via CLI
       });
 
       const claudeExecutor = new ClaudeTaskExecutorV2(
@@ -4138,13 +4139,14 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
         this.emit('log', { level: 'info', message: `  ${rec}` });
       });
 
-      // Initialize Claude build engine
-      this.emit('log', { level: 'info', message: '🤖 Initializing Claude build engine...' });
+      // Initialize Claude CLI Engine (spawns actual claude command)
+      this.emit('log', { level: 'info', message: '🤖 Initializing Claude CLI Engine...' });
 
-      const claudeEngine = new ClaudeBuildEngine({
+      const claudeEngine = new ClaudeCLIEngine({
         projectId,
         projectName,
-        projectPath: config.projectPath
+        projectPath: config.projectPath,
+        model: 'sonnet' // Use Claude Sonnet via CLI
       });
 
       const claudeExecutor = new ClaudeTaskExecutorV2(
