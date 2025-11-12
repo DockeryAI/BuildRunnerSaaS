@@ -614,6 +614,7 @@ export default function WorkbenchPage() {
           projectId: currentProjectId,
           productIdea,
           prd: prdSections,
+          projectPlan: plan, // Send full plan so task generator can map components to features
           buildEngine: 'claude', // Claude is the only build engine
         }),
       });
