@@ -3956,10 +3956,20 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
       // Step 3: Generate task list
       this.emit('log', { level: 'info', message: '📋 Generating task list...' });
 
+      // Map plan components to features format for task generator
+      let features = config.prd?.features;
+      if (config.projectPlan?.architecture?.components) {
+        features = config.projectPlan.architecture.components.map((comp: any) => ({
+          name: comp.name,
+          description: comp.description || `${comp.type} component for ${config.projectName}`,
+          priority: 'high' // All plan components are high priority
+        }));
+      }
+
       const tasks = taskListGeneratorV2.generate({
         productName: config.projectName,
         productIdea: config.productIdea,
-        features: config.projectPlan?.features || config.prd?.features,
+        features: features,
         technicalRequirements: config.prd?.technicalRequirements,
         userFlows: config.prd?.userFlows
       });
