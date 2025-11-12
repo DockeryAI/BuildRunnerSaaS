@@ -4,11 +4,11 @@
  * with intelligent LLM routing based on task complexity
  */
 
-import { ContextBuilder, BuildContext, PRDContext, ComponentContext } from './context-builder';
+import { ContextBuilder, BuildContext, PRDContext, ComponentContext } from '../../context-builder';
 import { DesignSpec } from './design-system-generator';
-import { CatalystIntegrator } from './catalyst/integrator';
-import { ComponentSpec } from './component-designer';
-import { modelRouter, type BuildTask } from './model-router';
+import { CatalystIntegrator } from '../../catalyst/integrator';
+import { ComponentSpec } from '../../component-designer';
+import { modelRouter, type BuildTask } from '../../model-router';
 
 export interface GenerationResult {
   code: string;
@@ -39,9 +39,9 @@ export class AIComponentGenerator {
    */
   private selectModelForComponent(context: BuildContext): string {
     const { component } = context;
-    const componentType = (component.componentType || '').toLowerCase();
-    const componentName = (component.componentName || '').toLowerCase();
-    const description = (component.description || '').toLowerCase();
+    const componentType = (component.componentType ?? component.type ?? '').toString().toLowerCase();
+    const componentName = (component.componentName ?? component.name ?? '').toString().toLowerCase();
+    const description = (component.description ?? '').toString().toLowerCase();
 
     // Determine task type based on component characteristics
     let task: BuildTask = 'component_generation'; // Default
@@ -778,7 +778,8 @@ Return ONLY the complete component code, no explanations or markdown formatting.
    */
   private inferFilePath(component: ComponentContext): string {
     // Sanitize component name to kebab-case (same logic as file-writer.ts)
-    const name = (component.componentName || 'component')
+    const name = (component.componentName ?? component.name ?? 'component')
+      .toString()
       .trim()
       .replace(/([a-z])([A-Z])/g, '$1-$2')  // camelCase → kebab-case
       .replace(/[\s_]+/g, '-')               // spaces/underscores → hyphens

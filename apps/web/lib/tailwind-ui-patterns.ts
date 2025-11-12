@@ -7,7 +7,7 @@
  */
 
 import type { DesignProfile } from './design-intelligence/types';
-import type { DesignSpec } from './design-system-generator';
+import type { DesignSpec } from './archived/openrouter/design-system-generator';
 
 export interface TailwindUIPattern {
   id: string;

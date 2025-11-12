@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Background */
+    --background: 300 100% 99%;
+    --foreground: 15 14% 11%;
+
+    /* Surface (cards, panels) */
+    --surface: 300 100% 99%;
+
+    /* Primary */
+    --primary: 26 100% 31%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 21 24% 37%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Accent */
+    --accent: 55 33% 29%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 19 59% 89%;
+    --muted-foreground: 20 15% 28%;
+
+    /* Border & Ring */
+    --border: 18 27% 78%;
+    --ring: 26 100% 31%;
+
+    /* Destructive */
+    --destructive: 0 75% 42%;
+    --destructive-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    /* Dark mode overrides */
+    --background: 222 47% 11%;
+    --foreground: 213 31% 91%;
+    --surface: 217 33% 17%;
+    --primary: 26 100% 31%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 213 31% 91%;
+    --accent: 55 33% 29%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --border: 215 28% 17%;
+    --ring: 26 100% 31%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Glass morphism utilities */
+  .glass {
+    @apply bg-white/10 dark:bg-black/10 backdrop-blur-xl border border-white/20 dark:border-white/10;
+  }
+
+  /* Gradient utilities */
+  .gradient-primary {
+    @apply bg-gradient-to-br from-primary to-primary/80;
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-br from-accent to-accent/80;
+  }
+}

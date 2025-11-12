@@ -4,7 +4,7 @@
  * across all generated components.
  */
 
-import { DesignSpec } from './design-system-generator';
+import { DesignSpec } from './archived/openrouter/design-system-generator';
 import { StyledComponent } from './component-designer';
 
 export interface PolishResult {

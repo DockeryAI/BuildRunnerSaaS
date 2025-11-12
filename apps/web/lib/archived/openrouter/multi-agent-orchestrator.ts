@@ -13,11 +13,11 @@
  * Target: <60 second builds with 5-10x speedup
  */
 
-import { BuildAgent, type ComponentTask, type AgentResult, type AgentProgress } from './agent';
-import { LockManager } from './lock-manager';
-import type { BuildContext } from './context-builder';
+import { BuildAgent, type ComponentTask, type AgentResult, type AgentProgress } from '../../agent';
+import { LockManager } from '../../lock-manager';
+import type { BuildContext } from '../../context-builder';
 import type { AIComponentGenerator } from './ai-component-generator';
-import type { DesignPolisher } from './design-polisher';
+import type { DesignPolisher } from '../../design-polisher';
 import { EventEmitter } from 'events';
 
 export interface DependencyGraph {

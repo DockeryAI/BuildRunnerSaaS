@@ -4,18 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTabSafeProject } from '../../../lib/project-context';
 import { extractBuildComponents, calculateComponentPositions } from '../../../lib/plan-to-components';
-import BuildCanvas from '../../../components/BuildCanvas';
 import ComponentDetailsModal from '../../../components/ComponentDetailsModal';
-import LiveFeedPanel from '../../../components/LiveFeedPanel';
 import FileBrowser from '../../../components/FileBrowser';
-import ChatPanel from '../../../components/ChatPanel';
-import TerminalPanel, { TerminalLog } from '../../../components/TerminalPanel';
-import ClaudeOutputTerminal from '../../../components/ClaudeOutputTerminal';
 import ArchitectureFlowDiagram from '../../../components/ArchitectureFlowDiagram';
-import ConsensusLogPanel, { ConsensusMessage, ConsensusIteration } from '../../../components/ConsensusLogPanel';
-import BuildPlanWidget from '../../../components/BuildPlanWidget';
+import { TerminalLog } from '../../../components/TerminalPanel';
 import { updateProjectStatus } from '../../../lib/autosave';
 import { exportToClaudeBuilder, exportToMarkdown } from '../../../lib/prd-export';
+import TaskProgressPanel from '../../../components/TaskProgressPanel';
+import { BuildTask } from '../../../lib/task-list-generator';
 import {
   PlayIcon,
   PauseIcon,
@@ -235,22 +231,6 @@ export default function WorkbenchPage() {
   const [buildPhase, setBuildPhase] = useState<string>('idle'); // planning, building, verifying, testing, completed
   const [components, setComponents] = useState<BuildComponent[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<BuildComponent | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
-  // Consensus tracking
-  interface ConsensusVote {
-    id: string;
-    task: string;
-    timestamp: Date;
-    agreed: boolean;
-    agreementRatio: number;
-    models: number;
-  }
-  const [consensusVotes, setConsensusVotes] = useState<ConsensusVote[]>([]);
-  const [consensusMessages, setConsensusMessages] = useState<ConsensusMessage[]>([]);
-  const [consensusIterations, setConsensusIterations] = useState<ConsensusIteration[]>([]);
-  const [consensusModelsUsed, setConsensusModelsUsed] = useState<number>(5);
-  const [isConsensusLogMinimized, setIsConsensusLogMinimized] = useState(true);
   const [isLoadingPlan, setIsLoadingPlan] = useState(true);
   const [planError, setPlanError] = useState<string | null>(null);
   const [messages, setMessages] = useState<BuildMessage[]>([
@@ -264,13 +244,14 @@ export default function WorkbenchPage() {
   const [buildId, setBuildId] = useState<string | null>(null);
   const [logs, setLogs] = useState<TerminalLog[]>([]);
   const [isFeedMinimized, setIsFeedMinimized] = useState(true);
+  const [isBuildPlanMinimized, setIsBuildPlanMinimized] = useState(false);
+  const [isTerminalMinimized, setIsTerminalMinimized] = useState(false);
   const [isFilesOpen, setIsFilesOpen] = useState(false);
-  const [terminalPosition, setTerminalPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [userInputRequired, setUserInputRequired] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string>('');
   const [projectPlan, setProjectPlan] = useState<any>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const logsEndRef = useRef<HTMLDivElement>(null);
   const [showPreviewButton, setShowPreviewButton] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isStartingPreview, setIsStartingPreview] = useState(false);
@@ -291,6 +272,18 @@ export default function WorkbenchPage() {
 
   // Autosave state
   const [isSavingBuild, setIsSavingBuild] = useState(false);
+
+  // Task-based build state
+  const [tasks, setTasks] = useState<BuildTask[]>([]);
+  const [currentTaskId, setCurrentTaskId] = useState<string | undefined>(undefined);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState(0);
+  const [showTaskPanel, setShowTaskPanel] = useState(false);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
   // Load project plan and extract components (or restore from build)
   useEffect(() => {
@@ -609,7 +602,7 @@ export default function WorkbenchPage() {
 
       addLog('info', `📦 Extracted ${extractedComponents.length} components from plan`);
 
-      // Call BuildOrchestrator API
+      // Call BuildOrchestrator API with Claude engine (ONLY OPTION)
       const response = await fetch('/api/build/start', {
         method: 'POST',
         headers: {
@@ -621,6 +614,7 @@ export default function WorkbenchPage() {
           projectId: currentProjectId,
           productIdea,
           prd: prdSections,
+          buildEngine: 'claude', // Claude is the only build engine
         }),
       });
 
@@ -663,50 +657,56 @@ export default function WorkbenchPage() {
               addLog(logType, data.message);
               break;
 
-            case 'component:started':
-              setComponents((prev) =>
-                prev.map((comp) =>
-                  comp.id === data.componentId
-                    ? { ...comp, status: 'building', progress: 0 }
-                    : comp
-                )
-              );
-              addLog('info', `🔨 Building ${data.componentName}...`);
+            // Build events
+            case 'build:started':
+              addLog('info', '🚀 Build started');
               break;
 
-            case 'component:completed':
-              setComponents((prev) =>
-                prev.map((comp) =>
-                  comp.id === data.componentId
-                    ? { ...comp, status: 'completed', progress: 100 }
-                    : comp
-                )
-              );
-              addLog('success', `✅ Completed ${data.componentName}`);
+            case 'task:list_generated':
+              addLog('info', `📋 Generated ${data.totalTasks} tasks from project plan`);
+              setTasks(data.tasks || []);
+              setTotalTasks(data.totalTasks || 0);
+              setCompletedTasks(0);
+              setShowTaskPanel(true);
+              setIsFeedMinimized(false); // Auto-open panel when tasks are generated
               break;
 
-            case 'progress:updated':
-              setComponents((prev) =>
-                prev.map((comp) =>
-                  comp.id === data.componentId
-                    ? { ...comp, progress: data.progress }
-                    : comp
-                )
+            case 'task:started':
+              addLog('info', `🔨 Starting task: ${data.task?.title || 'Unknown task'}`);
+              setCurrentTaskId(data.task?.id);
+              setTasks((prev) =>
+                prev.map(t => t.id === data.task?.id ? { ...t, status: 'in_progress' } : t)
               );
               break;
 
-            case 'phase:started':
-              addLog('info', `📋 Phase started: ${data.phase}`);
-              setPhaseProgress({
-                phase: data.phase,
-                current: 0,
-                total: 100,
-                percentage: 0,
-              });
+            case 'task:completed':
+              addLog('success', `✅ Completed task: ${data.task?.title || 'Unknown task'}`);
+              setCurrentTaskId(undefined);
+              setTasks((prev) =>
+                prev.map(t => t.id === data.task?.id ? { ...t, status: 'completed', completedAt: new Date().toISOString() } : t)
+              );
+              setCompletedTasks((prev) => prev + 1);
               break;
 
-            case 'phase:completed':
-              addLog('success', `✅ Phase completed: ${data.phase}`);
+            case 'task:failed':
+              addLog('error', `❌ Task failed: ${data.task?.title || 'Unknown task'} - ${data.error?.message || 'Unknown error'}`);
+              setCurrentTaskId(undefined);
+              setTasks((prev) =>
+                prev.map(t => t.id === data.task?.id ? { ...t, status: 'failed', errorMessage: data.error?.message } : t)
+              );
+              break;
+
+            case 'build:progress':
+              // Update overall progress
+              if (data.currentTask) {
+                addLog('info', `📊 Progress: ${data.progress}% - ${data.currentTask}`);
+              }
+              if (data.completedTasks !== undefined) {
+                setCompletedTasks(data.completedTasks);
+              }
+              if (data.totalTasks !== undefined) {
+                setTotalTasks(data.totalTasks);
+              }
               break;
 
             case 'build:completed':
@@ -722,8 +722,326 @@ export default function WorkbenchPage() {
               eventSource.close();
               break;
 
+            case 'build:paused':
+              addLog('warning', '⏸️ Build paused');
+              setBuildStatus('paused');
+              break;
+
+            case 'build:resumed':
+              addLog('info', '▶️ Build resumed');
+              setBuildStatus('running');
+              break;
+
+            case 'build:stopped':
+              addLog('warning', '⏹️ Build stopped');
+              setBuildStatus('idle');
+              break;
+
+            case 'build:preview_ready':
+              addLog('success', `🌐 Preview ready: ${data.url || ''}`);
+              setShowPreviewButton(true);
+              if (data.url) setPreviewUrl(data.url);
+              break;
+
+            case 'build:batches':
+              addLog('info', `📦 Building ${data.batchCount} component batches`);
+              break;
+
+            // Component events
+            case 'component:started':
+              setComponents((prev) =>
+                prev.map((comp) =>
+                  comp.id === data.componentId
+                    ? { ...comp, status: 'building', progress: 0 }
+                    : comp
+                )
+              );
+              addLog('info', `🔨 Building ${data.componentName || data.component}...`);
+              break;
+
+            case 'component:completed':
+              setComponents((prev) =>
+                prev.map((comp) =>
+                  comp.id === data.componentId
+                    ? { ...comp, status: 'completed', progress: 100 }
+                    : comp
+                )
+              );
+              addLog('success', `✅ Completed ${data.componentName || data.component}`);
+              break;
+
+            case 'component:recovery_started':
+              addLog('warning', `🔄 Retrying ${data.componentName || data.component} (attempt ${data.attempt || '?'})`);
+              break;
+
+            case 'component:recovery_succeeded':
+              addLog('success', `✅ Recovery succeeded for ${data.componentName || data.component}`);
+              break;
+
+            case 'component:recovery_failed':
+              addLog('error', `❌ Recovery failed for ${data.componentName || data.component}: ${data.error || 'Unknown error'}`);
+              break;
+
+            // Progress events
+            case 'progress:updated':
+              setComponents((prev) =>
+                prev.map((comp) =>
+                  comp.id === data.componentId
+                    ? { ...comp, progress: data.progress }
+                    : comp
+                )
+              );
+              break;
+
+            // Phase events
+            case 'phase:started':
+              addLog('info', `📋 Phase started: ${data.phase}`);
+              setBuildPhase(data.phase);
+              setPhaseProgress({
+                phase: data.phase,
+                current: 0,
+                total: 100,
+                percentage: 0,
+              });
+              break;
+
+            case 'phase:completed':
+              addLog('success', `✅ Phase completed: ${data.phase}`);
+              break;
+
+            case 'phase:failed':
+              addLog('error', `❌ Phase failed: ${data.phase} - ${data.error || 'Unknown error'}`);
+              break;
+
+            case 'phase:progress':
+              if (data.phase) {
+                setPhaseProgress({
+                  phase: data.phase,
+                  current: data.current || 0,
+                  total: data.total || 100,
+                  percentage: data.percentage || 0,
+                });
+              }
+              break;
+
+            // Planning events
+            case 'planning:started':
+              addLog('info', '📝 Planning component implementation...');
+              break;
+
+            case 'planning:completed':
+              addLog('success', '✅ Planning completed');
+              break;
+
+            // Wave events
+            case 'wave:start':
+              addLog('info', `🌊 Starting wave ${data.waveIndex || '?'} with ${data.componentCount || '?'} components`);
+              break;
+
+            case 'wave:complete':
+              addLog('success', `✅ Wave ${data.waveIndex || '?'} completed`);
+              break;
+
+            // LLM events
+            case 'llm:request':
+              const model = data.model || 'LLM';
+              const promptLength = data.promptLength || data.prompt?.length || '?';
+              addLog('info', `🤖 Calling ${model}... (${promptLength} chars)`);
+              break;
+
+            case 'llm:response':
+              const responseModel = data.model || 'LLM';
+              const tokens = data.tokens || data.usage?.total_tokens || '?';
+              addLog('success', `✅ ${responseModel} response received (${tokens} tokens)`);
+              break;
+
+            case 'llm:error':
+              const errorModel = data.model || 'LLM';
+              const errorMsg = typeof data.error === 'object'
+                ? JSON.stringify(data.error)
+                : (data.error || 'Unknown error');
+              addLog('error', `❌ ${errorModel} error: ${errorMsg}`);
+              break;
+
+            case 'llm:fallback':
+              addLog('warning', `⚠️ Falling back to ${data.fallbackModel || 'backup model'}`);
+              break;
+
+            // Consensus events
+            case 'consensus:started':
+              addLog('info', `🗳️ Starting consensus with ${data.modelCount || '?'} models`);
+              break;
+
+            case 'consensus:completed':
+              addLog('success', '✅ Consensus achieved');
+              break;
+
+            case 'consensus:iteration':
+              addLog('info', `🗳️ Consensus round ${data.iteration || '?'}`);
+              break;
+
+            case 'consensus:achieved':
+              addLog('success', `✅ Consensus achieved on round ${data.iteration || '?'}`);
+              break;
+
+            case 'consensus:message':
+              addLog('info', `💬 ${data.message || 'Consensus update'}`);
+              break;
+
+            // Model error
+            case 'model:error':
+              addLog('error', `❌ Model error: ${data.error || 'Unknown error'}`);
+              break;
+
+            // Verification events
+            case 'verification:started':
+              addLog('info', '🔍 Starting verification...');
+              setIsVerificationRunning(true);
+              break;
+
+            case 'verification:completed':
+              addLog('success', '✅ Verification completed');
+              setIsVerificationRunning(false);
+              break;
+
+            case 'verification:failed':
+              addLog('error', `❌ Verification failed: ${data.error || 'Unknown error'}`);
+              setIsVerificationRunning(false);
+              break;
+
+            // Testing events
+            case 'testing:started':
+              addLog('info', '🧪 Running tests...');
+              break;
+
+            case 'testing:completed':
+              addLog('success', '✅ Tests completed');
+              break;
+
+            // Loop detection
+            case 'loop_detection:started':
+              addLog('info', '🔄 Loop detection started');
+              break;
+
+            case 'loop_detection:stopped':
+              addLog('info', '⏹️ Loop detection stopped');
+              break;
+
+            case 'loop:detected':
+              addLog('warning', `⚠️ Loop detected: ${data.message || 'Repetitive pattern found'}`);
+              break;
+
+            // Intervention events
+            case 'intervention:triggered':
+              addLog('warning', `⚠️ Intervention triggered: ${data.reason || 'Unknown reason'}`);
+              break;
+
+            case 'intervention:resolved':
+              addLog('success', '✅ Intervention resolved');
+              break;
+
+            case 'intervention:brainstorm_completed':
+              addLog('success', '💡 Brainstorming completed');
+              break;
+
+            case 'intervention:user_input_required':
+              const inputMsg = data.message || data.reason || 'User input required';
+              addLog('warning', `👤 User input required: ${inputMsg}`);
+              setUserInputRequired(inputMsg);
+              break;
+
+            // Brainstorm events
+            case 'brainstorm:started':
+              addLog('info', `💡 Brainstorming solutions with ${data.modelCount || '?'} models...`);
+              break;
+
+            case 'brainstorm:completed':
+              addLog('success', `✅ Brainstorming completed (${data.solutionCount || '?'} solutions generated)`);
+              break;
+
+            case 'brainstorm:model_error':
+              const brainstormErrorMsg = typeof data.error === 'object'
+                ? JSON.stringify(data.error)
+                : (data.error || 'Unknown error');
+              addLog('error', `❌ Brainstorm model error: ${brainstormErrorMsg}`);
+              break;
+
+            // Strategy events
+            case 'strategy:applying':
+              addLog('info', `📐 Applying strategy: ${data.strategy || 'Unknown'}`);
+              break;
+
+            case 'strategy:applied':
+              addLog('success', `✅ Strategy applied: ${data.strategy || 'Unknown'}`);
+              break;
+
+            // Microplan events
+            case 'microplan:started':
+              addLog('info', '📝 Creating microplan...');
+              break;
+
+            case 'microplan:completed':
+              addLog('success', `✅ Microplan completed (${data.stepCount || '?'} steps)`);
+              break;
+
+            // Microstep events
+            case 'microstep:started':
+              addLog('info', `🔹 Step ${data.stepNumber || '?'}: ${data.description || 'Executing step'}`);
+              break;
+
+            case 'microstep:completed':
+              addLog('success', `✅ Step ${data.stepNumber || '?'} completed`);
+              break;
+
+            case 'microstep:failed':
+              addLog('error', `❌ Step ${data.stepNumber || '?'} failed: ${data.error || 'Unknown error'}`);
+              break;
+
+            case 'microstep:fallback':
+              addLog('warning', `⚠️ Step ${data.stepNumber || '?'} using fallback approach`);
+              break;
+
+            // Rollback events
+            case 'rollback:started':
+              addLog('warning', '↩️ Rolling back changes...');
+              break;
+
+            case 'rollback:completed':
+              addLog('success', '✅ Rollback completed');
+              break;
+
+            // Message events
+            case 'message:received':
+              addLog('info', `💬 ${data.message || 'Message received'}`);
+              break;
+
+            // Claude CLI events
+            case 'claude:prompt':
+              addLog('info', `🤖 Claude prompt: ${data.prompt?.substring(0, 100) || 'Sending prompt'}...`);
+              break;
+
+            case 'claude:stream':
+              // Stream chunks from Claude - accumulate or log
+              if (data.content) {
+                addLog('info', `💭 ${data.content.substring(0, 150)}${data.content.length > 150 ? '...' : ''}`);
+              }
+              break;
+
+            case 'claude:file_written':
+              addLog('success', `📝 File written: ${data.filePath || 'unknown'}`);
+              break;
+
+            case 'task:list_generated':
+              addLog('success', `📋 Task list generated: ${data.totalTasks || 0} tasks`);
+              if (data.tasks) {
+                setTasks(data.tasks); // Update task list
+              }
+              break;
+
             default:
-              console.log('[SSE] Unknown event type:', data.type);
+              // Log any unhandled event types for debugging
+              console.log('[SSE] Unhandled event type:', data.type, data);
+              addLog('info', `ℹ️ ${data.type}: ${data.message || JSON.stringify(data).substring(0, 100)}`);
           }
         } catch (err) {
           console.error('[SSE] Failed to parse event data:', err);
@@ -833,57 +1151,6 @@ export default function WorkbenchPage() {
     }
   };
 
-  const handleTerminalMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.terminal-header')) {
-      setIsDragging(true);
-      setDragOffset({
-        x: e.clientX - terminalPosition.x,
-        y: e.clientY - terminalPosition.y,
-      });
-    }
-  };
-
-  const handleTerminalMouseMove = (e: MouseEvent) => {
-    if (isDragging) {
-      const newX = e.clientX - dragOffset.x;
-      const newY = e.clientY - dragOffset.y;
-
-      // Bounds checking - keep at least 50px visible on each edge
-      const minX = -650; // 700px width - 50px visible = -650
-      const maxX = window.innerWidth - 50;
-      const minY = 0; // Don't allow above top
-      const maxY = window.innerHeight - 50;
-
-      setTerminalPosition({
-        x: Math.max(minX, Math.min(maxX, newX)),
-        y: Math.max(minY, Math.min(maxY, newY)),
-      });
-    }
-  };
-
-  const handleTerminalMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleTerminalMouseMove);
-      window.addEventListener('mouseup', handleTerminalMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleTerminalMouseMove);
-        window.removeEventListener('mouseup', handleTerminalMouseUp);
-      };
-    }
-  }, [isDragging, dragOffset]);
-
-  // Center terminal on first open
-  useEffect(() => {
-    if (!isFeedMinimized && terminalPosition.x === 0 && terminalPosition.y === 0) {
-      const centerX = (window.innerWidth - 700) / 2;
-      const centerY = (window.innerHeight - 500) / 2;
-      setTerminalPosition({ x: centerX, y: centerY });
-    }
-  }, [isFeedMinimized]);
 
   // Helper function to check if server is ready
   const checkServerHealth = async (url: string, maxAttempts: number = 30, delayMs: number = 1000): Promise<boolean> => {
@@ -1122,11 +1389,9 @@ export default function WorkbenchPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0 z-10">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
@@ -1380,197 +1645,338 @@ export default function WorkbenchPage() {
               </div>
             )}
 
-            {/* Consensus Votes Display */}
-            {consensusVotes.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600 font-medium flex items-center gap-2">
-                    🗳️ AI Consensus Votes
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {consensusVotes.filter(v => v.agreed).length} / {consensusVotes.length} passed
-                  </span>
-                </div>
-                <div className="max-h-32 overflow-y-auto space-y-1.5 bg-gray-50 rounded-lg p-2">
-                  {consensusVotes.slice(-5).reverse().map((vote) => (
-                    <div
-                      key={vote.id}
-                      className={`flex items-center justify-between px-3 py-2 rounded-md text-xs ${
-                        vote.agreed
-                          ? 'bg-green-50 border border-green-200'
-                          : 'bg-red-50 border border-red-200'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-base">{vote.agreed ? '✅' : '❌'}</span>
-                        <span className="truncate font-medium text-gray-700">
-                          {vote.task}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 ml-2 shrink-0">
-                        <span
-                          className={`px-2 py-0.5 rounded-full font-semibold ${
-                            vote.agreed
-                              ? 'bg-green-200 text-green-800'
-                              : 'bg-red-200 text-red-800'
-                          }`}
-                        >
-                          {Math.round(vote.agreementRatio * 100)}%
-                        </span>
-                        <span className="text-gray-500 text-xs">
-                          ({vote.models} models)
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </header>
 
-        {/* Architecture Visualization with Flow Diagram */}
-        <main className="flex-1 overflow-hidden">
-          <div className="h-full w-full bg-[#F4F6F8] overflow-hidden">
-            {isLoadingPlan ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Cog6ToothIcon className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                  <p className="text-gray-600">Loading project plan...</p>
-                </div>
-              </div>
-            ) : planError ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center max-w-md">
-                  <ExclamationTriangleIcon className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <p className="text-gray-800 font-semibold mb-2">Error Loading Plan</p>
-                  <p className="text-gray-600 text-sm mb-4">{planError}</p>
-                  <a
-                    href="/plan"
-                    className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Go to Plan Page
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <ArchitectureFlowDiagram architecture={projectPlan?.architecture} components={components} />
-            )}
-          </div>
-        </main>
-      </div>
-
-      {/* Terminal Panel */}
-      {!isFeedMinimized && !isFilesOpen && (
-        <>
-          {buildStatus === 'running' ? (
-            <ClaudeOutputTerminal
-              projectName={projectName || 'Project'}
-              isOpen={true}
-              onClose={() => setIsFeedMinimized(true)}
-              position={terminalPosition}
-              onMouseDown={handleTerminalMouseDown}
-            />
-          ) : (
-            <TerminalPanel
-              logs={logs}
-              buildStatus={buildStatus}
-              onSendCommand={handleSendCommand}
-              onInterrupt={handleInterrupt}
-              isFilesOpen={isFilesOpen}
-              onToggleFiles={() => setIsFilesOpen(!isFilesOpen)}
-              position={terminalPosition}
-              onMouseDown={handleTerminalMouseDown}
-              onMinimize={() => setIsFeedMinimized(true)}
-            />
-          )}
-        </>
-      )}
-
-      {/* File Browser Panel */}
-      {!isFeedMinimized && isFilesOpen && (
-        <div
-          className="fixed z-40 bg-gray-900 rounded-lg shadow-2xl border border-gray-700 flex flex-col"
-          style={{
-            left: `${terminalPosition.x}px`,
-            top: `${terminalPosition.y}px`,
-            width: '700px',
-            height: '500px',
-          }}
-          onMouseDown={handleTerminalMouseDown}
-        >
-          <div className="terminal-header flex items-center justify-between px-4 py-2 bg-gray-800 rounded-t-lg border-b border-gray-700 cursor-grab active:cursor-grabbing">
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setIsFeedMinimized(true)}
-                  className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
-                />
-                <button
-                  onClick={() => setIsFeedMinimized(true)}
-                  className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors"
-                />
-                <button className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 transition-colors" />
-              </div>
-              <div className="flex items-center gap-2">
-                <FolderIcon className="w-4 h-4 text-blue-400" />
-                <h2 className="text-sm font-semibold text-gray-200">Build Files</h2>
+      {/* Main Content - Split View */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Architecture Canvas */}
+        <div className="flex-1 bg-[#F4F6F8] overflow-hidden">
+          {isLoadingPlan ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Cog6ToothIcon className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading project plan...</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsFilesOpen(false)}
-              className="px-2 py-1 rounded text-xs font-medium bg-gray-700 text-gray-400 hover:bg-gray-600 transition-colors"
-            >
-              Back to Terminal
-            </button>
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <FileBrowser
-              projectId={localStorage.getItem('currentProjectId') || '1'}
-              buildId={buildId}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Consensus Log Panel */}
-      {!isConsensusLogMinimized && (consensusMessages.length > 0 || consensusIterations.length > 0) && (
-        <div className="fixed bottom-6 left-6 z-40 w-[500px] max-w-[90vw]">
-          <ConsensusLogPanel
-            messages={consensusMessages}
-            iterations={consensusIterations}
-            modelsUsed={consensusModelsUsed}
-            isMinimized={false}
-            onToggleMinimize={() => setIsConsensusLogMinimized(true)}
-          />
-        </div>
-      )}
-
-      {/* Minimized Consensus Log Button */}
-      {isConsensusLogMinimized && (consensusMessages.length > 0 || buildStatus === 'running') && (
-        <ConsensusLogPanel
-          messages={consensusMessages}
-          iterations={consensusIterations}
-          modelsUsed={consensusModelsUsed}
-          isMinimized={true}
-          onToggleMinimize={() => setIsConsensusLogMinimized(false)}
-        />
-      )}
-
-      {/* Minimized Terminal Icon (Bottom Right) */}
-      {isFeedMinimized && (
-        <button
-          onClick={() => setIsFeedMinimized(false)}
-          className="fixed bottom-6 right-6 z-40 bg-gray-900 hover:bg-gray-800 text-green-400 p-4 rounded-lg shadow-2xl transition-all hover:scale-105 border border-gray-700"
-          title="Open Build Terminal"
-        >
-          <CommandLineIcon className="w-6 h-6" />
-          {logs.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
-              {logs.length > 99 ? '99+' : logs.length}
-            </span>
+          ) : planError ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md">
+                <ExclamationTriangleIcon className="w-12 h-12 text-red-600 mx-auto mb-4" />
+                <p className="text-gray-800 font-semibold mb-2">Error Loading Plan</p>
+                <p className="text-gray-600 text-sm mb-4">{planError}</p>
+                <a
+                  href="/plan"
+                  className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Go to Plan Page
+                </a>
+              </div>
+            </div>
+          ) : (
+            <ArchitectureFlowDiagram architecture={projectPlan?.architecture} components={components} />
           )}
-        </button>
+        </div>
+
+        {/* Right: Build Panel (Terminal + Task Progress / Build Plan) */}
+        {!isFeedMinimized && (
+          <div className="w-[500px] flex flex-col border-l border-gray-300 bg-white">
+            {/* Task Progress Panel (for task-based builds) or Build Plan (for legacy builds) */}
+            {!isBuildPlanMinimized && (
+              <div className="h-[400px] border-b border-gray-200 overflow-hidden">
+                {showTaskPanel && tasks.length > 0 ? (
+                  <TaskProgressPanel
+                    tasks={tasks}
+                    currentTaskId={currentTaskId}
+                    totalTasks={totalTasks}
+                    completedTasks={completedTasks}
+                    isVisible={true}
+                    onClose={() => setShowTaskPanel(false)}
+                  />
+                ) : (
+                  <div className="h-full bg-gray-900 p-4 overflow-y-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-white">Build Plan</h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setIsBuildPlanMinimized(true)}
+                          className="text-gray-400 hover:text-white transition-colors"
+                          title="Minimize Build Plan"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => setIsFeedMinimized(true)}
+                          className="text-gray-400 hover:text-white transition-colors"
+                          title="Close Panel"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {buildStatus === 'idle' ? (
+                      <div className="text-gray-400 text-center py-8">
+                        <p className="text-sm">Start a build to see the plan</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {components.map((comp) => (
+                          <div
+                            key={comp.id}
+                            className={`p-3 rounded-lg ${
+                              comp.status === 'completed'
+                                ? 'bg-green-500/10 border border-green-500/30'
+                                : comp.status === 'building'
+                                ? 'bg-blue-500/10 border border-blue-500/30'
+                                : 'bg-gray-800 border border-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-white text-sm font-medium">{comp.name}</span>
+                              <span className="text-xs text-gray-400">{comp.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className={`h-1.5 rounded-full ${
+                                  comp.status === 'completed'
+                                    ? 'bg-green-500'
+                                    : comp.status === 'building'
+                                    ? 'bg-blue-500'
+                                    : 'bg-gray-600'
+                                }`}
+                                style={{ width: `${comp.progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Minimized Build Plan Header */}
+            {isBuildPlanMinimized && (
+              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700 cursor-pointer hover:bg-gray-750" onClick={() => setIsBuildPlanMinimized(false)}>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-200">
+                    {showTaskPanel ? 'Task Progress' : 'Build Plan'}
+                  </h3>
+                  <span className="text-xs text-gray-400">
+                    ({showTaskPanel ? `${completedTasks}/${totalTasks}` : `${components.filter(c => c.status === 'completed').length}/${components.length}`} completed)
+                  </span>
+                </div>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              </div>
+            )}
+
+            {/* Terminal Section */}
+            {!isTerminalMinimized && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <CommandLineIcon className="w-4 h-4 text-cyan-400" />
+                    <h3 className="text-sm font-semibold text-gray-200">Build Terminal</h3>
+                    {buildStatus === 'running' && (
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded font-medium">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                        Live
+                      </span>
+                    )}
+                    {userInputRequired && (
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-400 rounded font-medium">
+                        ⚠️ Input Required
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isFilesOpen && buildId && (
+                      <button
+                        onClick={() => setIsFilesOpen(true)}
+                        className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded transition-colors"
+                      >
+                        View Files
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsTerminalMinimized(true)}
+                      className="text-gray-400 hover:text-white transition-colors"
+                      title="Minimize Terminal"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+              <div className="flex-1 overflow-y-auto p-4 font-mono text-xs text-gray-300 space-y-1">
+                {logs.length === 0 ? (
+                  <div className="text-gray-500 text-center py-8">
+                    <div className="text-2xl mb-2">⏳</div>
+                    <div>Waiting for build to start...</div>
+                  </div>
+                ) : (
+                  logs.map((log) => (
+                    <div
+                      key={log.id}
+                      className={`leading-relaxed ${
+                        log.type === 'error'
+                          ? 'text-red-400'
+                          : log.type === 'success'
+                          ? 'text-green-400'
+                          : log.type === 'warning'
+                          ? 'text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    >
+                      <span className="text-gray-500 mr-2">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                      {log.message}
+                    </div>
+                  ))
+                )}
+                <div ref={logsEndRef} />
+              </div>
+
+              {/* User Input Panel */}
+              {userInputRequired && (
+                <div className="border-t border-yellow-500/30 bg-yellow-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-yellow-400 text-2xl">⚠️</div>
+                    <div className="flex-1">
+                      <h4 className="text-yellow-400 font-semibold mb-2">User Input Required</h4>
+                      <p className="text-gray-300 text-sm mb-3">{userInputRequired}</p>
+                      <textarea
+                        className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-gray-200 text-sm placeholder-gray-500 focus:outline-none focus:border-yellow-400"
+                        rows={3}
+                        placeholder="Enter your response here..."
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => {
+                            // TODO: Send user input to build
+                            setUserInputRequired(null);
+                          }}
+                          className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-gray-900 rounded text-sm font-medium transition-colors"
+                        >
+                          Submit
+                        </button>
+                        <button
+                          onClick={() => setUserInputRequired(null)}
+                          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded text-sm font-medium transition-colors"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
+
+            {/* Minimized Terminal Header */}
+            {isTerminalMinimized && (
+              <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-t border-gray-700 cursor-pointer hover:bg-gray-750" onClick={() => setIsTerminalMinimized(false)}>
+                <div className="flex items-center gap-2">
+                  <CommandLineIcon className="w-4 h-4 text-cyan-400" />
+                  <h3 className="text-sm font-semibold text-gray-200">Build Terminal</h3>
+                  <span className="text-xs text-gray-400">({logs.length} logs)</span>
+                  {userInputRequired && (
+                    <span className="text-xs text-yellow-400">⚠️ Input Required</span>
+                  )}
+                </div>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* File Browser Modal */}
+      {isFilesOpen && buildId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-gray-900 rounded-lg shadow-2xl border border-gray-700 flex flex-col w-[800px] h-[600px] max-w-[90vw] max-h-[90vh]">
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-800 rounded-t-lg border-b border-gray-700">
+              <div className="flex items-center gap-2">
+                <FolderIcon className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-semibold text-gray-200">Build Files</h2>
+              </div>
+              <button
+                onClick={() => setIsFilesOpen(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <FileBrowser
+                projectId={localStorage.getItem('currentProjectId') || '1'}
+                buildId={buildId}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Minimized Panel Icons (Bottom Right) */}
+      {isFeedMinimized && (
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+          {/* Build Plan Icon */}
+          <button
+            onClick={() => {
+              setIsFeedMinimized(false);
+              setIsBuildPlanMinimized(false);
+            }}
+            className="bg-gray-900 hover:bg-gray-800 text-blue-400 p-4 rounded-lg shadow-2xl transition-all hover:scale-105 border border-gray-700"
+            title="Open Build Plan"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+            {components.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                {components.filter(c => c.status === 'completed').length}/{components.length}
+              </span>
+            )}
+          </button>
+
+          {/* Terminal Icon */}
+          <button
+            onClick={() => {
+              setIsFeedMinimized(false);
+              setIsTerminalMinimized(false);
+            }}
+            className="bg-gray-900 hover:bg-gray-800 text-green-400 p-4 rounded-lg shadow-2xl transition-all hover:scale-105 border border-gray-700"
+            title="Open Build Terminal"
+          >
+            <CommandLineIcon className="w-6 h-6" />
+            {logs.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                {logs.length > 99 ? '99+' : logs.length}
+              </span>
+            )}
+            {userInputRequired && (
+              <span className="absolute -top-2 -left-2 bg-yellow-500 text-gray-900 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                ⚠️
+              </span>
+            )}
+          </button>
+        </div>
       )}
 
       {/* QR Code Preview Modal */}
@@ -1629,12 +2035,6 @@ export default function WorkbenchPage() {
           onClose={() => setSelectedComponent(null)}
         />
       )}
-
-      {/* Build Plan Widget */}
-      <BuildPlanWidget
-        projectName={projectName}
-        isBuilding={buildStatus === 'running'}
-      />
     </div>
   );
 }

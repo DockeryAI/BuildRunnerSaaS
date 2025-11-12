@@ -8,7 +8,7 @@
  * but Tailwind doesn't know what those mean, causing broken/unstyled components.
  */
 
-import { DesignSpec } from './design-system-generator';
+import { DesignSpec } from './archived/openrouter/design-system-generator';
 import * as fs from 'fs';
 import * as path from 'path';
 

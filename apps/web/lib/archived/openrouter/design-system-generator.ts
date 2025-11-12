@@ -5,7 +5,7 @@
  * Integrates with design-presets.ts for consistent, professional styling
  */
 
-import { DESIGN_PRESETS, inferDesignPreset, DesignPreset } from './design-presets';
+import { DESIGN_PRESETS, inferDesignPreset, DesignPreset } from '../../design-presets';
 
 export interface ColorPalette {
   primary: string;

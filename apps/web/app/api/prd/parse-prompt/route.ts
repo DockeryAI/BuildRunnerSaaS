@@ -66,16 +66,18 @@ export async function POST(request: NextRequest) {
     const systemPrompt = `You are a product requirements analyst. Your job is to parse user product descriptions and extract structured PRD sections.
 
 CRITICAL RULES:
-1. ONLY extract information that is EXPLICITLY stated in the user's description
-2. DO NOT make up features, audiences, or details that aren't mentioned
-3. If something isn't clear from the description, leave that section empty
-4. For features: Extract each distinct capability mentioned by the user
-5. Each feature must be something the user actually described
-6. Rewrite the executive summary to be professional but stay true to the original
-7. If no features can be extracted, the description is too vague - request more details
+1. EXTRACT THE PRODUCT NAME from the prompt if provided (e.g., "SkillSwap:", "MyApp:", etc.)
+2. ONLY extract information that is EXPLICITLY stated in the user's description
+3. DO NOT make up features, audiences, or details that aren't mentioned
+4. If something isn't clear from the description, leave that section empty
+5. For features: Extract each distinct capability mentioned by the user
+6. Each feature must be something the user actually described
+7. Rewrite the executive summary to be professional but stay true to the original
+8. If no features can be extracted, the description is too vague - request more details
 
 Return a JSON object with this structure:
 {
+  "productName": "Exact product name from prompt (e.g., 'SkillSwap' if user wrote 'SkillSwap: A platform...')",
   "sections": {
     "executive_summary": [
       {
@@ -174,6 +176,7 @@ IMPORTANT:
     const parsed = JSON.parse(jsonMatch[0]);
 
     console.log('✅ Parsed PRD sections:');
+    console.log('- Product name:', parsed.productName || '(not provided)');
     console.log('- Features extracted:', parsed.sections.features?.length || 0);
     console.log('- Has executive summary:', !!parsed.sections.executive_summary?.length);
     console.log('- Has features:', parsed.hasFeatures);
@@ -181,6 +184,7 @@ IMPORTANT:
     if (!parsed.hasFeatures) {
       console.warn('⚠️  No features could be extracted from prompt');
       return NextResponse.json({
+        productName: parsed.productName || null,
         sections: parsed.sections || {},
         hasFeatures: false,
         needsMoreInfo: true,
@@ -190,6 +194,7 @@ IMPORTANT:
     }
 
     return NextResponse.json({
+      productName: parsed.productName || null,
       sections: parsed.sections,
       hasFeatures: true,
       needsMoreInfo: false,

@@ -10,7 +10,7 @@
  * - AI-enhanced design decisions
  */
 
-import { DesignSpec } from './design-system-generator';
+import { DesignSpec } from './archived/openrouter/design-system-generator';
 import { MaterialThemeAdapter } from './material/MaterialThemeAdapter';
 import { MaterialPaletteGenerator, INDUSTRY_COLORS } from './material/MaterialPaletteGenerator';
 

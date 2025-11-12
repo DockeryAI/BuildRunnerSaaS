@@ -8,7 +8,7 @@
  * Phase 2 of Material Design integration.
  */
 
-import { DesignSpec } from './design-system-generator';
+import { DesignSpec } from './archived/openrouter/design-system-generator';
 import { MaterialDesignSpec } from './material/MaterialThemeAdapter';
 
 export class ClaudeDesignAdapter {

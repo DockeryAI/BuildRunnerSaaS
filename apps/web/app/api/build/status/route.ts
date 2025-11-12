@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         message: 'Connected to build stream'
       })}\n\n`));
 
-      // Subscribe to orchestrator events
+      // Subscribe to ALL orchestrator events and forward them
       const sendEvent = (data: any) => {
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
@@ -55,102 +55,116 @@ export async function GET(request: NextRequest) {
         }
       };
 
-      // Log events
-      const onLog = (event: any) => {
-        sendEvent({
-          type: 'log',
-          level: event.level,
-          message: event.message,
-          timestamp: new Date().toISOString()
-        });
+      // Generic event handler that forwards everything
+      const createEventHandler = (eventType: string) => {
+        return (event: any) => {
+          // Handle events without payloads
+          const eventData = event || {};
+          sendEvent({
+            type: eventType,
+            ...eventData,
+            timestamp: eventData.timestamp || new Date().toISOString()
+          });
+        };
       };
 
-      // Component progress
-      const onComponentStarted = (event: any) => {
-        sendEvent({
-          type: 'component:started',
-          componentId: event.componentId,
-          componentName: event.componentName,
-          status: 'building',
-          progress: 0
-        });
-      };
+      // List of ALL events the orchestrator emits
+      const eventTypes = [
+        'log',
+        'build:started',
+        'build:completed',
+        'build:error',
+        'build:paused',
+        'build:resumed',
+        'build:stopped',
+        'build:preview_ready',
+        'build:batches',
+        'component:started',
+        'component:completed',
+        'component:recovery_started',
+        'component:recovery_succeeded',
+        'component:recovery_failed',
+        'progress:updated',
+        'phase:started',
+        'phase:completed',
+        'phase:failed',
+        'phase:progress',
+        'planning:started',
+        'planning:completed',
+        'wave:start',
+        'wave:complete',
+        'llm:request',
+        'llm:response',
+        'llm:error',
+        'llm:fallback',
+        'consensus:started',
+        'consensus:completed',
+        'consensus:iteration',
+        'consensus:achieved',
+        'consensus:message',
+        'model:error',
+        'verification:started',
+        'verification:completed',
+        'verification:failed',
+        'testing:started',
+        'testing:completed',
+        'loop_detection:started',
+        'loop_detection:stopped',
+        'loop:detected',
+        'intervention:triggered',
+        'intervention:resolved',
+        'intervention:brainstorm_completed',
+        'intervention:user_input_required',
+        'brainstorm:started',
+        'brainstorm:completed',
+        'brainstorm:model_error',
+        'strategy:applying',
+        'strategy:applied',
+        'microplan:started',
+        'microplan:completed',
+        'microstep:started',
+        'microstep:completed',
+        'microstep:failed',
+        'microstep:fallback',
+        'rollback:started',
+        'rollback:completed',
+        'message:received'
+      ];
 
-      const onComponentCompleted = (event: any) => {
-        sendEvent({
-          type: 'component:completed',
-          componentId: event.componentId,
-          componentName: event.componentName,
-          status: 'completed',
-          progress: 100
-        });
-      };
+      // Create handlers map
+      const handlers = new Map();
+      eventTypes.forEach(eventType => {
+        const handler = createEventHandler(eventType);
+        handlers.set(eventType, handler);
+        orchestrator.on(eventType, handler);
+      });
 
-      const onProgressUpdated = (event: any) => {
-        sendEvent({
-          type: 'progress:updated',
-          componentId: event.componentId,
-          componentName: event.componentName,
-          progress: event.progress
-        });
-      };
+      // Special handling for build completion/error to close stream
+      const originalBuildCompleted = handlers.get('build:completed');
+      const originalBuildError = handlers.get('build:error');
 
-      // Phase events
-      const onPhaseStarted = (event: any) => {
-        sendEvent({
-          type: 'phase:started',
-          phase: event.phase
-        });
-      };
+      orchestrator.off('build:completed', originalBuildCompleted);
+      orchestrator.off('build:error', originalBuildError);
 
-      const onPhaseCompleted = (event: any) => {
-        sendEvent({
-          type: 'phase:completed',
-          phase: event.phase
-        });
-      };
+      orchestrator.on('build:completed', (event: any) => {
+        originalBuildCompleted(event);
+        setTimeout(() => controller.close(), 100);
+      });
 
-      // Build lifecycle
-      const onBuildCompleted = (event: any) => {
-        sendEvent({
-          type: 'build:completed',
-          buildId: event.buildId,
-          status: 'completed'
-        });
-        controller.close();
-      };
-
-      const onBuildError = (event: any) => {
-        sendEvent({
-          type: 'build:error',
-          buildId: event.buildId,
-          error: event.error,
-          status: 'error'
-        });
-        controller.close();
-      };
-
-      // Attach event listeners
-      orchestrator.on('log', onLog);
-      orchestrator.on('component:started', onComponentStarted);
-      orchestrator.on('component:completed', onComponentCompleted);
-      orchestrator.on('progress:updated', onProgressUpdated);
-      orchestrator.on('phase:started', onPhaseStarted);
-      orchestrator.on('phase:completed', onPhaseCompleted);
-      orchestrator.on('build:completed', onBuildCompleted);
-      orchestrator.on('build:error', onBuildError);
+      orchestrator.on('build:error', (event: any) => {
+        originalBuildError(event);
+        setTimeout(() => controller.close(), 100);
+      });
 
       // Clean up on close
       request.signal.addEventListener('abort', () => {
         console.log(`📡 SSE connection closed for build ${buildId}`);
-        orchestrator.off('log', onLog);
-        orchestrator.off('component:started', onComponentStarted);
-        orchestrator.off('component:completed', onComponentCompleted);
-        orchestrator.off('progress:updated', onProgressUpdated);
-        orchestrator.off('phase:started', onPhaseStarted);
-        orchestrator.off('phase:completed', onPhaseCompleted);
-        orchestrator.off('build:completed', onBuildCompleted);
-        orchestrator.off('build:error', onBuildError);
+        eventTypes.forEach(eventType => {
+          const handler = handlers.get(eventType);
+          if (handler) {
+            orchestrator.off(eventType, handler);
+          }
+        });
         controller.close();
       });
     }

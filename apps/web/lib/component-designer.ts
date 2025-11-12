@@ -4,7 +4,7 @@
  * and industry-specific styling guidance.
  */
 
-import { DesignSpec } from './design-system-generator';
+import { DesignSpec } from './archived/openrouter/design-system-generator';
 import { AdvancedDesignSystem, getAdvancedDesignSystem } from './advanced-design-system';
 import { DESIGN_SYSTEM as FOUNDATION, motionVariants } from './design-system/foundation';
 import { PREMIUM_COMPONENT_TEMPLATES } from './design-system/premium-components';

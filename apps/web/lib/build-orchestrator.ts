@@ -14,7 +14,6 @@ import { BuildFileWriter, inferFilePath } from './file-writer';
 import { AppTypeDetector } from './app-type-detector';
 import { DependencyAnalyzer } from './dependency-analyzer';
 import { ParallelBuilder } from './parallel-builder';
-import { DesignSystemGenerator, type DesignSpec } from './design-system-generator';
 import { DesignIntelligence, type PRD } from './design-intelligence';
 import { DesignPolisher } from './design-polisher';
 import { DesignTokenInjector } from './design-token-injector';
@@ -22,7 +21,9 @@ import { DesignProfileDetector } from './design-intelligence/profile-detector';
 import type { DesignProfile } from './design-intelligence/types';
 import { getTemplateForComponent } from './component-templates';
 import { ContextBuilder, type PRDContext, type ComponentContext, type BuildContext } from './context-builder';
-import { AIComponentGenerator } from './ai-component-generator';
+// Old OpenRouter imports - kept for backward compatibility
+import { DesignSystemGenerator, type DesignSpec } from './archived/openrouter/design-system-generator';
+import { AIComponentGenerator } from './archived/openrouter/ai-component-generator';
 import { reviewBuild, areReviewsEnabled, setReviewEnabled } from './post-build-review';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -32,6 +33,20 @@ import { PatternMatcher } from './pattern-matcher';
 import { getCacheManager } from './cache-manager';
 import { getSmartConsensus } from './smart-consensus';
 import { convertPRDSectionsToPRD, getPRDSummary } from './prd-converter';
+import { taskListGenerator, type TaskList } from './task-list-generator';
+import { taskExecutor } from './task-executor';
+import { gapAnalyzer } from './gap-analyzer';
+import { ClaudeBuildEngine } from './claude-build-engine';
+import { ClaudeTaskExecutorV2 } from './claude-task-executor-v2';
+import { projectInitializer } from './project-initializer';
+import { buildDocGenerator } from './build-doc-generator';
+import { designSystemGeneratorV2 } from './design-system-generator-v2';
+import { componentCatalogGenerator } from './component-catalog-generator';
+import { taskListGeneratorV2 } from './task-list-generator-v2';
+import { buildStateManager } from './build-state-manager';
+import { gitManager } from './git-manager';
+import { handoffGenerator } from './handoff-generator';
+import { gapAnalyzerV2 } from './gap-analyzer-v2';
 
 const execAsync = promisify(exec);
 
@@ -963,6 +978,127 @@ export class BuildOrchestrator extends EventEmitter {
   }
 
   /**
+   * TASK-BASED BUILD: Execute build using sequential task orchestration
+   * This ensures no steps are skipped and maintains complete traceability
+   */
+  public async startTaskBasedBuild(projectPlan: any): Promise<void> {
+    try {
+      this.emit('log', {
+        level: 'info',
+        message: '📋 Generating detailed task list from project plan...'
+      });
+
+      // Generate task list
+      const taskList = await taskListGenerator.generateTaskList(
+        this.projectId,
+        projectPlan.projectName || 'Unnamed Project',
+        projectPlan
+      );
+
+      await taskListGenerator.saveTaskList(this.projectId, taskList);
+
+      this.emit('task:list_generated', {
+        projectId: this.projectId,
+        totalTasks: taskList.totalTasks,
+        tasks: taskList.tasks
+      });
+
+      this.emit('log', {
+        level: 'success',
+        message: `✅ Generated ${taskList.totalTasks} tasks`
+      });
+
+      // Execute tasks sequentially
+      while (true) {
+        const result = await taskExecutor.executeNextTask(this.projectId);
+
+        if (result.done) {
+          this.emit('log', {
+            level: 'success',
+            message: '✅ All tasks completed!'
+          });
+          break;
+        }
+
+        if (!result.success) {
+          if (result.task) {
+            this.emit('log', {
+              level: 'error',
+              message: `❌ Task failed: ${result.task.title} - ${result.error?.message}`
+            });
+
+            // Emit intervention event with the actual question
+            this.emit('intervention:user_input_required', {
+              message: `Task "${result.task.title}" failed: ${result.error?.message}. How should we proceed?`,
+              reason: 'task_failure',
+              taskId: result.task.id,
+              options: ['Retry task', 'Skip task', 'Abort build']
+            });
+
+            // Pause build and wait for user input
+            this.isPaused = true;
+            break;
+          } else {
+            throw new Error(result.error?.message || 'Unknown error');
+          }
+        }
+
+        // Update progress
+        const updatedTaskList = await taskListGenerator.loadTaskList(this.projectId);
+        if (updatedTaskList) {
+          const progress = Math.round(
+            (updatedTaskList.completedTasks / updatedTaskList.totalTasks) * 100
+          );
+
+          this.emit('build:progress', {
+            projectId: this.projectId,
+            progress,
+            currentTask: result.task?.title,
+            completedTasks: updatedTaskList.completedTasks,
+            totalTasks: updatedTaskList.totalTasks
+          });
+        }
+      }
+
+      // Run gap analysis
+      if (!this.isPaused) {
+        this.emit('log', {
+          level: 'info',
+          message: '🔍 Running gap analysis...'
+        });
+
+        const gapReport = await gapAnalyzer.analyzeGaps(this.projectId);
+        await gapAnalyzer.saveReport(gapReport);
+
+        if (gapReport.gaps.length > 0) {
+          this.emit('log', {
+            level: 'warning',
+            message: `⚠️ Found ${gapReport.gaps.length} gaps. Filling gaps...`
+          });
+
+          await gapAnalyzer.fillGaps(this.projectId, gapReport);
+        } else {
+          this.emit('log', {
+            level: 'success',
+            message: '✅ No gaps found - build is complete!'
+          });
+        }
+
+        this.emit('build:complete', {
+          projectId: this.projectId,
+          gapReport
+        });
+      }
+    } catch (error) {
+      this.emit('build:error', {
+        projectId: this.projectId,
+        error: (error as Error).message
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Send a message to the orchestrator (for user intervention)
    */
   public async sendMessage(message: string): Promise<string> {
@@ -1299,11 +1435,11 @@ export class BuildOrchestrator extends EventEmitter {
 
     let MultiAgentOrchestrator;
     try {
-      const imported = await import('./multi-agent-orchestrator');
+      const imported = await import('./archived/openrouter/multi-agent-orchestrator');
       MultiAgentOrchestrator = imported.MultiAgentOrchestrator;
       console.log('[buildComponentsWithMultiAgent] Successfully imported MultiAgentOrchestrator');
     } catch (error) {
-      console.error('[buildComponentsWithMultiAgent] Failed to import MultiAgentOrchestrator:', error);
+      console.error('[buildComponentsWithMultiAgent] Failed to import MultiAgentOrchestrator (archived):', error);
       this.emit('log', {
         level: 'error',
         message: `❌ Failed to load multi-agent system: ${error.message}`,
@@ -2996,7 +3132,9 @@ REASON: Build plan dependencies are correctly ordered with no circular reference
         if (this.config.intervention.notify_user_on_critical) {
           this.emit('intervention:user_input_required', {
             intervention,
-            strategies: brainstormResult.strategies
+            strategies: brainstormResult.strategies,
+            message: intervention.details, // Include the actual question for UI display
+            reason: intervention.reason
           });
         }
       }
@@ -3766,6 +3904,325 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
 
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * CLAUDE CLI BUILD ENGINE
+   * Builds project using Claude CLI with ~/Projects/ directory structure
+   */
+  public async startClaudeBuild(config: {
+    projectName: string;
+    projectId: string;
+    productIdea: string;
+    prd: any;
+    projectPlan: any;
+  }): Promise<void> {
+    try {
+      this.emit('log', { level: 'info', message: '🚀 Starting Claude CLI build...' });
+
+      // Step 1: Initialize project in ~/Projects/
+      this.emit('log', { level: 'info', message: `📁 Initializing project: ${config.projectName}` });
+
+      const initResult = await projectInitializer.initialize({
+        projectId: config.projectId,
+        projectName: config.projectName,
+        description: config.productIdea
+      });
+
+      if (!initResult.success) {
+        throw initResult.error || new Error('Project initialization failed');
+      }
+
+      const projectPath = initResult.projectPath;
+      this.emit('log', { level: 'success', message: `✅ Project initialized at: ${projectPath}` });
+
+      // Step 2: Generate build documents
+      this.emit('log', { level: 'info', message: '📝 Generating build documents...' });
+
+      const buildDoc = buildDocGenerator.generate({
+        productName: config.projectName,
+        productIdea: config.productIdea,
+        prdSections: config.prd,
+        features: config.projectPlan?.features
+      });
+
+      const designSystem = designSystemGeneratorV2.generate({
+        productName: config.projectName,
+        targetAudience: config.prd?.targetAudience
+      });
+
+      const componentCatalog = componentCatalogGenerator.generate();
+
+      // Write documents to .buildrunner/
+      const buildRunnerDir = path.join(projectPath, '.buildrunner');
+      await fs.promises.writeFile(path.join(buildRunnerDir, 'BUILD_DOC.md'), buildDoc);
+      await fs.promises.writeFile(path.join(buildRunnerDir, 'DESIGN_SYSTEM.md'), designSystem);
+      await fs.promises.writeFile(path.join(buildRunnerDir, 'COMPONENT_CATALOG.md'), componentCatalog);
+
+      this.emit('log', { level: 'success', message: '✅ Build documents created' });
+
+      // Step 3: Generate task list
+      this.emit('log', { level: 'info', message: '📋 Generating task list...' });
+
+      const tasks = taskListGeneratorV2.generate({
+        productName: config.projectName,
+        productIdea: config.productIdea,
+        features: config.projectPlan?.features || config.prd?.features,
+        technicalRequirements: config.prd?.technicalRequirements,
+        userFlows: config.prd?.userFlows
+      });
+
+      // Initialize BUILD_STATE.json with tasks
+      const buildState = await buildStateManager.initialize({
+        projectId: config.projectId,
+        projectName: config.projectName,
+        projectPath
+      });
+
+      await buildStateManager.setTasks(projectPath, tasks);
+      await buildStateManager.updatePhase(projectPath, 'planning');
+
+      // Write TASKS.md to project
+      const tasksPath = path.join(buildRunnerDir, 'TASKS.md');
+      const tasksMd = taskListGeneratorV2.generateTasksMarkdown(tasks);
+      await fs.promises.writeFile(tasksPath, tasksMd);
+
+      this.emit('task:list_generated', {
+        projectId: config.projectId,
+        totalTasks: tasks.length,
+        tasks
+      });
+
+      this.emit('log', { level: 'success', message: `✅ Task list created (${tasks.length} tasks)` });
+
+      // Step 4: Initialize Claude build engine
+      this.emit('log', { level: 'info', message: '🤖 Initializing Claude build engine...' });
+
+      const claudeEngine = new ClaudeBuildEngine({
+        projectId: config.projectId,
+        projectName: config.projectName,
+        projectPath
+      });
+
+      const claudeExecutor = new ClaudeTaskExecutorV2(
+        {
+          projectId: config.projectId,
+          projectName: config.projectName,
+          projectPath
+        },
+        claudeEngine
+      );
+
+      // Forward events to orchestrator
+      claudeExecutor.on('log', (data) => this.emit('log', data));
+      claudeExecutor.on('claude:prompt', (data) => this.emit('claude:prompt', data));
+      claudeExecutor.on('claude:stream', (data) => this.emit('claude:stream', data));
+      claudeExecutor.on('claude:file_written', (data) => this.emit('claude:file_written', data));
+      claudeExecutor.on('task:started', (data) => this.emit('task:started', data));
+      claudeExecutor.on('task:completed', (data) => this.emit('task:completed', data));
+      claudeExecutor.on('task:failed', (data) => this.emit('task:failed', data));
+
+      // Step 5: Update build phase
+      await buildStateManager.updatePhase(projectPath, 'in_progress');
+
+      // Step 6: Execute all tasks
+      this.emit('log', { level: 'info', message: '⚡ Executing tasks with Claude...' });
+
+      const result = await claudeExecutor.executeAll();
+
+      if (result.success) {
+        this.emit('log', {
+          level: 'success',
+          message: `🎉 Build completed! ${result.completedTasks} tasks successful`
+        });
+
+        await buildStateManager.updatePhase(projectPath, 'completed');
+
+        // Generate final handoff document
+        const handoffData = await handoffGenerator.extractFromBuildState(projectPath);
+        if (handoffData) {
+          await handoffGenerator.save(handoffData);
+        }
+
+        // Run gap analysis
+        this.emit('log', { level: 'info', message: '🔍 Running gap analysis...' });
+        const gapReport = await gapAnalyzerV2.analyzeGaps(projectPath);
+        await gapAnalyzerV2.saveReport(gapReport);
+
+        if (gapReport.gaps.length > 0) {
+          this.emit('log', {
+            level: 'warning',
+            message: `⚠️  Found ${gapReport.gaps.length} gaps - see GAP_ANALYSIS.md`
+          });
+        } else {
+          this.emit('log', {
+            level: 'success',
+            message: '✅ No gaps found - build is complete!'
+          });
+        }
+
+        this.emit('build:complete', {
+          projectId: config.projectId,
+          projectPath,
+          completedTasks: result.completedTasks,
+          gapReport
+        });
+      } else {
+        this.emit('log', {
+          level: 'error',
+          message: `⏸️ Build paused: ${result.failedTasks} tasks failed`
+        });
+
+        await buildStateManager.updatePhase(projectPath, 'paused');
+
+        // Generate handoff document for resume
+        const handoffData = await handoffGenerator.extractFromBuildState(projectPath);
+        if (handoffData) {
+          await handoffGenerator.save(handoffData);
+          this.emit('log', {
+            level: 'info',
+            message: `📄 Handoff document saved to ${path.join(projectPath, '.buildrunner', 'HANDOFF.md')}`
+          });
+        }
+
+        this.emit('build:paused', {
+          projectId: config.projectId,
+          reason: 'task_failure',
+          completedTasks: result.completedTasks,
+          failedTasks: result.failedTasks,
+          handoffPath: path.join(projectPath, '.buildrunner', 'HANDOFF.md')
+        });
+      }
+
+    } catch (error) {
+      const err = error as Error;
+      this.emit('log', { level: 'error', message: `❌ Build error: ${err.message}` });
+      this.emit('build:error', {
+        projectId: config.projectId,
+        error: err.message
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * RESUME CLAUDE BUILD
+   * Resume a paused Claude build from handoff document
+   */
+  public async resumeClaudeBuild(config: {
+    projectPath: string;
+    projectId?: string;
+  }): Promise<void> {
+    try {
+      this.emit('log', { level: 'info', message: '🔄 Resuming Claude build from handoff...' });
+
+      // Read handoff context
+      const handoffContext = await handoffReader.read(config.projectPath);
+
+      if (!handoffContext.buildState) {
+        throw new Error('No build state found - cannot resume');
+      }
+
+      // Load build state
+      const buildState = handoffContext.buildState;
+      const projectId = config.projectId || buildState.projectId;
+      const projectName = buildState.projectName;
+
+      this.emit('log', {
+        level: 'info',
+        message: `📂 Project: ${projectName} (${buildState.completedTasks}/${buildState.totalTasks} tasks completed)`
+      });
+
+      // Display recommendations
+      handoffContext.recommendations.forEach(rec => {
+        this.emit('log', { level: 'info', message: `  ${rec}` });
+      });
+
+      // Initialize Claude build engine
+      this.emit('log', { level: 'info', message: '🤖 Initializing Claude build engine...' });
+
+      const claudeEngine = new ClaudeBuildEngine({
+        projectId,
+        projectName,
+        projectPath: config.projectPath
+      });
+
+      const claudeExecutor = new ClaudeTaskExecutorV2(
+        {
+          projectId,
+          projectName,
+          projectPath: config.projectPath
+        },
+        claudeEngine
+      );
+
+      // Forward events
+      claudeExecutor.on('log', (data) => this.emit('log', data));
+      claudeExecutor.on('claude:prompt', (data) => this.emit('claude:prompt', data));
+      claudeExecutor.on('claude:stream', (data) => this.emit('claude:stream', data));
+      claudeExecutor.on('claude:file_written', (data) => this.emit('claude:file_written', data));
+      claudeExecutor.on('task:started', (data) => this.emit('task:started', data));
+      claudeExecutor.on('task:completed', (data) => this.emit('task:completed', data));
+      claudeExecutor.on('task:failed', (data) => this.emit('task:failed', data));
+
+      // Update build phase
+      await buildStateManager.updatePhase(config.projectPath, 'in_progress');
+
+      // Resume execution
+      this.emit('log', { level: 'info', message: '⚡ Resuming task execution...' });
+
+      const result = await claudeExecutor.executeAll();
+
+      if (result.success) {
+        this.emit('log', {
+          level: 'success',
+          message: `🎉 Build completed! ${result.completedTasks} tasks successful`
+        });
+
+        await buildStateManager.updatePhase(config.projectPath, 'completed');
+
+        // Generate final handoff
+        const handoffData = await handoffGenerator.extractFromBuildState(config.projectPath);
+        if (handoffData) {
+          await handoffGenerator.save(handoffData);
+        }
+
+        this.emit('build:complete', {
+          projectId,
+          projectPath: config.projectPath,
+          completedTasks: result.completedTasks
+        });
+      } else {
+        this.emit('log', {
+          level: 'error',
+          message: `⏸️ Build paused again: ${result.failedTasks} tasks failed`
+        });
+
+        await buildStateManager.updatePhase(config.projectPath, 'paused');
+
+        // Generate new handoff
+        const handoffData = await handoffGenerator.extractFromBuildState(config.projectPath);
+        if (handoffData) {
+          await handoffGenerator.save(handoffData);
+        }
+
+        this.emit('build:paused', {
+          projectId,
+          reason: 'task_failure',
+          completedTasks: result.completedTasks,
+          failedTasks: result.failedTasks
+        });
+      }
+
+    } catch (error) {
+      const err = error as Error;
+      this.emit('log', { level: 'error', message: `❌ Resume error: ${err.message}` });
+      this.emit('build:error', {
+        projectId: config.projectId || 'unknown',
+        error: err.message
+      });
+      throw error;
+    }
   }
 }
 

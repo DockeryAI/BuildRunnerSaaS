@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { CommandLineIcon } from '@heroicons/react/24/outline';
 
 interface ClaudeOutputTerminalProps {
+  buildId: string | null;
   projectName: string;
+  buildStatus: 'idle' | 'running' | 'completed' | 'failed';
   isOpen: boolean;
   onClose: () => void;
   position: { x: number; y: number };
@@ -12,7 +14,9 @@ interface ClaudeOutputTerminalProps {
 }
 
 export default function ClaudeOutputTerminal({
+  buildId,
   projectName,
+  buildStatus,
   isOpen,
   onClose,
   position,
@@ -32,37 +36,115 @@ export default function ClaudeOutputTerminal({
   }, [lines]);
 
   useEffect(() => {
-    if (!isOpen || !projectName) return;
+    if (!isOpen || !buildId) return;
 
-    // Connect to SSE stream
-    const eventSource = new EventSource(
-      `/api/build/output?projectName=${encodeURIComponent(projectName)}`
-    );
+    // Clear previous logs when new build starts
+    setLines([]);
+    setIsComplete(false);
+
+    // Connect to real build stream
+    const eventSource = new EventSource(`/api/build/status?buildId=${buildId}`);
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
-      console.log('Connected to Claude CLI output stream');
+      console.log('✅ Connected to build stream');
       setIsConnected(true);
+      setLines((prev) => [...prev, '✅ Connected to build stream']);
     };
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.complete) {
-          console.log('Build stream complete');
-          setIsComplete(true);
-          eventSource.close();
-          return;
-        }
+        // Handle different event types from the real build system
+        switch (data.type) {
+          case 'connected':
+            setLines((prev) => [...prev, '🔗 Build system connected']);
+            break;
 
-        if (data.line) {
-          setLines((prev) => [...prev, data.line]);
-        }
+          case 'log':
+            // Format log message with icon based on level
+            const icon = data.level === 'error' ? '❌' : data.level === 'success' ? '✅' : 'ℹ️';
+            setLines((prev) => [...prev, `${icon} ${data.message}`]);
+            break;
 
-        if (data.error) {
-          console.error('Stream error:', data.error);
-          setLines((prev) => [...prev, `ERROR: ${data.error}`]);
+          case 'component:started':
+            setLines((prev) => [...prev, `🔨 Building ${data.componentName}...`]);
+            break;
+
+          case 'component:completed':
+            setLines((prev) => [...prev, `✅ Completed ${data.componentName}`]);
+            break;
+
+          case 'component:failed':
+            setLines((prev) => [...prev, `❌ ${data.componentName} failed: ${data.error}`]);
+            break;
+
+          case 'component:progress':
+            // Optional: show progress updates
+            break;
+
+          case 'build:complete':
+            setLines((prev) => [...prev, '🎉 Build complete!']);
+            setIsComplete(true);
+            eventSource.close();
+            break;
+
+          case 'build:failed':
+            setLines((prev) => [...prev, `❌ Build failed: ${data.error}`]);
+            setIsComplete(true);
+            eventSource.close();
+            break;
+
+          // Claude CLI events
+          case 'claude:prompt':
+            setLines((prev) => [...prev, '🤖 Sending prompt to Claude...']);
+            break;
+
+          case 'claude:stream':
+            // Accumulate streaming chunks
+            if (data.content) {
+              setLines((prev) => {
+                const last = prev[prev.length - 1];
+                // If last line is a stream chunk, append to it
+                if (last && last.startsWith('💭 ')) {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = last + data.content;
+                  return updated;
+                } else {
+                  return [...prev, `💭 ${data.content}`];
+                }
+              });
+            }
+            break;
+
+          case 'claude:file_written':
+            setLines((prev) => [...prev, `📝 ${data.filePath}`]);
+            break;
+
+          case 'task:started':
+            setLines((prev) => [...prev, `🔨 Task: ${data.task?.description || 'Unknown'}`]);
+            break;
+
+          case 'task:completed':
+            setLines((prev) => [...prev, `✅ Task completed: ${data.task?.description || 'Unknown'}`]);
+            break;
+
+          case 'task:failed':
+            setLines((prev) => [...prev, `❌ Task failed: ${data.task?.description || 'Unknown'}`]);
+            break;
+
+          case 'task:list_generated':
+            setLines((prev) => [...prev, `📋 Generated ${data.totalTasks || 0} tasks`]);
+            break;
+
+          case 'build:paused':
+            setLines((prev) => [...prev, '⏸️  Build paused - handoff document generated']);
+            break;
+
+          default:
+            // Log unknown event types for debugging
+            console.log('[Build Event]', data);
         }
       } catch (error) {
         console.error('Failed to parse stream data:', error);
@@ -72,6 +154,7 @@ export default function ClaudeOutputTerminal({
     eventSource.onerror = (error) => {
       console.error('EventSource error:', error);
       setIsConnected(false);
+      setLines((prev) => [...prev, '⚠️ Connection lost']);
       eventSource.close();
     };
 
@@ -79,7 +162,7 @@ export default function ClaudeOutputTerminal({
     return () => {
       eventSource.close();
     };
-  }, [isOpen, projectName]);
+  }, [isOpen, buildId]);
 
   const handleClose = () => {
     if (eventSourceRef.current) {
@@ -130,6 +213,77 @@ export default function ClaudeOutputTerminal({
     };
   }, [isResizing, resizeStart]);
 
+  // Format line with syntax highlighting
+  const formatLineWithSyntax = (line: string): string => {
+    // Escape HTML first
+    let formatted = line
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Highlight file paths (e.g., src/app/page.tsx, /Users/..., ./file.ts)
+    formatted = formatted.replace(
+      /((?:src\/|lib\/|app\/|components\/|\.\/|\/[\w\-\/]+\/)[^\s]+\.(?:tsx?|jsx?|css|json|md|ya?ml))/g,
+      '<span style="color: #10b981;">$1</span>'
+    );
+
+    // Highlight error patterns
+    formatted = formatted.replace(
+      /(error|failed|fail|exception|crash)/gi,
+      '<span style="color: #ef4444; font-weight: 600;">$1</span>'
+    );
+
+    // Highlight success patterns
+    formatted = formatted.replace(
+      /(success|completed?|done|passed?|✓|✅)/gi,
+      '<span style="color: #22c55e; font-weight: 500;">$1</span>'
+    );
+
+    // Highlight warnings
+    formatted = formatted.replace(
+      /(warning|warn|caution|⚠️)/gi,
+      '<span style="color: #f59e0b;">$1</span>'
+    );
+
+    // Highlight code blocks (triple backticks)
+    formatted = formatted.replace(
+      /```(\w+)?\n([\s\S]*?)```/g,
+      '<pre style="background: #1f2937; padding: 8px; border-radius: 4px; margin: 4px 0; overflow-x: auto;"><code style="color: #60a5fa;">$2</code></pre>'
+    );
+
+    // Highlight inline code (single backticks)
+    formatted = formatted.replace(
+      /`([^`]+)`/g,
+      '<code style="background: #374151; color: #60a5fa; padding: 2px 6px; border-radius: 3px; font-size: 0.9em;">$1</code>'
+    );
+
+    // Highlight npm package names
+    formatted = formatted.replace(
+      /\b(npm|yarn|pnpm)\s+(install|add|remove|run)\s+([^\s]+)/g,
+      '<span style="color: #a78bfa;">$1 $2 <span style="color: #34d399;">$3</span></span>'
+    );
+
+    // Highlight numbers
+    formatted = formatted.replace(
+      /\b(\d+(?:\.\d+)?)\b/g,
+      '<span style="color: #fbbf24;">$1</span>'
+    );
+
+    // Highlight TypeScript/ESLint
+    formatted = formatted.replace(
+      /\b(TypeScript|ESLint|tsc|eslint)\b/g,
+      '<span style="color: #3b82f6; font-weight: 500;">$1</span>'
+    );
+
+    // Highlight git commands/operations
+    formatted = formatted.replace(
+      /\b(git|commit|push|pull|clone|checkout|branch|merge)\b/g,
+      '<span style="color: #f97316;">$1</span>'
+    );
+
+    return formatted;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -176,7 +330,7 @@ export default function ClaudeOutputTerminal({
           </div>
           <div className="flex items-center gap-2">
             <CommandLineIcon className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-sm font-semibold text-gray-200">Claude CLI Output</h2>
+            <h2 className="text-sm font-semibold text-gray-200">Build Terminal</h2>
             {isConnected && !isComplete && (
               <span className="flex items-center gap-1.5 px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded font-medium">
                 <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
@@ -185,7 +339,7 @@ export default function ClaudeOutputTerminal({
             )}
             {isComplete && (
               <span className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded font-medium">
-                Completed
+                {buildStatus === 'failed' ? 'Failed' : 'Completed'}
               </span>
             )}
           </div>
@@ -198,13 +352,13 @@ export default function ClaudeOutputTerminal({
         {lines.length === 0 && !isConnected ? (
           <div className="text-gray-500 text-center py-8">
             <div className="text-2xl mb-2">⏳</div>
-            <div>Waiting for Claude CLI output...</div>
-            <div className="text-xs mt-2">Build may not have started yet</div>
+            <div>Connecting to build stream...</div>
+            <div className="text-xs mt-2">Initializing build process</div>
           </div>
         ) : lines.length === 0 && isConnected ? (
           <div className="text-gray-500 text-center py-8">
             <div className="text-2xl mb-2">🔄</div>
-            <div>Connected. Waiting for output...</div>
+            <div>Connected. Waiting for build events...</div>
           </div>
         ) : (
           <div className="space-y-0.5">
@@ -212,9 +366,8 @@ export default function ClaudeOutputTerminal({
               <div
                 key={index}
                 className="leading-relaxed whitespace-pre-wrap break-words hover:bg-gray-800/30 px-1 -mx-1 rounded transition-colors"
-              >
-                {line}
-              </div>
+                dangerouslySetInnerHTML={{ __html: formatLineWithSyntax(line) }}
+              />
             ))}
           </div>
         )}

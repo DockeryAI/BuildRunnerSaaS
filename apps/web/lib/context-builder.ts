@@ -3,7 +3,7 @@
  * Builds v0.dev-quality prompts with full PRD context, design system, and feature details
  */
 
-import { DesignSpec } from './design-system-generator';
+import { DesignSpec } from './archived/openrouter/design-system-generator';
 import type { DesignProfile } from './design-intelligence/types';
 
 export interface PRDContext {
@@ -573,7 +573,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static inferBrandPersonality(productIdea: string): string {
-    const idea = productIdea.toLowerCase();
+    const idea = (productIdea || '').toLowerCase();
 
     if (idea.includes('off-road') || idea.includes('outdoor') || idea.includes('trail')) {
       return 'Adventurous, rugged, trustworthy, community-focused';
@@ -592,7 +592,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static inferAppType(productIdea: string): string {
-    const idea = productIdea.toLowerCase();
+    const idea = (productIdea || '').toLowerCase();
     if (idea.includes('trip') || idea.includes('travel')) return 'trip';
     if (idea.includes('event')) return 'event';
     if (idea.includes('project')) return 'project';
@@ -601,7 +601,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static inferUserPersona(text: string): string {
-    const lower = text.toLowerCase();
+    const lower = (text || '').toLowerCase();
     if (lower.includes('off-road') || lower.includes('outdoor')) return 'outdoor enthusiast';
     if (lower.includes('developer') || lower.includes('engineer')) return 'developer';
     if (lower.includes('designer')) return 'designer';
@@ -621,7 +621,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static inferGoal(productIdea: string): string {
-    const idea = productIdea.toLowerCase();
+    const idea = (productIdea || '').toLowerCase();
     if (idea.includes('plan')) return 'plan effectively';
     if (idea.includes('organize')) return 'stay organized';
     if (idea.includes('track')) return 'track progress';
@@ -631,7 +631,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static detectMobileApp(productIdea: string): boolean {
-    const idea = productIdea.toLowerCase();
+    const idea = (productIdea || '').toLowerCase();
     return idea.includes('mobile') ||
            idea.includes('on-the-go') ||
            idea.includes('outdoor') ||
@@ -640,7 +640,7 @@ ${needsOffline ? `7. Offline Support:
   }
 
   private static detectOfflineNeed(productIdea: string): boolean {
-    const idea = productIdea.toLowerCase();
+    const idea = (productIdea || '').toLowerCase();
     return idea.includes('offline') ||
            idea.includes('remote') ||
            idea.includes('off-road') ||

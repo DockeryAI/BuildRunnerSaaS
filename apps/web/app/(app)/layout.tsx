@@ -174,19 +174,19 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         anthropicApiKey={process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || ''}
         autoSpeak={true}
       >
-      <div className="h-screen flex overflow-hidden bg-gray-100">
+      <div className="h-screen flex overflow-hidden bg-gray-100 dark:bg-gray-900">
             {/* Sidebar */}
             {!sidebarHidden && (
             <div className={cn(
-              "fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+              "fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-800 shadow-lg transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
               sidebarOpen ? "translate-x-0" : "-translate-x-full",
               sidebarCollapsed ? "w-16" : "w-64"
             )}>
               <div className="flex flex-col h-full">
                 {/* Logo */}
-                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
                   {!sidebarCollapsed && (
-                    <h1 className="text-xl font-bold text-gray-900">BuildRunner</h1>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">BuildRunner</h1>
                   )}
                   <div className="flex items-center space-x-1">
                     <Button
@@ -251,7 +251,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 {/* User Menu */}
-                <div className="px-2 py-4 border-t border-gray-200">
+                <div className="px-2 py-4 border-t border-gray-200 dark:border-gray-700">
                   {sidebarCollapsed ? (
                     <div className="flex flex-col items-center space-y-2">
                       <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
@@ -269,8 +269,8 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                         </div>
                       </div>
                       <div className="ml-3 flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</div>
-                        <div className="text-xs text-gray-500 truncate">{user?.email}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.name || 'User'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</div>
                       </div>
                       <Button variant="ghost" size="icon" className="ml-2" onClick={signOut}>
                         <LogOut className="h-4 w-4" />
@@ -296,7 +296,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           {/* Main content */}
           <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
             {/* Top bar */}
-            <header className="bg-white shadow-sm border-b border-gray-200">
+            <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between h-16 px-6">
                 <div className="flex items-center gap-4">
                   <Button
@@ -307,7 +307,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
                   >
                     <Menu className="h-5 w-5" />
                   </Button>
-                  <h2 className="ml-2 text-lg font-semibold text-gray-900 lg:ml-0">
+                  <h2 className="ml-2 text-lg font-semibold text-gray-900 dark:text-white lg:ml-0">
                     {navigation.find(item => item.href === pathname)?.name || 'BuildRunner'}
                   </h2>
 

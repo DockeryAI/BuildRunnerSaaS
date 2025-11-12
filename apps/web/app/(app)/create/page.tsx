@@ -93,10 +93,10 @@ function PhaseNavigation({
   ];
 
   return (
-    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+    <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-900">PRD Phases</h2>
-        <span className="text-sm text-gray-600">Phase {currentPhase} of 4</span>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">PRD Phases</h2>
+        <span className="text-sm text-gray-600 dark:text-gray-300">Phase {currentPhase} of 4</span>
       </div>
       <div className="flex gap-2">
         {phases.map((phase) => (
@@ -106,7 +106,7 @@ function PhaseNavigation({
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               currentPhase === phase.id
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'
             }`}
           >
             <div className="text-left">
@@ -138,12 +138,12 @@ function DraggableSuggestion({
   const isProductName = suggestion.type === 'product_name';
 
   const priorityColors = {
-    high: 'border-red-200 bg-red-50',
-    medium: 'border-yellow-200 bg-yellow-50',
-    low: 'border-green-200 bg-green-50',
+    high: 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30',
+    medium: 'border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/30',
+    low: 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30',
   };
 
-  const productNameColors = 'border-purple-300 bg-gradient-to-r from-purple-50 to-pink-50';
+  const productNameColors = 'border-purple-300 dark:border-purple-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30';
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/json', JSON.stringify(suggestion));
@@ -188,53 +188,53 @@ function DraggableSuggestion({
             className="flex-shrink-0"
           >
             {isExpanded ? (
-              <ChevronDownIcon className="h-4 w-4 text-gray-600" />
+              <ChevronDownIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             ) : (
-              <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+              <ChevronRightIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             )}
           </button>
 
           {/* Clear section targeting */}
           <div className="flex items-center space-x-2 flex-1 min-w-0">
             <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${
-              isProductName ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+              isProductName ? 'bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200'
             }`}>
               {sectionLabels[suggestion.section as keyof typeof sectionLabels] || suggestion.section}
             </span>
-            <span className="text-sm text-gray-900 truncate">
+            <span className="text-sm text-gray-900 dark:text-white truncate">
               {isProductName ? `"${suggestion.title}"` : suggestion.shortDescription}
             </span>
           </div>
         </div>
-        <span className="text-xs text-gray-500 ml-2 flex-shrink-0">Drag →</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 flex-shrink-0">Drag →</span>
       </div>
 
       {/* EXPANDED DETAILS only when arrow clicked */}
       {isExpanded && (
-        <div className="px-3 pb-3 ml-6 space-y-3 border-t border-gray-200 pt-3">
+        <div className="px-3 pb-3 ml-6 space-y-3 border-t border-gray-200 dark:border-gray-700 pt-3">
           {isProductName && suggestion.reasoning && (
-            <div className="bg-purple-50 border border-purple-100 rounded p-3 mb-3">
-              <h5 className="text-xs font-semibold text-purple-900 uppercase tracking-wide mb-2">
+            <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-100 dark:border-purple-800 rounded p-3 mb-3">
+              <h5 className="text-xs font-semibold text-purple-900 dark:text-purple-200 uppercase tracking-wide mb-2">
                 💡 Why This Name
               </h5>
-              <p className="text-sm text-purple-800 leading-relaxed">
+              <p className="text-sm text-purple-800 dark:text-purple-200 leading-relaxed">
                 {suggestion.reasoning}
               </p>
             </div>
           )}
 
           <div>
-            <p className="text-sm text-gray-700 leading-relaxed">
+            <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
               {suggestion.fullDescription}
             </p>
           </div>
 
           {suggestion.citations.length > 0 && (
             <div>
-              <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+              <h5 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">
                 Sources
               </h5>
-              <ul className="text-xs text-gray-600 space-y-1">
+              <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1">
                 {suggestion.citations.map((citation, index) => (
                   <li key={index} className="flex items-start">
                     <span className="mr-1">•</span>
@@ -246,14 +246,14 @@ function DraggableSuggestion({
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center space-x-2 pt-2 border-t border-gray-200">
+          <div className="flex items-center space-x-2 pt-2 border-t border-gray-200 dark:border-gray-700">
             {onDelete && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(suggestion.id);
                 }}
-                className="flex items-center space-x-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors"
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                 title="Delete this suggestion"
               >
                 <TrashIcon className="h-3 w-3" />
@@ -266,7 +266,7 @@ function DraggableSuggestion({
                   e.stopPropagation();
                   onShelve(suggestion.id);
                 }}
-                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                 title="Shelve for later review"
               >
                 <ArchiveBoxIcon className="h-3 w-3" />
@@ -279,7 +279,7 @@ function DraggableSuggestion({
                   e.stopPropagation();
                   onMoveToFuture(suggestion.id);
                 }}
-                className="flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
                 title="Move to future version"
               >
                 <ClockIcon className="h-3 w-3" />
@@ -341,9 +341,9 @@ function PRDItemComponent({
             className="flex-shrink-0"
           >
             {isExpanded ? (
-              <ChevronDownIcon className="h-4 w-4 text-gray-600" />
+              <ChevronDownIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             ) : (
-              <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+              <ChevronRightIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             )}
           </button>
 
@@ -491,10 +491,10 @@ function MessageInput({
   const [text, setText] = useState('');
 
   return (
-    <div className="border-t border-gray-200 bg-gray-50 p-4">
+    <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4">
       <div className="flex gap-3">
         <input
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
           placeholder={placeholder}
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -588,18 +588,18 @@ function PRDSectionPanel({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-xl">
         <h2 className="text-lg font-bold text-white">Phase {phase}: {phaseNames[phase as keyof typeof phaseNames]}</h2>
         <p className="text-blue-100 text-sm">Drag AI suggestions here to build your PRD</p>
       </div>
 
-      <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+      <div className="flex-1 p-6 space-y-6 overflow-y-auto dark:bg-gray-800">
         {sections?.map((section) => (
           <div key={section.id} className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center group relative">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                   <DocumentTextIcon className="h-5 w-5 text-blue-600 mr-2" />
                   {section.name}
                 </h3>
@@ -634,7 +634,7 @@ function PRDSectionPanel({
             </div>
 
             <div
-              className="min-h-[120px] border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 transition-colors bg-gray-50"
+              className="min-h-[120px] border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 transition-colors bg-gray-50 dark:bg-gray-800"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, section.id)}
             >
@@ -642,7 +642,7 @@ function PRDSectionPanel({
               {section.id === 'executive_summary' && productName !== undefined && onProductNameChange && (
                 <div className="p-4 pb-0">
                   <div className="mb-4">
-                    <label htmlFor="productName" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="productName" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Product Name
                     </label>
                     <input
@@ -651,7 +651,7 @@ function PRDSectionPanel({
                       value={productName}
                       onChange={(e) => onProductNameChange(e.target.value)}
                       placeholder="Enter your product name..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -674,8 +674,8 @@ function PRDSectionPanel({
 
                   {/* Shelved Items */}
                   {section.items.filter(item => item.status === 'shelved').length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-600 mb-2">Shelved Items</h4>
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Shelved Items</h4>
                       {section.items.filter(item => item.status === 'shelved').map((item) => (
                         <PRDItemComponent
                           key={item.id}
@@ -691,8 +691,8 @@ function PRDSectionPanel({
 
                   {/* Future Items */}
                   {section.items.filter(item => item.status === 'future').length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <h4 className="text-sm font-medium text-gray-600 mb-2">Future Version</h4>
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <h4 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Future Version</h4>
                       {section.items.filter(item => item.status === 'future').map((item) => (
                         <PRDItemComponent
                           key={item.id}
@@ -708,10 +708,10 @@ function PRDSectionPanel({
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="text-gray-400 mb-2">
+                  <div className="text-gray-400 dark:text-gray-500 mb-2">
                     <DocumentTextIcon className="h-8 w-8 mx-auto" />
                   </div>
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
                     Drag AI suggestions here or describe what you want to add
                   </p>
                 </div>
@@ -798,9 +798,9 @@ Mention any technical requirements or constraints
 Include business goals and success metrics if known`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
       <div className="max-w-3xl w-full mx-auto px-4">
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
           {/* Header with title and import button */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -810,8 +810,8 @@ Include business goals and success metrics if known`;
                 </svg>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Start Your Project</h1>
-                <p className="text-gray-600 mt-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Start Your Project</h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">
                   Describe your product idea and we'll help you build a comprehensive PRD
                 </p>
               </div>
@@ -830,7 +830,7 @@ Include business goals and success metrics if known`;
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label htmlFor="productIdea" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="productIdea" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 What do you want to build?
               </label>
               <textarea
@@ -838,7 +838,7 @@ Include business goals and success metrics if known`;
                 value={productIdea}
                 onChange={(e) => setProductIdea(e.target.value)}
                 placeholder={placeholderText}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-400"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder-gray-400 dark:placeholder-gray-500"
                 rows={6}
                 required
               />
@@ -855,7 +855,7 @@ Include business goals and success metrics if known`;
             {/* AI-Generated Examples */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   💡 Need inspiration? AI-generated examples:
                 </p>
                 {!isLoadingExamples && (
@@ -876,9 +876,9 @@ Include business goals and success metrics if known`;
               {isLoadingExamples ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                    <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
                   ))}
-                  <p className="text-xs text-center text-gray-500 mt-2">Generating fresh AI ideas...</p>
+                  <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">Generating fresh AI ideas...</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -887,7 +887,7 @@ Include business goals and success metrics if known`;
                       key={index}
                       type="button"
                       onClick={() => handleExampleClick(example)}
-                      className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors text-sm text-gray-700"
+                      className="w-full text-left p-3 bg-blue-50 dark:bg-gray-700 hover:bg-blue-100 dark:hover:bg-gray-600 border border-blue-200 dark:border-gray-600 rounded-lg transition-colors text-sm text-gray-700 dark:text-gray-200"
                     >
                       {example}
                     </button>
@@ -1303,6 +1303,12 @@ function CreatePage() {
         alert(`Cannot create PRD: ${parseData.message}\n\nMissing:\n${parseData.missingInfo.join('\n')}`);
         setGeneratingPRD(false);
         return;
+      }
+
+      // Set product name if extracted from prompt
+      if (parseData.productName) {
+        console.log('📛 Setting product name from prompt:', parseData.productName);
+        setProductName(parseData.productName);
       }
 
       console.log('✅ PRD auto-generated from prompt');
@@ -2649,12 +2655,12 @@ function CreatePage() {
   console.log('🎨 Rendering PRD Builder');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">PRD Builder</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">PRD Builder</h1>
             <div className="flex items-center gap-3">
               {projectId && productIdea && (
                 <PRDExportButton project={{ id: projectId, name: productIdea }} />
@@ -2697,20 +2703,20 @@ function CreatePage() {
 
           {/* Collapsible Product Idea Display */}
           {productIdea && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setPromptExpanded(!promptExpanded)}
-                className="flex items-start space-x-2 w-full text-left hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                className="flex items-start space-x-2 w-full text-left hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors"
               >
                 {promptExpanded ? (
-                  <ChevronDownIcon className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <ChevronRightIcon className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <ChevronRightIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-700 mb-1">Product Idea</div>
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Product Idea</div>
                   <div
-                    className={`text-sm text-gray-600 transition-all duration-300 ${
+                    className={`text-sm text-gray-600 dark:text-gray-300 transition-all duration-300 ${
                       promptExpanded ? '' : 'line-clamp-1'
                     }`}
                   >
@@ -2724,7 +2730,7 @@ function CreatePage() {
       </div>
 
       {/* Progress Actions */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -2793,16 +2799,16 @@ function CreatePage() {
           </div>
           {/* RIGHT: AI Suggestions & Chat */}
           <div className="col-span-1">
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col">
               {/* Tabs */}
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200 rounded-t-xl">
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-700 rounded-t-xl">
                 <div className="flex">
                   <button
                     onClick={() => setRightPanelTab('suggestions')}
                     className={`flex-1 px-6 py-4 text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
                       rightPanelTab === 'suggestions'
-                        ? 'text-purple-700 border-b-2 border-purple-600 bg-white/50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/30'
+                        ? 'text-purple-700 dark:text-purple-300 border-b-2 border-purple-600 dark:border-purple-400 bg-white/50 dark:bg-gray-800/50'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/30 dark:hover:bg-gray-800/30'
                     }`}
                   >
                     <SparklesIcon className="h-5 w-5" />
@@ -2812,8 +2818,8 @@ function CreatePage() {
                     onClick={() => setRightPanelTab('chat')}
                     className={`flex-1 px-6 py-4 text-sm font-semibold flex items-center justify-center space-x-2 transition-colors ${
                       rightPanelTab === 'chat'
-                        ? 'text-purple-700 border-b-2 border-purple-600 bg-white/50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-white/30'
+                        ? 'text-purple-700 dark:text-purple-300 border-b-2 border-purple-600 dark:border-purple-400 bg-white/50 dark:bg-gray-800/50'
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/30 dark:hover:bg-gray-800/30'
                     }`}
                   >
                     <ChatBubbleLeftRightIcon className="h-5 w-5" />
@@ -2850,18 +2856,18 @@ function CreatePage() {
                       />
                     ))}
                     {isLoading && (
-                      <div className="flex items-center justify-center py-6 border-t border-gray-200 mt-3 pt-3">
+                      <div className="flex items-center justify-center py-6 border-t border-gray-200 dark:border-gray-700 mt-3 pt-3">
                         <div className="text-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 mx-auto mb-2"></div>
-                          <p className="text-gray-600 text-xs">Generating more suggestions...</p>
+                          <p className="text-gray-600 dark:text-gray-300 text-xs">Generating more suggestions...</p>
                         </div>
                       </div>
                     )}
 
                     {/* Shelved Suggestions */}
                     {(shelvedSuggestions[currentPhase] || []).length > 0 && (
-                      <div className="mt-4 pt-4 border-t-2 border-gray-300">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <div className="mt-4 pt-4 border-t-2 border-gray-300 dark:border-gray-600">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
                           <ArchiveBoxIcon className="h-4 w-4 mr-1" />
                           Shelved ({(shelvedSuggestions[currentPhase] || []).length})
                         </h4>
@@ -2883,8 +2889,8 @@ function CreatePage() {
 
                     {/* Future Version Suggestions */}
                     {(futureSuggestions[currentPhase] || []).length > 0 && (
-                      <div className="mt-4 pt-4 border-t-2 border-gray-300">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <div className="mt-4 pt-4 border-t-2 border-gray-300 dark:border-gray-600">
+                        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
                           <ClockIcon className="h-4 w-4 mr-1" />
                           Future Version ({(futureSuggestions[currentPhase] || []).length})
                         </h4>
@@ -2908,14 +2914,14 @@ function CreatePage() {
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-3"></div>
-                      <p className="text-gray-600 text-sm">Generating suggestions...</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm">Generating suggestions...</p>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <SparklesIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">No suggestions yet</h4>
-                    <p className="text-gray-500 text-sm">
+                    <SparklesIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                    <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No suggestions yet</h4>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
                       Send a message to get AI-powered suggestions for Phase {currentPhase}
                     </p>
                   </div>

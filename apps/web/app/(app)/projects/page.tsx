@@ -50,6 +50,7 @@ export default function ProjectsLibraryPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'projects' | 'archives'>('projects');
   const [isLoadingArchives, setIsLoadingArchives] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -190,8 +191,17 @@ export default function ProjectsLibraryPage() {
   }
 
   async function handleDeleteProject(projectId: string) {
+    // Prevent double-clicks
+    if (deletingProjectId) {
+      console.log('⚠️ Delete already in progress, ignoring duplicate request');
+      return;
+    }
+
     // Find project to get name for archive
     const project = projects.find(p => p.id === projectId);
+
+    // Set loading state
+    setDeletingProjectId(projectId);
 
     // Call cleanup API to delete build files (which now archives first)
     try {
@@ -230,10 +240,16 @@ export default function ProjectsLibraryPage() {
           }
         });
       } else {
-        console.error('Failed to cleanup builds:', await response.text());
+        const errorText = await response.text();
+        console.error('Failed to cleanup builds:', errorText);
+        alert(`Failed to delete project: ${errorText}`);
       }
     } catch (error) {
       console.error('Error calling cleanup API:', error);
+      alert(`Error deleting project: ${(error as Error).message}`);
+    } finally {
+      // Clear loading state
+      setDeletingProjectId(null);
     }
 
     // Remove project from localStorage
@@ -527,18 +543,34 @@ export default function ProjectsLibraryPage() {
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Project?</h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this project? This action cannot be undone.
+              {deletingProjectId ? (
+                <>Archiving project and deleting files... This may take up to a minute for large projects.</>
+              ) : (
+                <>Are you sure you want to delete this project? It will be archived and can be restored within 30 days.</>
+              )}
             </p>
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => handleDeleteProject(showDeleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                disabled={deletingProjectId !== null}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Delete
+                {deletingProjectId ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                disabled={deletingProjectId !== null}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
