@@ -21,9 +21,7 @@ import { DesignProfileDetector } from './design-intelligence/profile-detector';
 import type { DesignProfile } from './design-intelligence/types';
 import { getTemplateForComponent } from './component-templates';
 import { ContextBuilder, type PRDContext, type ComponentContext, type BuildContext } from './context-builder';
-// Old OpenRouter imports - kept for backward compatibility
-import { DesignSystemGenerator, type DesignSpec } from './archived/openrouter/design-system-generator';
-import { AIComponentGenerator } from './archived/openrouter/ai-component-generator';
+import type { DesignSpec } from './archived/openrouter/design-system-generator'; // Type-only import
 import { reviewBuild, areReviewsEnabled, setReviewEnabled } from './post-build-review';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -437,12 +435,10 @@ export class BuildOrchestrator extends EventEmitter {
   private appTypeDetector: AppTypeDetector;
   private dependencyAnalyzer: DependencyAnalyzer;
   private parallelBuilder: ParallelBuilder;
-  private designSystemGenerator: DesignSystemGenerator;
   private designIntelligence: DesignIntelligence;
   private designPolisher: DesignPolisher;
   private designTokenInjector: DesignTokenInjector;
   private designProfileDetector: DesignProfileDetector;
-  private aiComponentGenerator: AIComponentGenerator;
   private appConfig: any;
   private productIdea: string = ''; // Store product idea for design generation
   private prdContext: PRDContext | null = null; // Full PRD context for v0.dev-quality generation
@@ -458,14 +454,10 @@ export class BuildOrchestrator extends EventEmitter {
     this.state = this.initializeState();
     this.apiKey = apiKey || '';
     this.projectId = projectId || '1';
-    this.designSystemGenerator = new DesignSystemGenerator();
     this.designIntelligence = new DesignIntelligence(this.apiKey);
     this.designPolisher = new DesignPolisher(this.apiKey);
     this.designTokenInjector = new DesignTokenInjector();
     this.designProfileDetector = new DesignProfileDetector(this.apiKey);
-    // Use Gemini 2.5 Flash for 5-10x faster component generation
-    // Quality is still excellent but latency is ~2-4s vs 15-20s for Claude
-    this.aiComponentGenerator = new AIComponentGenerator(this.apiKey, 'google/gemini-2.5-flash');
 
     // Initialize new components
     this.appTypeDetector = new AppTypeDetector();

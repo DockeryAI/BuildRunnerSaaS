@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { BuildTask } from './task-list-generator-v2';
-import { ClaudeBuildEngine } from './claude-build-engine';
+import { ClaudeCLIEngine } from './claude-cli-engine'; // Use Claude CLI (spawns actual claude command)
 import { gitManager } from './git-manager';
 import { buildStateManager } from './build-state-manager';
 import { dependencyDetector } from './dependency-detector';
@@ -20,14 +20,14 @@ export interface TaskExecutorConfig {
 }
 
 /**
- * Executes build tasks sequentially using Claude Build Engine
+ * Executes build tasks sequentially using Claude CLI Engine
  */
 export class ClaudeTaskExecutorV2 extends EventEmitter {
-  private buildEngine: ClaudeBuildEngine;
+  private buildEngine: ClaudeCLIEngine;
   private config: TaskExecutorConfig;
   private currentTaskId?: string;
 
-  constructor(config: TaskExecutorConfig, buildEngine: ClaudeBuildEngine) {
+  constructor(config: TaskExecutorConfig, buildEngine: ClaudeCLIEngine) {
     super();
     this.config = {
       maxRetries: 3,

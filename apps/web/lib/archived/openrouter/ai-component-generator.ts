@@ -20,6 +20,7 @@ type PRDContext = any;
 type ComponentContext = any;
 type DesignSpec = any;
 type ComponentSpec = any;
+type CatalystIntegrator = any; // Stub for archived code
 
 export interface GenerationResult {
   code: string;
@@ -41,7 +42,7 @@ export class AIComponentGenerator {
   constructor(apiKey: string, model: string = 'anthropic/claude-3.5-sonnet') {
     this.apiKey = apiKey;
     this.model = model;
-    this.catalystIntegrator = new CatalystIntegrator();
+    this.catalystIntegrator = null as any; // Stubbed for archived code
   }
 
   /**
