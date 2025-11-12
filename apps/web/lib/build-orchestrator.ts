@@ -46,6 +46,8 @@ import { gitManager } from './git-manager';
 import { handoffGenerator } from './handoff-generator';
 import { gapAnalyzerV2 } from './gap-analyzer-v2';
 import { performanceMetricsManager, type PerformanceMetrics } from './performance-metrics';
+import { BuildVerifier } from './build-verifier';
+import { prdWatcherManager } from './prd-watcher';
 
 const execAsync = promisify(exec);
 
@@ -3912,6 +3914,96 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
   }
 
   /**
+   * Verification loop - ensures build meets PRD requirements
+   */
+  private async runVerificationLoop(
+    prd: any,
+    projectPath: string,
+    claudeEngine: ClaudeCLIEngine,
+    executor: ClaudeTaskExecutorV2
+  ): Promise<void> {
+    const MAX_ITERATIONS = 5;
+    const MIN_CONFIDENCE = 85;
+
+    this.emit('log', { level: 'info', message: '🔍 Starting PRD verification loop...' });
+
+    const verifier = new BuildVerifier(claudeEngine, projectPath);
+
+    for (let iteration = 1; iteration <= MAX_ITERATIONS; iteration++) {
+      this.emit('verification:iteration', { iteration, max: MAX_ITERATIONS });
+      this.emit('log', {
+        level: 'info',
+        message: `🔄 Verification iteration ${iteration}/${MAX_ITERATIONS}`
+      });
+
+      // Verify build against PRD
+      const result = await verifier.verifyAgainstPRD(prd);
+
+      // Check if complete
+      if (result.complete && result.confidence >= MIN_CONFIDENCE) {
+        this.emit('build:verified-complete', {
+          iterations: iteration,
+          confidence: result.confidence
+        });
+        this.emit('log', {
+          level: 'success',
+          message: `✅ Build verified complete! (${result.confidence}% confidence)`
+        });
+        return;
+      }
+
+      // Check for gaps
+      if (result.gaps.length === 0) {
+        this.emit('log', {
+          level: 'warn',
+          message: 'No gaps found but build not marked complete. Ending verification.'
+        });
+        break;
+      }
+
+      // Emit gaps found
+      this.emit('verification:gaps-found', {
+        gapCount: result.gaps.length,
+        gaps: result.gaps
+      });
+
+      this.emit('log', {
+        level: 'warn',
+        message: `⚠️  Found ${result.gaps.length} gaps, generating tasks to address them...`
+      });
+
+      // Generate tasks for gaps
+      const gapTasks = this.generateTasksForGaps(result.gaps);
+
+      // Execute gap-filling tasks
+      await executor.executeTasks(gapTasks);
+    }
+
+    // Max iterations reached
+    this.emit('verification:max-iterations-reached', { iterations: MAX_ITERATIONS });
+    this.emit('log', {
+      level: 'warn',
+      message: `⚠️  Max verification iterations (${MAX_ITERATIONS}) reached`
+    });
+  }
+
+  /**
+   * Generate tasks from verification gaps
+   */
+  private generateTasksForGaps(gaps: any[]): any[] {
+    return gaps.map((gap, index) => ({
+      id: `gap-fix-${index + 1}`,
+      description: `Fix gap: ${gap.description}`,
+      type: 'component',
+      dependencies: [],
+      estimatedComplexity: gap.severity === 'critical' ? 'high' : gap.severity === 'high' ? 'medium' : 'low',
+      priority: gap.severity === 'critical' ? 10 : gap.severity === 'high' ? 8 : 6,
+      status: 'pending',
+      prompt: `Address this gap in the build:\n\nFeature: ${gap.feature}\nIssue: ${gap.description}\nSeverity: ${gap.severity}\n\nSuggested tasks:\n${gap.suggestedTasks.map((t: string, i: number) => `${i + 1}. ${t}`).join('\n')}`
+    }));
+  }
+
+  /**
    * CLAUDE CLI BUILD ENGINE
    * Builds project using Claude CLI with ~/Projects/ directory structure
    */
@@ -4165,6 +4257,11 @@ ${Array.from(this.actionHistory.entries()).slice(-5).map(([action, count]) => `-
           level: 'info',
           message: `📊 Build completed in ${this.formatDuration(performanceReport.totalDuration)} (${performanceReport.taskMetrics.completed} tasks)`
         });
+
+        // Run PRD verification loop
+        if (config.prd && process.env.ENABLE_PRD_VERIFICATION !== 'false') {
+          await this.runVerificationLoop(config.prd, projectPath, claudeEngine, claudeExecutor);
+        }
 
         if (gapReport.gaps.length > 0) {
           this.emit('log', {
